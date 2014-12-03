@@ -127,4 +127,13 @@ uint8_t cc2420_get_interrupt_enable(void);
 #define NETSTACK_RADIO_set_txpower(X)           cc2420_set_txpower(X)
 #define NETSTACK_RADIO_set_cca_threshold(X)     cc2420_set_cca_threshold(X)
 
+/* Read status of the CC2420 */
+#define CC2420_GET_STATUS(s)                       \
+  do {                                          \
+    CC2420_SPI_ENABLE();                        \
+    SPI_WRITE(CC2420_SNOP);                     \
+    s = SPI_RXBUF;                              \
+    CC2420_SPI_DISABLE();                       \
+  } while (0)
+
 #endif /* CC2420_H_ */

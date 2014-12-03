@@ -134,6 +134,13 @@ static const struct output_config output_power[] = {
 
 void cc2420_arch_init(void);
 
+#define BUSYWAIT_UNTIL(cond, max_time)                                  \
+  do {                                                                  \
+    rtimer_clock_t t0;                                                  \
+    t0 = RTIMER_NOW();                                                  \
+    while(!(cond) && RTIMER_CLOCK_LT(RTIMER_NOW(), t0 + (max_time)));   \
+  } while(0)
+
 /* XXX hack: these will be made as Chameleon packet attributes */
 rtimer_clock_t cc2420_time_of_arrival, cc2420_time_of_departure;
 
@@ -320,6 +327,14 @@ strobe(enum cc2420_register regname)
   CC2420_SPI_ENABLE();
   SPI_WRITE(regname);
   CC2420_SPI_DISABLE();
+}
+/*---------------------------------------------------------------------------*/
+static unsigned int
+status(void)
+{
+  uint8_t status;
+  CC2420_GET_STATUS(status);
+  return status;
 }
 /*---------------------------------------------------------------------------*/
 /* Reads a register */

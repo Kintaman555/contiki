@@ -40,7 +40,7 @@
 
 #include "contiki-conf.h"
 #include "net/netstack.h"
-#include "net/uip-ds6-nbr.h"
+#include "net/ipv6/uip-ds6-nbr.h"
 #include "net/mac/tsch/tsch.h"
 #include "net/mac/tsch/tsch-schedule.h"
 #include "lib/random.h"
