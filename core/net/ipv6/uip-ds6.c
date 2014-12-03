@@ -130,9 +130,11 @@ uip_ds6_init(void)
   stimer_set(&uip_ds6_timer_ra, 2);     /* wait to have a link local IP address */
 #endif /* UIP_ND6_SEND_RA */
 #else /* UIP_CONF_ROUTER */
+#if UIP_ND6_SEND_RA
   etimer_set(&uip_ds6_timer_rs,
              random_rand() % (UIP_ND6_MAX_RTR_SOLICITATION_DELAY *
                               CLOCK_SECOND));
+#endif /* UIP_ND6_SEND_RA */
 #endif /* UIP_CONF_ROUTER */
   etimer_set(&uip_ds6_timer_periodic, UIP_DS6_PERIOD);
 
@@ -670,6 +672,7 @@ uip_ds6_send_ra_periodic(void)
 
 #endif /* UIP_ND6_SEND_RA */
 #else /* UIP_CONF_ROUTER */
+#if UIP_ND6_SEND_RA
 /*---------------------------------------------------------------------------*/
 void
 uip_ds6_send_rs(void)
@@ -688,7 +691,7 @@ uip_ds6_send_rs(void)
   }
   return;
 }
-
+#endif /* UIP_ND6_SEND_RA */
 #endif /* UIP_CONF_ROUTER */
 /*---------------------------------------------------------------------------*/
 uint32_t

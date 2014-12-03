@@ -328,8 +328,10 @@ void uip_ds6_send_ra_sollicited(void);
 void uip_ds6_send_ra_periodic(void);
 #endif /* UIP_ND6_SEND_RA */
 #else /* UIP_CONF_ROUTER */
+#if UIP_ND6_SEND_RA
 /** \brief Send periodic RS to find router */
 void uip_ds6_send_rs(void);
+#endif /* UIP_ND6_SEND_RA */
 #endif /* UIP_CONF_ROUTER */
 
 /** \brief Compute the reachable time based on base reachable time, see RFC 4861*/

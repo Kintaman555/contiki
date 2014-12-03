@@ -34,6 +34,7 @@
 
 #include "sys/stimer.h"
 #include "lib/list.h"
+#include "net/rpl/rpl-conf.h"
 
 void uip_ds6_route_init(void);
 
@@ -144,6 +145,7 @@ void uip_ds6_defrt_periodic(void);
 
 /** \name Routing Table basic routines */
 /** @{ */
+#if !DISABLE_ROUTING
 uip_ds6_route_t *uip_ds6_route_lookup(uip_ipaddr_t *destipaddr);
 uip_ds6_route_t *uip_ds6_route_add(uip_ipaddr_t *ipaddr, uint8_t length,
                                    uip_ipaddr_t *next_hop);
@@ -154,6 +156,16 @@ uip_ipaddr_t *uip_ds6_route_nexthop(uip_ds6_route_t *);
 int uip_ds6_route_num_routes(void);
 uip_ds6_route_t *uip_ds6_route_head(void);
 uip_ds6_route_t *uip_ds6_route_next(uip_ds6_route_t *);
+#else
+#define uip_ds6_route_lookup(destipaddr) NULL
+#define  uip_ds6_route_add(ipaddr, length, next_hop) NULL
+#define uip_ds6_route_rm(route)
+#define uip_ds6_route_rm_by_nexthop(nexthop) NULL
+#define uip_ds6_route_nexthop(route) NULL
+#define uip_ds6_route_num_routes() 0
+#define uip_ds6_route_head() NULL
+#define uip_ds6_route_next(route) NULL
+#endif /* !DISABLE_ROUTING */
 
 /** @} */
 
