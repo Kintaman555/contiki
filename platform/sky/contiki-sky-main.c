@@ -303,8 +303,13 @@ main(int argc, char **argv)
                          NETSTACK_RDC.channel_check_interval()),
          RF_CHANNEL);
 
+#ifndef WITH_SLIP_RADIO
   process_start(&tcpip_process, NULL);
-
+#else
+#if WITH_SLIP_RADIO == 0
+  process_start(&tcpip_process, NULL);
+#endif
+#endif /* WITH_SLIP_RADIO */
   printf("Tentative link-local IPv6 address ");
   {
     uip_ds6_addr_t *lladdr;
