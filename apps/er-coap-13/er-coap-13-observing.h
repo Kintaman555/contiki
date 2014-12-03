@@ -47,6 +47,10 @@
 #define COAP_MAX_OBSERVERS    COAP_MAX_OPEN_TRANSACTIONS-1
 #endif /* COAP_MAX_OBSERVERS */
 
+#ifndef COAP_OBSERVE_RETURNS_REPRESENTATION
+#define COAP_OBSERVE_RETURNS_REPRESENTATION    0
+#endif /* COAP_OBSERVE_RETURNS_REPRESENTATION */
+
 /* Interval in seconds in which NON notifies are changed to CON notifies to check client. */
 #define COAP_OBSERVING_REFRESH_INTERVAL  60
 
