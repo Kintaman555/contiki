@@ -54,18 +54,17 @@ const rimeaddr_t rimeaddr_null = { { 0, 0, 0, 0, 0, 0, 0, 0 } };
 #endif /*RIMEADDR_SIZE == 8*/
 #endif /*RIMEADDR_SIZE == 2*/
 
-
 /*---------------------------------------------------------------------------*/
 void
 rimeaddr_copy(rimeaddr_t *dest, const rimeaddr_t *src)
 {
-	memcpy(dest, src, RIMEADDR_SIZE);
+  memcpy(&dest->u8[0], &src->u8[0], RIMEADDR_SIZE);
 }
 /*---------------------------------------------------------------------------*/
 int
 rimeaddr_cmp(const rimeaddr_t *addr1, const rimeaddr_t *addr2)
 {
-	return (memcmp(addr1, addr2, RIMEADDR_SIZE) == 0);
+  return (memcmp((void*)addr1, (void*)addr2, RIMEADDR_SIZE) == 0);
 }
 /*---------------------------------------------------------------------------*/
 void
