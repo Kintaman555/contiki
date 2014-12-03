@@ -277,26 +277,26 @@ rime_sniffer_remove(struct rime_sniffer *s)
 static void
 set_packet_attrs()
 {
-  int c = 0;
-  /* set protocol in NETWORK_ID */
-  packetbuf_set_attr(PACKETBUF_ATTR_NETWORK_ID, UIP_IP_BUF->proto);
-
-  /* assign values to the channel attribute (port or type + code) */
-  if(UIP_IP_BUF->proto == UIP_PROTO_UDP) {
-    c = UIP_UDP_BUF->srcport;
-    if(UIP_UDP_BUF->destport < c) {
-      c = UIP_UDP_BUF->destport;
-    }
-  } else if(UIP_IP_BUF->proto == UIP_PROTO_TCP) {
-    c = UIP_TCP_BUF->srcport;
-    if(UIP_TCP_BUF->destport < c) {
-      c = UIP_TCP_BUF->destport;
-    }
-  } else if(UIP_IP_BUF->proto == UIP_PROTO_ICMP6) {
-    c = UIP_ICMP_BUF->type << 8 | UIP_ICMP_BUF->icode;
-  }
-
-  packetbuf_set_attr(PACKETBUF_ATTR_CHANNEL, c);
+//  int c = 0;
+//  /* set protocol in NETWORK_ID */
+//  packetbuf_set_attr(PACKETBUF_ATTR_NETWORK_ID, UIP_IP_BUF->proto);
+//
+//  /* assign values to the channel attribute (port or type + code) */
+//  if(UIP_IP_BUF->proto == UIP_PROTO_UDP) {
+//    c = UIP_UDP_BUF->srcport;
+//    if(UIP_UDP_BUF->destport < c) {
+//      c = UIP_UDP_BUF->destport;
+//    }
+//  } else if(UIP_IP_BUF->proto == UIP_PROTO_TCP) {
+//    c = UIP_TCP_BUF->srcport;
+//    if(UIP_TCP_BUF->destport < c) {
+//      c = UIP_TCP_BUF->destport;
+//    }
+//  } else if(UIP_IP_BUF->proto == UIP_PROTO_ICMP6) {
+//    c = UIP_ICMP_BUF->type << 8 | UIP_ICMP_BUF->icode;
+//  }
+//
+//  packetbuf_set_attr(PACKETBUF_ATTR_CHANNEL, c);
 
 /*   if(uip_ds6_is_my_addr(&UIP_IP_BUF->srcipaddr)) { */
 /*     own = 1; */
@@ -1372,8 +1372,8 @@ output(uip_lladdr_t *localdest)
   packetbuf_clear();
   rime_ptr = packetbuf_dataptr();
 
-  packetbuf_set_attr(PACKETBUF_ATTR_MAX_MAC_TRANSMISSIONS,
-                     SICSLOWPAN_MAX_MAC_TRANSMISSIONS);
+//  packetbuf_set_attr(PACKETBUF_ATTR_MAX_MAC_TRANSMISSIONS,
+//                     SICSLOWPAN_MAX_MAC_TRANSMISSIONS);
 
   if(callback) {
     /* call the attribution when the callback comes, but set attributes
@@ -1384,17 +1384,17 @@ output(uip_lladdr_t *localdest)
 #define TCP_FIN 0x01
 #define TCP_ACK 0x10
 #define TCP_CTL 0x3f
-  /* Set stream mode for all TCP packets, except FIN packets. */
-  if(UIP_IP_BUF->proto == UIP_PROTO_TCP &&
-     (UIP_TCP_BUF->flags & TCP_FIN) == 0 &&
-     (UIP_TCP_BUF->flags & TCP_CTL) != TCP_ACK) {
-    packetbuf_set_attr(PACKETBUF_ATTR_PACKET_TYPE,
-                       PACKETBUF_ATTR_PACKET_TYPE_STREAM);
-  } else if(UIP_IP_BUF->proto == UIP_PROTO_TCP &&
-            (UIP_TCP_BUF->flags & TCP_FIN) == TCP_FIN) {
-    packetbuf_set_attr(PACKETBUF_ATTR_PACKET_TYPE,
-                       PACKETBUF_ATTR_PACKET_TYPE_STREAM_END);
-  }
+//  /* Set stream mode for all TCP packets, except FIN packets. */
+//  if(UIP_IP_BUF->proto == UIP_PROTO_TCP &&
+//     (UIP_TCP_BUF->flags & TCP_FIN) == 0 &&
+//     (UIP_TCP_BUF->flags & TCP_CTL) != TCP_ACK) {
+//    packetbuf_set_attr(PACKETBUF_ATTR_PACKET_TYPE,
+//                       PACKETBUF_ATTR_PACKET_TYPE_STREAM);
+//  } else if(UIP_IP_BUF->proto == UIP_PROTO_TCP &&
+//            (UIP_TCP_BUF->flags & TCP_FIN) == TCP_FIN) {
+//    packetbuf_set_attr(PACKETBUF_ATTR_PACKET_TYPE,
+//                       PACKETBUF_ATTR_PACKET_TYPE_STREAM_END);
+//  }
 
   /*
    * The destination address will be tagged to each outbound
@@ -1441,8 +1441,8 @@ output(uip_lladdr_t *localdest)
 
   /* We must set the max transmissions attribute again after clearing
      the buffer. */
-  packetbuf_set_attr(PACKETBUF_ATTR_MAX_MAC_TRANSMISSIONS,
-                     SICSLOWPAN_MAX_MAC_TRANSMISSIONS);
+//  packetbuf_set_attr(PACKETBUF_ATTR_MAX_MAC_TRANSMISSIONS,
+//                     SICSLOWPAN_MAX_MAC_TRANSMISSIONS);
 #else /* USE_FRAMER_HDRLEN */
   framer_hdrlen = 21;
 #endif /* USE_FRAMER_HDRLEN */
