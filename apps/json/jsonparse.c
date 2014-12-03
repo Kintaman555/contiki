@@ -167,7 +167,8 @@ jsonparse_next(struct jsonparse_state *state)
     }
     return c;
   case '[':
-    if(s == '{' || s == '[' || s == ':') {
+    /* if(s == '{' || s == '[' || s == ':') { */
+    if(1) {
       push(state, c);
     } else {
       state->error = JSON_ERROR_UNEXPECTED_ARRAY;
@@ -180,6 +181,9 @@ jsonparse_next(struct jsonparse_state *state)
         atomic(state, JSON_TYPE_NUMBER);
         return JSON_TYPE_NUMBER;
       }
+    }
+    if(state->depth != 0) {
+      state->error = JSON_ERROR_SYNTAX;
     }
   }
   return 0;
