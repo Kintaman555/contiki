@@ -39,14 +39,14 @@ VERSION ?= 0
 
 ifndef SDK_BASE_DIR
   $(warning SDK_BASE_DIR not defined! You must specify where NXP SDK resides!)   
-  SDK_BASE_DIR = /cygdrive/C/Jennic
+  SDK_BASE_DIR = /cygdrive/c/Jennic
   #SDK_BASE_DIR ?= $(abspath $(CONTIKI)/platform/jn5168/Jennic)  
   $(warning Defaulting to $(SDK_BASE_DIR))
 endif
 
 CONTIKI_PLATFORM_BASE_DIR = ${CONTIKI}/platform/jn5168
-TOOL_BASE_DIR ?= $(SDK_BASE_DIR)/Tools
-SUBWCREV ?= $(TOOL_BASE_DIR)/TortoiseSVN/bin/subwcrev.exe
+TOOL_BASE_DIR = $(SDK_BASE_DIR)/Tools
+SUBWCREV = $(TOOL_BASE_DIR)/TortoiseSVN/bin/subwcrev.exe
 COMPONENTS_BASE_DIR = $(SDK_BASE_DIR)/Components
 CONTIKIDIRS += $(COMPONENTS_BASE_DIR)
 CONTIKI_CPU_DIRS = . 
