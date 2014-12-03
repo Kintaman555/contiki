@@ -56,11 +56,11 @@ static uint16_t buflen, bufptr;
 static uint8_t hdrptr;
 
 /* The declarations below ensure that the packet buffer is aligned on
-   an even 16-bit boundary. On some platforms (most notably the
-   msp430), having apotentially misaligned packet buffer may lead to
-   problems when accessing 16-bit values. */
-static uint16_t packetbuf_aligned[(PACKETBUF_SIZE + PACKETBUF_HDR_SIZE) / 2 + 1];
-static uint8_t *packetbuf = (uint8_t *)packetbuf_aligned;
+   an even 32-bit boundary. On some platforms (most notably the
+   jn5168), having a potentially misaligned packet buffer may lead to
+   problems when accessing 32-bit values. */
+static uint32_t packetbuf_aligned[(PACKETBUF_SIZE + PACKETBUF_HDR_SIZE + 3) / 4];
+static uint8_t * const packetbuf = (uint8_t *)packetbuf_aligned;
 
 static uint8_t *packetbufptr;
 
