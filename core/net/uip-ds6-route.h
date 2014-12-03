@@ -34,6 +34,7 @@
 
 #include "sys/stimer.h"
 #include "lib/list.h"
+#include "net/rpl/rpl-conf.h"
 
 void uip_ds6_route_init(void);
 

@@ -45,6 +45,7 @@
 #include "net/uip-ds6.h"
 #include "sys/ctimer.h"
 
+NBR_TABLE_DECLARE(rpl_parents);
 /*---------------------------------------------------------------------------*/
 /* The amount of parents that this node has in a particular DAG. */
 #define RPL_PARENT_COUNT(dag)   list_length((dag)->parents)
@@ -115,6 +116,8 @@ struct rpl_parent {
 #endif /* RPL_DAG_MC != RPL_DAG_MC_NONE */
   rpl_rank_t rank;
   uint16_t link_metric;
+  uint16_t rssi;
+  uint16_t lqi;
   uint8_t dtsn;
   uint8_t updated;
 };
@@ -247,5 +250,6 @@ uip_ipaddr_t *rpl_get_parent_ipaddr(rpl_parent_t *nbr);
 rpl_rank_t rpl_get_parent_rank(uip_lladdr_t *addr);
 uint16_t rpl_get_parent_link_metric(uip_lladdr_t *addr);
 void rpl_dag_init(void);
+int rpl_dag_parents_num(void);
 /*---------------------------------------------------------------------------*/
 #endif /* RPL_H */

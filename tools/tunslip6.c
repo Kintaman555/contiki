@@ -92,10 +92,57 @@ ssystem(const char *fmt, ...)
   return system(cmd);
 }
 
-#define SLIP_END     0300
-#define SLIP_ESC     0333
-#define SLIP_ESC_END 0334
-#define SLIP_ESC_ESC 0335
+#define SLIP_END      0300
+#define SLIP_ESC      0333
+#define SLIP_ESC_END  0334
+#define SLIP_ESC_ESC  0335
+#define SLIP_ESC_XON  0336
+#define SLIP_ESC_XOFF 0337
+#define XON           17
+#define XOFF          19
+
+#if WITH_RPL_BRIDGE
+void ifconf(const char *tundev, const char *ipaddr);
+
+static int
+request_for_ipaddr(int _sfd)
+{
+  static struct timeval last_tv;
+  if (ipaddr != NULL) {
+    //printf("tunslip: addr-configured\n");
+    return 0;
+  }
+  if (last_tv.tv_sec == 0 && last_tv.tv_usec == 0) {
+    printf("tunslip: first request for IP address\n");
+    gettimeofday(&last_tv, NULL);
+    goto _send_req;
+  } else {
+    struct timeval new_tv;
+    gettimeofday(&new_tv, NULL);
+    long interval = new_tv.tv_sec - last_tv.tv_sec;
+    if (interval > 5) {
+      printf("tunslip: send new request\n");
+      last_tv.tv_sec = new_tv.tv_sec;
+    } else {
+      return 0;
+    }
+  }
+
+  _send_req:
+  slip_send(_sfd, '?');
+  slip_send(_sfd, 'A');
+  slip_send(_sfd, SLIP_END);
+  return 1;
+}
+
+static void
+reconfigure_iface(void)
+{
+  printf("tunslip: reconfigure iface\n");
+  if (ipaddr !=  NULL)
+    ifconf(tundev, ipaddr);
+}
+#endif /* WITH_RPL_BRIDGE */
 
 
 /* get sockaddr, IPv4 or IPv6: */
@@ -116,7 +163,7 @@ stamptime(void)
   time_t t;
   struct tm *tmp;
   char timec[20];
- 
+
   gettimeofday(&tv, NULL) ;
   msecs=tv.tv_usec/1000;
   secs=tv.tv_sec;
@@ -211,8 +258,22 @@ serial_to_tun(FILE *inslip, int outfd)
           if (timestamp) stamptime();
 	  ssystem("ifconfig %s hw ether %s", tundev, &macs[6]);
           if (timestamp) stamptime();
-	  ssystem("ifconfig %s up", tundev);
-	}
+          ssystem("ifconfig %s mtu %d up", tundev, MTU_SIZE);
+#if WITH_RPL_BRIDGE
+        } else if (uip.inbuf[1] == 'A') {
+          /* Read gateway IPv6 address and re-configure tun0 interface */
+          printf("tunslip: got IPv6 address response\n");
+          if (has_rpl_bridge) {
+            ipaddr = nodeaddr;
+            if (ipaddr != NULL) {
+              memcpy(ipaddr, (const uint8_t *)&uip.inbuf[2], 17);
+              printf("address set\n");
+              reconfigure_iface();
+            }
+          }
+#endif
+        }
+
       } else if(uip.inbuf[0] == '?') {
 	if(uip.inbuf[1] == 'P') {
           /* Prefix info requested */
@@ -225,19 +286,49 @@ serial_to_tun(FILE *inslip, int outfd)
           inet_pton(AF_INET6, ipaddr, &addr);
           if(timestamp) stamptime();
           fprintf(stderr,"*** Address:%s => %02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
- //         printf("*** Address:%s => %02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
-		 ipaddr, 
-		 addr.s6_addr[0], addr.s6_addr[1],
-		 addr.s6_addr[2], addr.s6_addr[3],
-		 addr.s6_addr[4], addr.s6_addr[5],
-		 addr.s6_addr[6], addr.s6_addr[7]);
-	  slip_send(slipfd, '!');
-	  slip_send(slipfd, 'P');
-	  for(i = 0; i < 8; i++) {
-	    /* need to call the slip_send_char for stuffing */
-	    slip_send_char(slipfd, addr.s6_addr[i]);
-	  }
-	  slip_send(slipfd, SLIP_END);
+              //         printf("*** Address:%s => %02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
+              ipaddr,
+              addr.s6_addr[0], addr.s6_addr[1],
+              addr.s6_addr[2], addr.s6_addr[3],
+              addr.s6_addr[4], addr.s6_addr[5],
+              addr.s6_addr[6], addr.s6_addr[7]);
+          slip_send(slipfd, '!');
+          slip_send(slipfd, 'P');
+          for(i = 0; i < 8; i++) {
+            /* need to call the slip_send_char for stuffing */
+            slip_send_char(slipfd, addr.s6_addr[i]);
+          }
+          slip_send(slipfd, SLIP_END);
+        }
+        if(uip.inbuf[1] == 'A') {
+          /* IP addr info requested */
+          struct in6_addr addr;
+          int i;
+          char *s = strchr(ipaddr, '/');
+          if(s != NULL) {
+            *s = '\0';
+          }
+          inet_pton(AF_INET6, ipaddr, &addr);
+          if(timestamp) stamptime();
+          fprintf(stderr,"*** Address:%s => %02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
+              //         printf("*** Address:%s => %02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
+              ipaddr,
+              addr.s6_addr[0], addr.s6_addr[1],
+              addr.s6_addr[2], addr.s6_addr[3],
+              addr.s6_addr[4], addr.s6_addr[5],
+              addr.s6_addr[6], addr.s6_addr[7],
+              addr.s6_addr[8], addr.s6_addr[9],
+              addr.s6_addr[10], addr.s6_addr[11],
+              addr.s6_addr[12], addr.s6_addr[13],
+              addr.s6_addr[14], addr.s6_addr[15]
+          );
+          slip_send(slipfd, '!');
+          slip_send(slipfd, 'A');
+          for(i = 0; i < 16; i++) {
+            /* need to call the slip_send_char for stuffing */
+            slip_send_char(slipfd, addr.s6_addr[i]);
+          }
+          slip_send(slipfd, SLIP_END);
         }
 #define DEBUG_LINE_MARKER '\r'
       } else if(uip.inbuf[0] == DEBUG_LINE_MARKER) {    
@@ -605,12 +696,58 @@ void
 ifconf(const char *tundev, const char *ipaddr)
 {
 #ifdef linux
-  if (timestamp) stamptime();
-  ssystem("ifconfig %s inet `hostname` up", tundev);
-  if (timestamp) stamptime();
-  ssystem("ifconfig %s add %s", tundev, ipaddr);
 
-/* radvd needs a link local address for routing */
+#if WITH_RPL_BRIDGE
+  char addr_str[44];
+  if (has_rpl_bridge) {
+    /* Address is comming in a byte array format,
+     * but we need to covnert it to network address
+     * format instead.
+     */
+    char* hexchar = "0123456789abcdef";
+
+    int k;
+    const uint8_t *ipaddr_unsg = ipaddr;
+    for (k=0; k<7; k++) {
+      //printf("address byte %02x %02x\n",ipaddr_unsg[2*k], ipaddr_unsg[2*k+1]);
+      addr_str[5*k] = hexchar[ipaddr_unsg[2*k] >> 4];
+      addr_str[5*k+1] = hexchar[ipaddr_unsg[2*k] & 0x0f];
+      addr_str[5*k+2] = hexchar[ipaddr_unsg[2*k+1] >> 4];
+      addr_str[5*k+3] = hexchar[ipaddr_unsg[2*k+1] & 0x0f];
+      addr_str[5*k+4] = ':';
+    }
+    //printf("address byte %02x %02x\n", ipaddr_unsg[14], ipaddr_unsg[15]);
+    //printf("length: %u\n", ipaddr_unsg[16]);
+
+    addr_str[35] = hexchar[ipaddr_unsg[14] >> 4];
+    addr_str[36] = hexchar[ipaddr_unsg[14] & 0x0f];
+    addr_str[37] = hexchar[ipaddr_unsg[15] >> 4];
+    addr_str[38] = hexchar[ipaddr_unsg[15] & 0x0f];
+    addr_str[39] = '/';
+    addr_str[40] = hexchar[ipaddr_unsg[16] / 10];
+    addr_str[41] = hexchar[(ipaddr_unsg[16] % 10)];
+    addr_str[42] = '\0';
+    printf("Adding address: %s\n", addr_str);
+
+    if (timestamp) stamptime();
+    ssystem("ifconfig %s inet `hostname` mtu %d up", tundev, MTU_SIZE);
+    if (timestamp) stamptime();
+    ssystem("ifconfig %s add %s", tundev, addr_str);
+    /* Add default route through TUN0 */
+    ssystem(" ip -6 route add default  dev %s", tundev);
+  } else {
+    if (timestamp) stamptime();
+    ssystem("ifconfig %s inet `hostname` mtu %d up", tundev, MTU_SIZE);
+    if (timestamp) stamptime();
+    ssystem("ifconfig %s add %s", tundev, ipaddr);
+    /* For Border Router we do NOT add default route through TUN */
+    printf("default route not changed\n");
+  }
+#else /* WITH_RPL_BRIDGE */
+  ssystem("ifconfig %s add %s", tundev, ipaddr);
+#endif /* WITH_RPL_BRIDGE */
+
+  /* radvd needs a link local address for routing */
 #if 0
 /* fe80::1/64 is good enough */
   ssystem("ifconfig %s add fe80::1/64", tundev);
@@ -619,7 +756,15 @@ ifconf(const char *tundev, const char *ipaddr)
 /* First a full parse, stripping off the prefix length */
   {
     char lladdr[40];
+#if WITH_RPL_BRIDGE
+    char c, *ptr;
+    if (has_rpl_bridge)
+      ptr=(char *)addr_str;
+    else
+      ptr=(char *)ipaddr;
+#else /* WITH_RPL_BRIDGE */
     char c, *ptr=(char *)ipaddr;
+#endif /* WITH_RPL_BRIDGE */
     uint16_t digit,ai,a[8],cc,scc,i;
     for(ai=0; ai<8; ai++) {
       a[ai]=0;
@@ -791,11 +936,21 @@ exit(1);
   }
   argc -= (optind - 1);
   argv += (optind - 1);
-
+#if !WITH_RPL_BRIDGE
   if(argc != 2 && argc != 3) {
     err(1, "usage: %s [-B baudrate] [-H] [-L] [-s siodev] [-t tundev] [-T] [-v verbosity] [-d delay] [-a serveraddress] [-p serverport] ipaddress", prog);
   }
   ipaddr = argv[1];
+#else
+  if(argc != 2 && argc != 3) {
+    printf("Shall request for IP before configuring TUN (did you connect a RPL bridge?)\n");
+    has_rpl_bridge = 1;
+  } else {
+    printf("Shall configure now the IP of the TUN (did you connect a Border Router?)\n");
+    has_rpl_bridge = 0;
+    ipaddr = argv[1];
+  }
+#endif
 
   switch(baudrate) {
   case -2:
@@ -919,38 +1074,53 @@ exit(1);
   if(tunfd == -1) err(1, "main: open");
   if (timestamp) stamptime();
   fprintf(stderr, "opened %s device ``/dev/%s''\n",
-          tap ? "tap" : "tun", tundev);
+      tap ? "tap" : "tun", tundev);
 
   atexit(cleanup);
   signal(SIGHUP, sigcleanup);
   signal(SIGTERM, sigcleanup);
   signal(SIGINT, sigcleanup);
   signal(SIGALRM, sigalarm);
+#if !WITH_RPL_BRIDGE
   ifconf(tundev, ipaddr);
+#else
+  if (has_rpl_bridge) {
+    printf("RPL_BRIDGE Start TUN after receiving global IP\n");
+  } else {
+    printf("Start TUN now (is it border router?)\n");
+    ifconf(tundev, ipaddr);
+  }
+#endif /* !WITH_RPL_BRIDGE */
 
   while(1) {
     maxfd = 0;
     FD_ZERO(&rset);
     FD_ZERO(&wset);
 
-/* do not send IPA all the time... - add get MAC later... */
-/*     if(got_sigalarm) { */
-/*       /\* Send "?IPA". *\/ */
-/*       slip_send(slipfd, '?'); */
-/*       slip_send(slipfd, 'I'); */
-/*       slip_send(slipfd, 'P'); */
-/*       slip_send(slipfd, 'A'); */
-/*       slip_send(slipfd, SLIP_END); */
-/*       got_sigalarm = 0; */
-/*     } */
+    /* do not send IPA all the time... - add get MAC later... */
+    /*     if(got_sigalarm) { */
+    /*       /\* Send "?IPA". *\/ */
+    /*       slip_send(slipfd, '?'); */
+    /*       slip_send(slipfd, 'I'); */
+    /*       slip_send(slipfd, 'P'); */
+    /*       slip_send(slipfd, 'A'); */
+    /*       slip_send(slipfd, SLIP_END); */
+    /*       got_sigalarm = 0; */
+    /*     } */
 
     if(!slip_empty()) {		/* Anything to flush? */
       FD_SET(slipfd, &wset);
     }
 
+#if WITH_RPL_BRIDGE
+    if (has_rpl_bridge) {
+      request_for_ipaddr(slipfd);
+    }
+#endif
+
     FD_SET(slipfd, &rset);	/* Read from slip ASAP! */
     if(slipfd > maxfd) maxfd = slipfd;
-    
+
     /* We only have one packet at a time queued for slip output. */
     if(slip_empty()) {
       FD_SET(tunfd, &rset);

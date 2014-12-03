@@ -53,6 +53,11 @@
 #define DEBUG DEBUG_NONE
 #include "net/uip-debug.h"
 
+#if WITH_IPV6_SMART_BRIDGE
+/* A struct to hold the host IPv6 address */
+extern uip_ipaddr_t host_ipaddr;
+#endif
+
 struct etimer uip_ds6_timer_periodic;                           /** \brief Timer for maintenance of data structures */
 
 #if UIP_CONF_ROUTER
@@ -130,9 +135,11 @@ uip_ds6_init(void)
   stimer_set(&uip_ds6_timer_ra, 2);     /* wait to have a link local IP address */
 #endif /* UIP_ND6_SEND_RA */
 #else /* UIP_CONF_ROUTER */
+#if UIP_ND6_SEND_RA
   etimer_set(&uip_ds6_timer_rs,
              random_rand() % (UIP_ND6_MAX_RTR_SOLICITATION_DELAY *
                               CLOCK_SECOND));
+#endif /* UIP_ND6_SEND_RA */
 #endif /* UIP_CONF_ROUTER */
   etimer_set(&uip_ds6_timer_periodic, UIP_DS6_PERIOD);
 
@@ -172,7 +179,7 @@ uip_ds6_periodic(void)
     }
     }*/
 
-#if !UIP_CONF_ROUTER
+#if !UIP_CONF_ROUTER && UIP_CONF_ND6_SEND_NA
   /* Periodic processing on prefixes */
   for(locprefix = uip_ds6_prefix_list;
       locprefix < uip_ds6_prefix_list + UIP_DS6_PREFIX_NB;
@@ -186,7 +193,7 @@ uip_ds6_periodic(void)
 
   uip_ds6_neighbor_periodic();
 
-#if UIP_CONF_ROUTER & UIP_ND6_SEND_RA
+#if UIP_CONF_ROUTER && UIP_ND6_SEND_RA
   /* Periodic RA sending */
   if(stimer_expired(&uip_ds6_timer_ra) && (uip_len == 0)) {
     uip_ds6_send_ra_periodic();
@@ -306,6 +313,16 @@ uip_ds6_prefix_lookup(uip_ipaddr_t *ipaddr, uint8_t ipaddrlen)
 uint8_t
 uip_ds6_is_addr_onlink(uip_ipaddr_t *ipaddr)
 {
+#if WITH_IPV6_SMART_BRIDGE
+  PRINTF("uip_ds6;bridge: check if on-link: ");
+  PRINT6ADDR(ipaddr);
+  PRINTF("\n");
+  if (uip_ipaddr_prefixcmp(&host_ipaddr, ipaddr, 128)) {
+    PRINTF("This is a host ip address\n\r");
+    /* Set it off-link to prevent from sending through radio */
+    return 0;
+  }
+#endif /* WITH_IPV6_SMART_BRIDGE */
   for(locprefix = uip_ds6_prefix_list;
       locprefix < uip_ds6_prefix_list + UIP_DS6_PREFIX_NB; locprefix++) {
     if(locprefix->isused &&
@@ -667,6 +684,7 @@ uip_ds6_send_ra_periodic(void)
 #endif /* UIP_ND6_SEND_RA */
 #else /* UIP_CONF_ROUTER */
 /*---------------------------------------------------------------------------*/
+#if UIP_ND6_SEND_RA
 void
 uip_ds6_send_rs(void)
 {
@@ -684,6 +702,7 @@ uip_ds6_send_rs(void)
   }
   return;
 }
+#endif /* UIP_ND6_SEND_RA */
 
 #endif /* UIP_CONF_ROUTER */
 /*---------------------------------------------------------------------------*/

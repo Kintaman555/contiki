@@ -83,6 +83,15 @@
 /* For Debug, logging, statistics                                            */
 /*---------------------------------------------------------------------------*/
 
+#ifdef UIP_BRIDGE_INTERFACE
+extern struct uip_fallback_interface UIP_BRIDGE_INTERFACE;
+#endif
+
+#if WITH_IPV6_SMART_BRIDGE
+/* A structure to hold the host-machine IPv6 address */
+extern uip_ipaddr_t host_ipaddr;
+#endif
+
 #define DEBUG DEBUG_NONE
 #include "net/uip-debug.h"
 
@@ -1175,6 +1184,38 @@ uip_process(uint8_t flag)
         UIP_STAT(++uip_stat.ip.drop);
         goto send;
       }
+#if WITH_IPV6_SMART_BRIDGE
+      if (uip_ds6_is_my_addr(&UIP_IP_BUF->destipaddr))
+        goto by_pass;
+
+      if (uip_ipaddr_cmp(&host_ipaddr, &UIP_IP_BUF->srcipaddr)) {
+        PRINTF("Packet from host machine.\n\r");
+        uip_ipaddr_copy(&UIP_IP_BUF->srcipaddr, &uip_ds6_get_global(ADDR_PREFERRED)->ipaddr);
+        PRINTF("Replace source address with global: ");
+        PRINT6ADDR(&UIP_IP_BUF->srcipaddr);
+        PRINTF("\n");
+
+        switch(UIP_IP_BUF->proto) {
+        case UIP_PROTO_ICMP6:
+          UIP_ICMP_BUF->icmpchksum = 0;
+          UIP_ICMP_BUF->icmpchksum = ~(uip_icmp6chksum());
+          break;
+        case UIP_PROTO_UDP:
+          UIP_UDP_BUF->udpchksum = 0;
+          UIP_UDP_BUF->udpchksum = ~(uip_udpchksum());
+          break;
+        case UIP_PROTO_TCP:
+          UIP_TCP_BUF->tcpchksum = 0;
+       	  UIP_TCP_BUF->tcpchksum = ~(uip_tcpchksum());
+          break;
+        default:
+          PRINTF("unrecognized protocol %u\n\r", UIP_IP_BUF->proto);
+          break;
+        }
+      }
+  by_pass:
+#endif /* WITH_IPv6_SMART_BRIDGE */
+
 
 #if UIP_CONF_IPV6_RPL
       rpl_update_header_empty();
@@ -1419,7 +1460,9 @@ uip_process(uint8_t flag)
     UIP_STAT(++uip_stat.icmp.drop);
     uip_len = 0;
 #else /* UIP_CONF_ROUTER */
+#if UIP_ND6_SEND_RA
     uip_nd6_ra_input();
+#endif /* UIP_ND6_SEND_RA */
 #endif /* UIP_CONF_ROUTER */
     break;
 #if UIP_CONF_IPV6_RPL
@@ -1457,7 +1500,14 @@ uip_process(uint8_t flag)
   /* UDP input processing. */
  udp_input:
 
+#if WITH_IPV6_SMART_BRIDGE || defined(UIP_BRIDGE_INTERFACE)
+  PRINTF("Save original proto\n");
+  uint8_t _proto = *((uint8_t *)UIP_IP_BUF + 40);
   remove_ext_hdr();
+  UIP_IP_BUF->proto = _proto;
+#else
+  remove_ext_hdr();
+#endif /* WITH_IPV6_SMART_BRIDGE */
 
   PRINTF("Receiving UDP packet\n");
   UIP_STAT(++uip_stat.udp.recv);
@@ -1491,6 +1541,33 @@ uip_process(uint8_t flag)
     goto drop;
   }
 
+#if WITH_IPV6_SMART_BRIDGE
+  /* Packet is for us, so forward to host machine alternatively.
+   * The integrity has been verified above.
+   */
+  PRINTF("Packet will be sent to host machine.\n\r");
+  uip_ipaddr_copy(&UIP_IP_BUF->destipaddr, &host_ipaddr);
+  PRINTF("Replace destination address with host: ");
+  PRINT6ADDR(&UIP_IP_BUF->destipaddr);
+  PRINTF("\n");
+  /* Restore packet length by adding UDP and IP headers */
+  uip_len = uip_len + UIP_IPUDPH_LEN;
+  /* Set uip_appdata where slip_send (strangely) expects it to be */
+  uip_appdata = &uip_buf[UIP_LLH_LEN + UIP_IPTCPH_LEN];
+  //uip_ext_len = 0;
+  switch(UIP_IP_BUF->proto) {
+  case UIP_PROTO_UDP:
+	PRINTF("UDP proto\n");
+    UIP_UDP_BUF->udpchksum = 0;
+    UIP_UDP_BUF->udpchksum = ~(uip_udpchksum());
+    break;
+  default:
+    PRINTF("unrecognized protocol %u\n\r", UIP_IP_BUF->proto);
+    break;
+  }
+  goto send;
+#endif  /* WITH_IPV6_SMART_BRIDGE */
+
   /* Demultiplex this UDP packet between the UDP "connections". */
   for(uip_udp_conn = &uip_udp_conns[0];
       uip_udp_conn < &uip_udp_conns[UIP_UDP_CONNS];
@@ -1512,6 +1589,24 @@ uip_process(uint8_t flag)
     }
   }
   PRINTF("udp: no matching connection found\n");
+
+#ifdef UIP_BRIDGE_INTERFACE
+    /* Restore packet length by adding UDP and IP headers */
+    uip_len = uip_len + UIP_IPUDPH_LEN;
+    PRINTF("Bridge: removing ext hdrs & setting proto %d %d\n",
+     uip_ext_len, *((uint8_t *)UIP_IP_BUF + 40));
+    if(uip_ext_len > 0) {
+      extern void remove_ext_hdr(void);
+      uint8_t proto = *((uint8_t *)UIP_IP_BUF + 40);
+      remove_ext_hdr();
+      /* This should be copied from the ext header... */
+      UIP_IP_BUF->proto = proto;
+    }
+    /* Set uip_appdata where slip_send (strangely) expects it to be */
+    uip_appdata = &uip_buf[UIP_LLH_LEN + UIP_IPTCPH_LEN];
+    LOGU("Bridge: fw to bridge interface (%u bytes)", uip_len);
+    UIP_BRIDGE_INTERFACE.output();
+#endif
 
 #if UIP_UDP_SEND_UNREACH_NOPORT
   uip_icmp6_error_output(ICMP6_DST_UNREACH, ICMP6_DST_UNREACH_NOPORT, 0);

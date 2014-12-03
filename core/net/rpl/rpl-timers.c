@@ -46,7 +46,11 @@
 
 #if UIP_CONF_IPV6
 
+#if IN_COOJA
+#define DEBUG DEBUG_ANNOTATE
+#else
 #define DEBUG DEBUG_NONE
+#endif
 #include "net/uip-debug.h"
 
 /*---------------------------------------------------------------------------*/
@@ -61,6 +65,10 @@ static uint16_t next_dis;
 /* dio_send_ok is true if the node is ready to send DIOs */
 static uint8_t dio_send_ok;
 
+#ifdef RPL_CALLBACK_NEW_DIO_INTERVAL
+void RPL_CALLBACK_NEW_DIO_INTERVAL(uint8_t dio_interval);
+#endif
+
 /*---------------------------------------------------------------------------*/
 static void
 handle_periodic_timer(void *ptr)
@@ -69,7 +77,7 @@ handle_periodic_timer(void *ptr)
   rpl_recalculate_ranks();
 
   /* handle DIS */
-#ifdef RPL_DIS_SEND
+#if RPL_DIS_SEND
   next_dis++;
   if(rpl_get_any_dag() == NULL && next_dis >= RPL_DIS_INTERVAL) {
     next_dis = 0;
@@ -103,6 +111,11 @@ new_dio_interval(rpl_instance_t *instance)
   instance->dio_next_delay -= ticks;
   instance->dio_send = 1;
 
+#ifdef RPL_CALLBACK_NEW_DIO_INTERVAL
+  RPL_CALLBACK_NEW_DIO_INTERVAL(instance->dio_intcurrent);
+#endif
+
+  ANNOTATE("#A rank=%u\n", instance->current_dag->rank);
 #if RPL_CONF_STATS
   /* keep some stats */
   instance->dio_totint++;
@@ -237,4 +250,5 @@ rpl_schedule_dao(rpl_instance_t *instance)
   }
 }
 /*---------------------------------------------------------------------------*/
+
 #endif /* UIP_CONF_IPV6 */

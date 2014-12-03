@@ -93,6 +93,11 @@ uip_ds6_nbr_add(uip_ipaddr_t *ipaddr, uip_lladdr_t *lladdr,
     stimer_set(&nbr->reachable, 0);
     stimer_set(&nbr->sendns, 0);
     nbr->nscount = 0;
+#if UIP_DS6_WITH_LINK_METRICS
+    nbr->rssi = -1;
+    nbr->prr = -1;
+    nbr->etx = -1;
+#endif UIP_DS6_WITH_LINK_METRICS
     PRINTF("Adding neighbor with ip addr ");
     PRINT6ADDR(ipaddr);
     PRINTF(" link addr ");
@@ -190,15 +195,55 @@ uip_ds6_nbr_lladdr_from_ipaddr(uip_ipaddr_t *ipaddr)
   return nbr ? uip_ds6_nbr_get_ll(nbr) : NULL;
 }
 /*---------------------------------------------------------------------------*/
+#if UIP_DS6_WITH_LINK_METRICS
+void
+uip_ds6_nbr_input_callback(int status, int numtx)
+{
+  uip_ds6_nbr_t *nbr;
+  nbr = uip_ds6_nbr_ll_lookup(packetbuf_addr(PACKETBUF_ADDR_SENDER));
+  if(nbr != NULL) {
+    int rssi = packetbuf_attr(PACKETBUF_ATTR_RSSI);
+    int old_rssi = nbr->rssi;
+    if(nbr->rssi == -1) {
+      nbr->rssi = rssi;
+    } else {
+      nbr->rssi = (rssi * 10 + old_rssi * 90) / 100;
+    }
+  }
+}
+#endif
+/*---------------------------------------------------------------------------*/
 void
 uip_ds6_link_neighbor_callback(int status, int numtx)
 {
+  uip_ds6_nbr_t *nbr;
   const rimeaddr_t *dest = packetbuf_addr(PACKETBUF_ADDR_RECEIVER);
   if(rimeaddr_cmp(dest, &rimeaddr_null)) {
     return;
   }
 
   LINK_NEIGHBOR_CALLBACK(dest, status, numtx);
+
+#if UIP_DS6_WITH_LINK_METRICS
+  nbr = uip_ds6_nbr_ll_lookup(packetbuf_addr(PACKETBUF_ADDR_RECEIVER));
+  if(nbr != NULL) {
+    int etx = numtx * 256;
+    int old_etx = nbr->etx;
+    if(nbr->etx == -1) {
+      nbr->etx = etx;
+    } else {
+      nbr->etx = (etx * 10 + old_etx * 90) / 100;
+    }
+    nbr->prr = 100 * 256 / nbr->etx;
+  }
+#endif /* UIP_DS6_WITH_LINK_METRICS */
+
+//  new_etx = ((uint32_t)recorded_etx * ETX_ALPHA +
+//                 (uint32_t)packet_etx * (ETX_SCALE - ETX_ALPHA)) / ETX_SCALE;
+//
+//  nbr->rssi = -1;
+//  nbr->prr = -1;
+//  nbr->etx = -1;
 
 #if UIP_DS6_LL_NUD
   if(status == MAC_TX_OK) {

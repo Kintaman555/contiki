@@ -215,7 +215,7 @@ rpl_update_header_empty(void)
        which states that if a packet is going down it should in
        general not go back up again. If this happens, a
        RPL_HDR_OPT_FWD_ERR should be flagged. */
-    if((UIP_EXT_HDR_OPT_RPL_BUF->flags & RPL_HDR_OPT_DOWN)) {
+    if(UIP_EXT_HDR_OPT_RPL_BUF->flags & RPL_HDR_OPT_DOWN) {
       if(uip_ds6_route_lookup(&UIP_IP_BUF->destipaddr) == NULL) {
         UIP_EXT_HDR_OPT_RPL_BUF->flags |= RPL_HDR_OPT_FWD_ERR;
         PRINTF("RPL forwarding error\n");

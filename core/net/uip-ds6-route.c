@@ -35,6 +35,7 @@
 #include "lib/list.h"
 #include "lib/memb.h"
 #include "net/nbr-table.h"
+#include "net/rpl/rpl-conf.h"
 
 #if UIP_CONF_IPV6
 
@@ -66,7 +67,11 @@ LIST(notificationlist);
 static int num_routes = 0;
 
 #undef DEBUG
+#if ANNOTATE_DEFAULT_ROUTE
+#define DEBUG DEBUG_ANNOTATE
+#else
 #define DEBUG DEBUG_NONE
+#endif
 #include "net/uip-debug.h"
 
 static void rm_routelist_callback(nbr_table_item_t *ptr);
@@ -150,6 +155,7 @@ uip_ds6_route_init(void)
   list_init(notificationlist);
 #endif
 }
+
 /*---------------------------------------------------------------------------*/
 static uip_lladdr_t *
 uip_ds6_route_nexthop_lladdr(uip_ds6_route_t *route)
@@ -255,6 +261,7 @@ uip_ds6_route_add(uip_ipaddr_t *ipaddr, uint8_t length,
 		  uip_ipaddr_t *nexthop)
 {
   uip_ds6_route_t *r;
+  int new_route = 0;
 
 #if DEBUG != DEBUG_NONE
   assert_nbr_routes_list_sane();
@@ -306,6 +313,7 @@ uip_ds6_route_add(uip_ipaddr_t *ipaddr, uint8_t length,
         PRINTF(", dropping it\n");
         return NULL;
       }
+      new_route = 1;
       LIST_STRUCT_INIT(routes, route_list);
     }
 
@@ -328,6 +336,10 @@ uip_ds6_route_add(uip_ipaddr_t *ipaddr, uint8_t length,
     r->routes = routes;
   }
 
+  if(new_route == 0 && !uip_ipaddr_cmp(&(r->ipaddr), ipaddr)) {
+    new_route = 1;
+  }
+
   uip_ipaddr_copy(&(r->ipaddr), ipaddr);
   r->length = length;
 
@@ -340,10 +352,12 @@ uip_ds6_route_add(uip_ipaddr_t *ipaddr, uint8_t length,
   PRINTF(" via ");
   PRINT6ADDR(nexthop);
   PRINTF("\n");
-  ANNOTATE("#L %u 1;blue\n", nexthop->u8[sizeof(uip_ipaddr_t) - 1]);
+  //ANNOTATE("#L %u 1;blue\n", nexthop->u8[sizeof(uip_ipaddr_t) - 1]);
 
 #if UIP_DS6_NOTIFICATIONS
-  call_route_callback(UIP_DS6_NOTIFICATION_ROUTE_ADD, ipaddr, nexthop);
+  if(new_route) {
+    call_route_callback(UIP_DS6_NOTIFICATION_ROUTE_ADD, ipaddr, nexthop);
+  }
 #endif
 
 #if DEBUG != DEBUG_NONE

@@ -120,7 +120,11 @@
 #else
 #define RPL_MIN_HOPRANKINC          RPL_CONF_MIN_HOPRANKINC
 #endif
+#ifndef RPL_CONF_MAX_HOPRANKINC
 #define RPL_MAX_RANKINC             (7 * RPL_MIN_HOPRANKINC)
+#else
+#define RPL_MAX_RANKINC             RPL_CONF_MAX_HOPRANKINC
+#endif
 
 #define DAG_RANK(fixpt_rank, instance) \
   ((fixpt_rank) / (instance)->min_hoprankinc)
@@ -186,10 +190,15 @@
  * whose integer part can be obtained by dividing the value by 
  * RPL_DAG_MC_ETX_DIVISOR.
  */
-#define RPL_DAG_MC_ETX_DIVISOR		128
+#define RPL_DAG_MC_ETX_DIVISOR		256
 
 /* DIS related */
-#define RPL_DIS_SEND                    1
+
+#ifdef  RPL_CONF_DIS_SEND
+#define RPL_DIS_SEND                 RPL_CONF_DIS_SEND
+#else
+#define RPL_DIS_SEND                 1
+#endif
 #ifdef  RPL_DIS_INTERVAL_CONF
 #define RPL_DIS_INTERVAL                RPL_DIS_INTERVAL_CONF
 #else
@@ -231,6 +240,8 @@ struct rpl_dio {
   uint8_t dag_redund;
   uint8_t default_lifetime;
   uint16_t lifetime_unit;
+  uint16_t lqi;
+  uint16_t rssi;
   rpl_rank_t dag_max_rankinc;
   rpl_rank_t dag_min_hoprankinc;
   rpl_prefix_t destination_prefix;
@@ -309,6 +320,7 @@ rpl_of_t *rpl_find_of(rpl_ocp_t);
 
 /* Timer functions. */
 void rpl_schedule_dao(rpl_instance_t *);
+
 void rpl_reset_dio_timer(rpl_instance_t *);
 void rpl_reset_periodic_timer(void);
 

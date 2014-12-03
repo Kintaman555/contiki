@@ -70,9 +70,13 @@ static rpl_of_t * const objective_functions[] = {&RPL_OF};
 #define RPL_GROUNDED                    RPL_CONF_GROUNDED
 #endif /* !RPL_CONF_GROUNDED */
 
+#ifdef RPL_CALLBACK_PARENT_SWITCH
+void RPL_CALLBACK_PARENT_SWITCH(rpl_parent_t *old, rpl_parent_t *new);
+#endif
+
 /*---------------------------------------------------------------------------*/
 /* Per-parent RPL information */
-NBR_TABLE(rpl_parent_t, rpl_parents);
+NBR_TABLE_GLOBAL(rpl_parent_t, rpl_parents);
 /*---------------------------------------------------------------------------*/
 /* Allocate instance table. */
 rpl_instance_t instance_table[RPL_MAX_INSTANCES];
@@ -117,6 +121,8 @@ static void
 rpl_set_preferred_parent(rpl_dag_t *dag, rpl_parent_t *p)
 {
   if(dag != NULL && dag->preferred_parent != p) {
+    rpl_parent_t *old = dag->preferred_parent;
+
     PRINTF("RPL: rpl_set_preferred_parent ");
     if(p != NULL) {
       PRINT6ADDR(rpl_get_parent_ipaddr(p));
@@ -136,6 +142,17 @@ rpl_set_preferred_parent(rpl_dag_t *dag, rpl_parent_t *p)
     nbr_table_unlock(rpl_parents, dag->preferred_parent);
     nbr_table_lock(rpl_parents, p);
     dag->preferred_parent = p;
+
+    LOG("RPL: preferred parent switch %u -> %u, rank %u (%u %u) -> %u (%u %u)\n",
+        old ? LOG_NODEID_FROM_IPADDR(rpl_get_parent_ipaddr(old)) : 0,
+            LOG_NODEID_FROM_IPADDR(rpl_get_parent_ipaddr(p)),
+            dag->instance->of->calculate_rank(old, 0), old != NULL ? old->rank : INFINITE_RANK, old != NULL ? old->link_metric : INFINITE_RANK,
+            dag->instance->of->calculate_rank(p, 0), p != NULL ? p->rank : INFINITE_RANK, p != NULL ? p->link_metric : INFINITE_RANK
+            );
+
+#ifdef RPL_CALLBACK_PARENT_SWITCH
+    RPL_CALLBACK_PARENT_SWITCH(old, p);
+#endif
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -207,8 +224,17 @@ acceptable_rank(rpl_dag_t *dag, rpl_rank_t rank)
 {
   return rank != INFINITE_RANK &&
     ((dag->instance->max_rankinc == 0) ||
-     DAG_RANK(rank, dag->instance) <= DAG_RANK(dag->min_rank + dag->instance->max_rankinc, dag->instance));
+     rank <= dag->min_rank + dag->instance->max_rankinc);
 }
+#ifdef RPL_CONF_MAX_NBRHOPINC
+/*---------------------------------------------------------------------------*/
+static int
+acceptable_nbr_rank(rpl_dag_t *dag, rpl_rank_t rank)
+{
+  return rank != INFINITE_RANK &&
+      (dag->rank == INFINITE_RANK || rank <= dag->rank + RPL_CONF_MAX_NBRHOPINC);
+}
+#endif
 /*---------------------------------------------------------------------------*/
 static rpl_dag_t *
 get_dag(uint8_t instance_id, uip_ipaddr_t *dag_id)
@@ -543,15 +569,21 @@ rpl_add_parent(rpl_dag_t *dag, rpl_dio_t *dio, uip_ipaddr_t *addr)
 
   PRINTF("RPL: rpl_add_parent lladdr %p\n", lladdr);
   if(lladdr != NULL) {
-    /* Add parent in rpl_parents */
-    p = nbr_table_add_lladdr(rpl_parents, (rimeaddr_t *)lladdr);
-    p->dag = dag;
-    p->rank = dio->rank;
-    p->dtsn = dio->dtsn;
-    p->link_metric = RPL_INIT_LINK_METRIC * RPL_DAG_MC_ETX_DIVISOR;
+    if(acceptable_rank(dag, dio->rank)
+#ifdef RPL_CONF_MAX_NBRHOPINC
+        && acceptable_nbr_rank(dag, dio->rank)
+#endif
+        ) {
+      /* Add parent in rpl_parents */
+      p = nbr_table_add_lladdr(rpl_parents, (rimeaddr_t *)lladdr);
+      p->dag = dag;
+      p->rank = dio->rank;
+      p->dtsn = dio->dtsn;
+      p->link_metric = RPL_INIT_LINK_METRIC * RPL_DAG_MC_ETX_DIVISOR;
 #if RPL_DAG_MC != RPL_DAG_MC_NONE
-    memcpy(&p->mc, &dio->mc, sizeof(p->mc));
+      memcpy(&p->mc, &dio->mc, sizeof(p->mc));
 #endif /* RPL_DAG_MC != RPL_DAG_MC_NONE */
+    }
   }
 
   return p;
@@ -685,6 +717,12 @@ rpl_select_dag(rpl_instance_t *instance, rpl_parent_t *p)
   } else if(best_dag->rank != old_rank) {
     PRINTF("RPL: Preferred parent update, rank changed from %u to %u\n",
   	(unsigned)old_rank, best_dag->rank);
+    LOG("RPL: preferred parent update %u, rank %u -> %u (%u %u)\n",
+                LOG_NODEID_FROM_IPADDR(rpl_get_parent_ipaddr(best_dag->preferred_parent)),
+                old_rank, best_dag->rank,
+                best_dag->preferred_parent != NULL ? best_dag->preferred_parent->rank : INFINITE_RANK,
+                best_dag->preferred_parent != NULL ? best_dag->preferred_parent->link_metric : INFINITE_RANK
+                );
   }
   return best_dag;
 }
@@ -1242,6 +1280,10 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
     }
   }
 
+  /* Update link quality info */
+  p->rssi = dio->rssi;
+  p->lqi = dio->lqi;
+
   PRINTF("RPL: preferred DAG ");
   PRINT6ADDR(&instance->current_dag->dag_id);
   PRINTF(", rank %u, min_rank %u, ",
@@ -1270,6 +1312,21 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
     uip_ds6_defrt_add(from, RPL_LIFETIME(instance, instance->default_lifetime));
   }
   p->dtsn = dio->dtsn;
+}
+/*---------------------------------------------------------------------------*/
+int
+rpl_dag_parents_num(void)
+{
+  rpl_parent_t *p;
+  int num;
+
+  num = 0;
+  for(p = nbr_table_head(rpl_parents);
+      p != NULL;
+      p = nbr_table_next(rpl_parents, p)) {
+    num++;
+  }
+  return num;
 }
 /*---------------------------------------------------------------------------*/
 #endif /* UIP_CONF_IPV6 */

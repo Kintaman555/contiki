@@ -192,7 +192,11 @@ dis_output(uip_ipaddr_t *addr)
   if(addr == NULL) {
     uip_create_linklocal_rplnodes_mcast(&tmpaddr);
     addr = &tmpaddr;
+    LOG("RPL: DIS output to 0\n");
+  } else {
+    LOG("RPL: DIS output to %u\n", LOG_NODEID_FROM_IPADDR(addr));
   }
+
 
   PRINTF("RPL: Sending a DIS to ");
   PRINT6ADDR(addr);
@@ -224,6 +228,9 @@ dio_input(void)
   dio.ocp = RPL_OF.ocp;
   dio.default_lifetime = RPL_DEFAULT_LIFETIME;
   dio.lifetime_unit = RPL_DEFAULT_LIFETIME_UNIT;
+
+  dio.rssi = packetbuf_attr(PACKETBUF_ATTR_RSSI);
+  dio.lqi = packetbuf_attr(PACKETBUF_ATTR_LINK_QUALITY);
 
   uip_ipaddr_copy(&from, &UIP_IP_BUF->srcipaddr);
 
@@ -534,6 +541,8 @@ dio_output(rpl_instance_t *instance, uip_ipaddr_t *uc_addr)
            dag->prefix_info.length);
   }
 
+  LOG("RPL: DIO ouptut to %d, rank %u\n", LOG_NODEID_FROM_IPADDR(uc_addr), (unsigned)instance->current_dag->rank);
+
 #if RPL_LEAF_ONLY
 #if (DEBUG) & DEBUG_PRINT
   if(uc_addr == NULL) {
@@ -719,9 +728,11 @@ dao_input(void)
   rep->state.lifetime = RPL_LIFETIME(instance, lifetime);
   rep->state.learned_from = learned_from;
 
+  int dao_fw = 0;
   if(learned_from == RPL_ROUTE_FROM_UNICAST_DAO) {
     if(dag->preferred_parent != NULL &&
        rpl_get_parent_ipaddr(dag->preferred_parent) != NULL) {
+      dao_fw = 1;
       PRINTF("RPL: Forwarding DAO to parent ");
       PRINT6ADDR(rpl_get_parent_ipaddr(dag->preferred_parent));
       PRINTF("\n");
@@ -732,6 +743,10 @@ dao_input(void)
       dao_ack_output(instance, &dao_sender_addr, sequence);
     }
   }
+
+  LOG("RPL: DAO input from %d, target %d%s\n",
+      LOG_NODEID_FROM_IPADDR(&dao_sender_addr), LOG_NODEID_FROM_IPADDR(&prefix),
+      dao_fw ? " (fw)" : "");
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -829,6 +844,9 @@ dao_output_target(rpl_parent_t *parent, uip_ipaddr_t *prefix, uint8_t lifetime)
   PRINT6ADDR(rpl_get_parent_ipaddr(parent));
   PRINTF("\n");
 
+  LOG("RPL: DAO ouptut to %d, target %d\n",
+  		LOG_NODEID_FROM_IPADDR(rpl_get_parent_ipaddr(parent)), LOG_NODEID_FROM_IPADDR(prefix));
+
   if(rpl_get_parent_ipaddr(parent) != NULL) {
     uip_icmp6_send(rpl_get_parent_ipaddr(parent), ICMP6_RPL, RPL_CODE_DAO, pos);
   }
@@ -867,6 +885,8 @@ dao_ack_output(rpl_instance_t *instance, uip_ipaddr_t *dest, uint8_t sequence)
   PRINT6ADDR(dest);
   PRINTF("\n");
 
+  LOG("RPL: DAO-ACK ouptut to %d, sequence %d\n", LOG_NODEID_FROM_IPADDR(dest), sequence);
+
   buffer = UIP_ICMP_PAYLOAD;
 
   buffer[0] = instance->instance_id;
@@ -880,25 +900,32 @@ dao_ack_output(rpl_instance_t *instance, uip_ipaddr_t *dest, uint8_t sequence)
 void
 uip_rpl_input(void)
 {
+	const char *msg_type = NULL;
+	int src_id = LOG_NODEID_FROM_IPADDR(&UIP_IP_BUF->srcipaddr);
   PRINTF("Received an RPL control message\n");
   switch(UIP_ICMP_BUF->icode) {
   case RPL_CODE_DIO:
+  	msg_type = "DIO";
     dio_input();
     break;
   case RPL_CODE_DIS:
+  	msg_type = "DIS";
     dis_input();
     break;
   case RPL_CODE_DAO:
+  	msg_type = "DAO";
     dao_input();
     break;
   case RPL_CODE_DAO_ACK:
+  	msg_type = "DAO-ACK";
     dao_ack_input();
     break;
   default:
+  	msg_type = "Unkown ICMP";
     PRINTF("RPL: received an unknown ICMP6 code (%u)\n", UIP_ICMP_BUF->icode);
     break;
   }
-
+  LOG("RPL: %s input from %d\n", msg_type, src_id);
   uip_len = 0;
 }
 #endif /* UIP_CONF_IPV6 */

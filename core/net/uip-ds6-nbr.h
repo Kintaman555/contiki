@@ -78,6 +78,11 @@ typedef struct uip_ds6_nbr {
   struct uip_packetqueue_handle packethandle;
 #define UIP_DS6_NBR_PACKET_LIFETIME CLOCK_SECOND * 4
 #endif                          /*UIP_CONF_QUEUE_PKT */
+#if UIP_DS6_WITH_LINK_METRICS
+  int rssi;
+  int prr;
+  int etx;
+#endif /* UIP_DS6_WITH_LINK_METRICS */
 } uip_ds6_nbr_t;
 
 void uip_ds6_neighbors_init(void);
@@ -95,6 +100,9 @@ uip_lladdr_t *uip_ds6_nbr_lladdr_from_ipaddr(uip_ipaddr_t *ipaddr);
 void uip_ds6_link_neighbor_callback(int status, int numtx);
 void uip_ds6_neighbor_periodic(void);
 int uip_ds6_nbr_num(void);
+#if UIP_DS6_WITH_LINK_METRICS
+void uip_ds6_nbr_input_callback();
+#endif
 
 /**
  * \brief
