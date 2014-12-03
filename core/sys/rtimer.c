@@ -56,6 +56,7 @@
 #endif
 
 static struct rtimer *next_rtimer;
+static volatile rtimer_clock_t next_wakeup;
 
 /*---------------------------------------------------------------------------*/
 void
@@ -85,6 +86,7 @@ rtimer_set(struct rtimer *rtimer, rtimer_clock_t time,
 
   if(first == 1) {
     rtimer_arch_schedule(time);
+    next_wakeup = time;
   }
   return RTIMER_OK;
 }
@@ -101,7 +103,19 @@ rtimer_run_next(void)
   t->func(t, t->ptr);
   if(next_rtimer != NULL) {
     rtimer_arch_schedule(next_rtimer->time);
+    next_wakeup = next_rtimer->time;
   }
   return;
+}
+/*---------------------------------------------------------------------------*/
+rtimer_clock_t
+rtimer_get_time_until_next_wakeup(void)
+{
+  if(next_rtimer != NULL) {
+    rtimer_clock_t now = RTIMER_NOW();
+    return next_wakeup >= now ? next_wakeup - now : (rtimer_clock_t)(-1) - next_wakeup + now;
+  }
+  /* if no wakeup is scheduled yet return maximum time */
+  return (rtimer_clock_t)-1;
 }
 /*---------------------------------------------------------------------------*/
