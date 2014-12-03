@@ -97,7 +97,7 @@ static uint8_t is_gateway;
 #include "experiment-setup.h"
 #endif
 
-#define DEBUG 1
+#define DEBUG 0
 #if DEBUG
 #define PRINTF(...) printf(__VA_ARGS__)
 #else /* DEBUG */
@@ -151,11 +151,13 @@ set_rime_addr(void)
   }
 #endif
   linkaddr_set_node_addr(&addr);
+#if DEBUG
   PRINTF("Rime started with address ");
   for(i = 0; i < sizeof(addr.u8) - 1; i++) {
     PRINTF("%d.", addr.u8[i]);
   }
   PRINTF("%d\n", addr.u8[i]);
+#endif
 }
 /*---------------------------------------------------------------------------*/
 #if !PROCESS_CONF_NO_PROCESS_NAMES
@@ -332,10 +334,11 @@ main(int argc, char **argv)
       linkaddr_node_addr.u8[1];
     memset(longaddr, 0, sizeof(longaddr));
     linkaddr_copy((linkaddr_t *)&longaddr, &linkaddr_node_addr);
+#if DEBUG
     PRINTF("MAC %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x ",
            longaddr[0], longaddr[1], longaddr[2], longaddr[3],
            longaddr[4], longaddr[5], longaddr[6], longaddr[7]);
-    
+#endif
     cc2420_set_pan_addr(IEEE802154_PANID, shortaddr, longaddr);
   }
 
@@ -361,12 +364,15 @@ main(int argc, char **argv)
   NETSTACK_RDC.init();
   NETSTACK_MAC.init();
 
+  printf("Contiki starting\n");
+#if DEBUG
   PRINTF("%s %s %s, channel check rate %lu Hz, radio channel %u, CCA threshold %i\n",
          NETSTACK_LLSEC.name, NETSTACK_MAC.name, NETSTACK_RDC.name,
          CLOCK_SECOND / (NETSTACK_RDC.channel_check_interval() == 0 ? 1:
                          NETSTACK_RDC.channel_check_interval()),
          CC2420_CONF_CHANNEL,
          CC2420_CONF_CCA_THRESH);
+#endif
 
 #else /* NETSTACK_CONF_WITH_IPV6 */
 
