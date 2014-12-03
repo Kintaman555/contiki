@@ -130,6 +130,9 @@ char  memb_free(struct memb *m, void *ptr);
 
 int memb_inmemb(struct memb *m, void *ptr);
 
+int memb_numfree(struct memb *m);
+
+char memb_is_allocated(struct memb *m, void *ptr);
 
 /** @} */
 /** @} */

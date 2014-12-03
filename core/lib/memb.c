@@ -107,5 +107,37 @@ memb_inmemb(struct memb *m, void *ptr)
     (char *)ptr < (char *)m->mem + (m->num * m->size);
 }
 /*---------------------------------------------------------------------------*/
+int
+memb_numfree(struct memb *m)
+{
+  int i;
+  int num_free = 0;
 
+  for(i = 0; i < m->num; ++i) {
+    if(m->count[i] == 0) {
+      ++num_free;
+    }
+  }
+
+  return num_free;
+}
+/*---------------------------------------------------------------------------*/
+char
+memb_is_allocated(struct memb *m, void *ptr)
+{
+  int i;
+  char *ptr2;
+
+  /* Walk through the list of blocks and try to find the block to
+     which the pointer "ptr" points to. */
+  ptr2 = (char *)m->mem;
+  for(i = 0; i < m->num; ++i) {
+
+    if(ptr2 == (char *)ptr) {
+      return m->count[i];
+    }
+    ptr2 += m->size;
+  }
+  return 0;
+}
 /** @} */
