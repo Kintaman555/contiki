@@ -1315,6 +1315,13 @@ packet_sent(void *ptr, int status, int transmissions)
     callback->output_callback(status);
   }
   last_tx_status = status;
+
+  const rimeaddr_t *dest = packetbuf_addr(PACKETBUF_ADDR_RECEIVER);
+
+  LOGP("6LoWPAN: %s sent to %d, st %d %d (%u bytes)",
+    rimeaddr_cmp(dest, &rimeaddr_null) ? "bc" : "uc",
+    LOG_NODEID_FROM_RIMEADDR(dest), status, transmissions,
+    packetbuf_datalen());
 }
 /*--------------------------------------------------------------------*/
 /**
@@ -1325,6 +1332,11 @@ packet_sent(void *ptr, int status, int transmissions)
 static void
 send_packet(linkaddr_t *dest)
 {
+  LOGP("6LoWPAN: %s send to %d (%u bytes)",
+      rimeaddr_cmp(dest, &rimeaddr_null) ? "bc" : "uc",
+          LOG_NODEID_FROM_RIMEADDR(dest),
+          packetbuf_datalen());
+
   /* Set the link layer destination address for the packet as a
    * packetbuf attribute. The MAC layer can access the destination
    * address with the function packetbuf_addr(PACKETBUF_ADDR_RECEIVER).
@@ -1609,6 +1621,14 @@ input(void)
 
   /* The MAC puts the 15.4 payload inside the packetbuf data buffer */
   packetbuf_ptr = packetbuf_dataptr();
+
+  LOG_INC_HOPCOUNT_FROM_PACKETBUF();
+
+  LOGP("6LoWPAN: %s input from %d (%u bytes)",
+      rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER), &rimeaddr_null) ? "bc" : "uc",
+          LOG_NODEID_FROM_RIMEADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)),
+          packetbuf_datalen()
+  );
 
   /* Save the RSSI of the incoming packet in case the upper layer will
      want to query us for it later. */
