@@ -31,6 +31,10 @@ endif
 CONTIKI_TARGET_SOURCEFILES += $(ARCH) $(UIPDRIVERS)
 
 MCU=msp430f5437
+
+# Platform has a MSP430X MCU with 20-bit support
+CPU_HAS_MSP430X=1
+
 include $(CONTIKI)/cpu/msp430/Makefile.msp430
 
 ifdef IAR
