@@ -1641,6 +1641,10 @@ input(void)
   		packetbuf_datalen()
   		);
 
+#if UIP_DS6_WITH_LINK_METRICS
+  uip_ds6_nbr_input_callback();
+#endif
+
 #if SICSLOWPAN_CONF_FRAG
   /* if reassembly timed out, cancel it */
   if(timer_expired(&reass_timer)) {
