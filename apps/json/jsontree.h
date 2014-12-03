@@ -50,9 +50,9 @@
 #endif /* JSONTREE_CONF_MAX_DEPTH */
 
 struct jsontree_context {
+  int (* js_putchar)(int c);
   struct jsontree_value *values[JSONTREE_MAX_DEPTH];
   uint16_t index[JSONTREE_MAX_DEPTH];
-  int (* putchar)(int);
   uint8_t depth;
   uint8_t path;
   int callback_state;
@@ -117,7 +117,7 @@ struct jsontree_array {
     jsontree_pair_##name }
 
 void jsontree_setup(struct jsontree_context *js_ctx,
-                    struct jsontree_value *root, int (* putchar)(int));
+                    struct jsontree_value *root, int (* js_putchar)(int));
 void jsontree_reset(struct jsontree_context *js_ctx);
 
 const char *jsontree_path_name(const struct jsontree_context *js_ctx,

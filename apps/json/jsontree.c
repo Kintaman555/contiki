@@ -55,10 +55,10 @@ void
 jsontree_write_atom(const struct jsontree_context *js_ctx, const char *text)
 {
   if(text == NULL) {
-    js_ctx->putchar('0');
+    js_ctx->js_putchar('0');
   } else {
     while(*text != '\0') {
-      js_ctx->putchar(*text++);
+      js_ctx->js_putchar(*text++);
     }
   }
 }
@@ -66,16 +66,16 @@ jsontree_write_atom(const struct jsontree_context *js_ctx, const char *text)
 void
 jsontree_write_string(const struct jsontree_context *js_ctx, const char *text)
 {
-  js_ctx->putchar('"');
+  js_ctx->js_putchar('"');
   if(text != NULL) {
     while(*text != '\0') {
       if(*text == '"') {
-        js_ctx->putchar('\\');
+        js_ctx->js_putchar('\\');
       }
-      js_ctx->putchar(*text++);
+      js_ctx->js_putchar(*text++);
     }
   }
-  js_ctx->putchar('"');
+  js_ctx->js_putchar('"');
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -85,7 +85,7 @@ jsontree_write_int(const struct jsontree_context *js_ctx, int value)
   int l;
 
   if(value < 0) {
-    js_ctx->putchar('-');
+    js_ctx->js_putchar('-');
     value = -value;
   }
 
@@ -96,16 +96,16 @@ jsontree_write_int(const struct jsontree_context *js_ctx, int value)
   } while(value > 0 && l >= 0);
 
   while(++l < sizeof(buf)) {
-    js_ctx->putchar(buf[l]);
+    js_ctx->js_putchar(buf[l]);
   }
 }
 /*---------------------------------------------------------------------------*/
 void
 jsontree_setup(struct jsontree_context *js_ctx, struct jsontree_value *root,
-               int (* putchar)(int))
+               int (* js_putchar)(int))
 {
   js_ctx->values[0] = root;
-  js_ctx->putchar = putchar;
+  js_ctx->js_putchar = js_putchar;
   js_ctx->path = 0;
   jsontree_reset(js_ctx);
 }
@@ -144,24 +144,24 @@ jsontree_print_next(struct jsontree_context *js_ctx)
 
     index = js_ctx->index[js_ctx->depth];
     if(index == 0) {
-      js_ctx->putchar(v->type);
-      js_ctx->putchar('\n');
+      js_ctx->js_putchar(v->type);
+      js_ctx->js_putchar('\n');
     }
     if(index >= o->count) {
-      js_ctx->putchar('\n');
-      js_ctx->putchar(v->type + 2);
+      js_ctx->js_putchar('\n');
+      js_ctx->js_putchar(v->type + 2);
       /* Default operation: back up one level! */
       break;
     }
 
     if(index > 0) {
-      js_ctx->putchar(',');
-      js_ctx->putchar('\n');
+      js_ctx->js_putchar(',');
+      js_ctx->js_putchar('\n');
     }
     if(v->type == JSON_TYPE_OBJECT) {
       jsontree_write_string(js_ctx,
                             ((struct jsontree_object *)o)->pairs[index].name);
-      js_ctx->putchar(':');
+      js_ctx->js_putchar(':');
       ov = ((struct jsontree_object *)o)->pairs[index].value;
     } else {
       ov = o->values[index];
