@@ -50,7 +50,15 @@
 #include "net/rime/rimestats.h"
 #include "net/netstack.h"
 
+/* CC2420 MAX PACKET DURATION in RTIMER ticks */
+#define CC2420_MAX_PACKET_DURATION 148
+
+//XXX TSCH does not need this
+#ifdef CC2420_CONF_SEND_CCA
+#define WITH_SEND_CCA CC2420_CONF_SEND_CCA
+#else
 #define WITH_SEND_CCA 1
+#endif
 
 #ifndef CC2420_CONF_CHANNEL
 #define CC2420_CONF_CHANNEL 26
@@ -140,6 +148,27 @@ static volatile uint16_t last_packet_timestamp;
 PROCESS(cc2420_process, "CC2420 driver");
 /*---------------------------------------------------------------------------*/
 
+#ifdef CC2420_CONF_FIFOP_THRESHOLD
+#define FIFOP_THRESHOLD CC2420_CONF_FIFOP_THRESHOLD
+#else
+#define FIFOP_THRESHOLD 127
+#endif
+
+#ifndef RF_CHANNEL
+#define RF_CHANNEL 20
+#endif /* RF_CHANNEL */
+
+#ifndef CC2420_CONF_TX_POWER
+#define CC2420_CONF_TX_POWER 15
+#endif /* CC2420_CONF_TX_POWER */
+
+#ifndef RSSI_THR
+#define RSSI_THR				(-32-14)
+#endif /* RSSI_THR */
+
+#ifndef CC2420_CONF_CCA_THRESH
+#define CC2420_CONF_CCA_THRESH RSSI_THR
+#endif /* CC2420_CONF_CCA_THRESH */
 
 int cc2420_on(void);
 int cc2420_off(void);
@@ -159,6 +188,10 @@ uint8_t cc2420_last_correlation;
 
 static uint8_t receive_on;
 static int channel;
+
+/* A flag to enable or disable FIFOP interrupt */
+static uint8_t volatile interrupt_enabled = 1;
+static uint8_t volatile address_decoding_enabled = 1;
 
 static radio_result_t
 get_value(radio_param_t param, radio_value_t *value)
@@ -257,6 +290,9 @@ set_object(radio_param_t param, const void *src, size_t size)
 {
   return RADIO_RESULT_NOT_SUPPORTED;
 }
+
+signed char radio_last_rssi;
+uint8_t radio_last_correlation;
 
 const struct radio_driver cc2420_driver =
   {
@@ -440,7 +476,10 @@ wait_for_transmission(void)
 static void
 on(void)
 {
-  CC2420_ENABLE_FIFOP_INT();
+  if(interrupt_enabled) {
+    CC2420_ENABLE_FIFOP_INT();
+  }
+
   strobe(CC2420_SRXON);
 
   ENERGEST_ON(ENERGEST_TYPE_LISTEN);
@@ -458,7 +497,10 @@ off(void)
 
   ENERGEST_OFF(ENERGEST_TYPE_LISTEN);
   strobe(CC2420_SRFOFF);
-  CC2420_DISABLE_FIFOP_INT();
+
+  if(interrupt_enabled) {
+    CC2420_DISABLE_FIFOP_INT();
+  }
 
   if(!CC2420_FIFOP_IS_1) {
     flushrx();
@@ -549,6 +591,9 @@ cc2420_init(void)
     cc2420_arch_init();		/* Initalize ports and SPI. */
     CC2420_DISABLE_FIFOP_INT();
     CC2420_FIFOP_INT_INIT();
+    if(!interrupt_enabled) {
+      CC2420_DISABLE_FIFOP_INT();
+    }
     splx(s);
   }
 
@@ -597,7 +642,7 @@ cc2420_init(void)
   setreg(CC2420_RXCTRL1, reg);
 
   /* Set the FIFOP threshold to maximum. */
-  setreg(CC2420_IOCFG0, FIFOP_THR(127));
+  setreg(CC2420_IOCFG0, FIFOP_THR(FIFOP_THRESHOLD));
 
   init_security();
 
@@ -606,6 +651,13 @@ cc2420_init(void)
   cc2420_set_cca_threshold(CC2420_CONF_CCA_THRESH);
 
   flushrx();
+
+  cc2420_set_interrupt_enable(1);
+  cc2420_sfd_sync(1, 1);
+
+  if(interrupt_enabled) {
+    CC2420_CLEAR_FIFOP_INT();
+  }
 
   process_start(&cc2420_process, NULL);
   return 1;
@@ -619,12 +671,12 @@ cc2420_transmit(unsigned short payload_len)
   GET_LOCK();
 
   txpower = 0;
-  if(packetbuf_attr(PACKETBUF_ATTR_RADIO_TXPOWER) > 0) {
-    /* Remember the current transmission power */
-    txpower = cc2420_get_txpower();
-    /* Set the specified transmission power */
-    set_txpower(packetbuf_attr(PACKETBUF_ATTR_RADIO_TXPOWER) - 1);
-  }
+//  if(packetbuf_attr(PACKETBUF_ATTR_RADIO_TXPOWER) > 0) {
+//    /* Remember the current transmission power */
+//    txpower = cc2420_get_txpower();
+//    /* Set the specified transmission power */
+//    set_txpower(packetbuf_attr(PACKETBUF_ATTR_RADIO_TXPOWER) - 1);
+//  }
 
   /* The TX FIFO can only hold one packet. Make sure to not overrun
    * FIFO by waiting for transmission to start here and synchronizing
@@ -651,11 +703,11 @@ cc2420_transmit(unsigned short payload_len)
       {
         rtimer_clock_t sfd_timestamp;
         sfd_timestamp = cc2420_sfd_start_time;
-        if(packetbuf_attr(PACKETBUF_ATTR_PACKET_TYPE) ==
-           PACKETBUF_ATTR_PACKET_TYPE_TIMESTAMP) {
-          /* Write timestamp to last two bytes of packet in TXFIFO. */
-          write_ram((uint8_t *) &sfd_timestamp, CC2420RAM_TXFIFO + payload_len - 1, 2, WRITE_RAM_IN_ORDER);
-        }
+//        if(packetbuf_attr(PACKETBUF_ATTR_PACKET_TYPE) ==
+//           PACKETBUF_ATTR_PACKET_TYPE_TIMESTAMP) {
+//          /* Write timestamp to last two bytes of packet in TXFIFO. */
+//          write_ram((uint8_t *) &sfd_timestamp, CC2420RAM_TXFIFO + payload_len - 1, 2, WRITE_RAM_IN_ORDER);
+//        }
       }
 
       if(!(get_status() & BV(CC2420_TX_ACTIVE))) {
@@ -685,10 +737,10 @@ cc2420_transmit(unsigned short payload_len)
 	off();
       }
 
-      if(packetbuf_attr(PACKETBUF_ATTR_RADIO_TXPOWER) > 0) {
-        /* Restore the transmission power */
-        set_txpower(txpower & 0xff);
-      }
+//      if(packetbuf_attr(PACKETBUF_ATTR_RADIO_TXPOWER) > 0) {
+//        /* Restore the transmission power */
+//        set_txpower(txpower & 0xff);
+//      }
 
       RELEASE_LOCK();
       return RADIO_TX_OK;
@@ -700,10 +752,10 @@ cc2420_transmit(unsigned short payload_len)
   RIMESTATS_ADD(contentiondrop);
   PRINTF("cc2420: do_send() transmission never started\n");
 
-  if(packetbuf_attr(PACKETBUF_ATTR_RADIO_TXPOWER) > 0) {
-    /* Restore the transmission power */
-    set_txpower(txpower & 0xff);
-  }
+//  if(packetbuf_attr(PACKETBUF_ATTR_RADIO_TXPOWER) > 0) {
+//    /* Restore the transmission power */
+//    set_txpower(txpower & 0xff);
+//  }
 
   RELEASE_LOCK();
   return RADIO_TX_COLLISION;
@@ -860,7 +912,7 @@ PROCESS_THREAD(cc2420_process, ev, data)
   PRINTF("cc2420_process: started\n");
 
   while(1) {
-    PROCESS_YIELD_UNTIL(ev == PROCESS_EVENT_POLL);
+    PROCESS_YIELD_UNTIL(interrupt_enabled && ev == PROCESS_EVENT_POLL);
 
     PRINTF("cc2420_process: calling receiver callback\n");
 
@@ -902,11 +954,15 @@ cc2420_read(void *buf, unsigned short bufsize)
     getrxdata(footer, FOOTER_LEN);
     
     if(footer[1] & FOOTER1_CRC_OK) {
-      cc2420_last_rssi = footer[0] + RSSI_OFFSET;
-      cc2420_last_correlation = footer[1] & FOOTER1_CORRELATION;
-      
-      packetbuf_set_attr(PACKETBUF_ATTR_RSSI, cc2420_last_rssi);
-      packetbuf_set_attr(PACKETBUF_ATTR_LINK_QUALITY, cc2420_last_correlation);
+      radio_last_rssi = cc2420_last_rssi = footer[0];
+      radio_last_correlation = cc2420_last_correlation = footer[1] & FOOTER1_CORRELATION;
+
+      if(!interrupt_enabled) {
+        /* If interrupt are disabled, this function is possibly called from interrupt
+         * by the MAC or RDC layer. Don't write to packetbuf in interrupt. */
+        packetbuf_set_attr(PACKETBUF_ATTR_RSSI, cc2420_last_rssi-45);
+        packetbuf_set_attr(PACKETBUF_ATTR_LINK_QUALITY, cc2420_last_correlation);
+      }
   
       RIMESTATS_ADD(llrx);
     } else {
@@ -914,15 +970,17 @@ cc2420_read(void *buf, unsigned short bufsize)
       len = FOOTER_LEN;
     }
   
-    if(CC2420_FIFOP_IS_1) {
-      if(!CC2420_FIFO_IS_1) {
-        /* Clean up in case of FIFO overflow!  This happens for every
-         * full length frame and is signaled by FIFOP = 1 and FIFO =
-         * 0. */
-        flushrx();
-      } else {
-        /* Another packet has been received and needs attention. */
-        process_poll(&cc2420_process);
+    if(interrupt_enabled) {
+      if(CC2420_FIFOP_IS_1) {
+        if(!CC2420_FIFO_IS_1) {
+          /* Clean up in case of FIFO overflow!  This happens for every
+           * full length frame and is signaled by FIFOP = 1 and FIFO =
+           * 0. */
+          flushrx();
+        } else {
+          /* Another packet has been received and needs attention. */
+          process_poll(&cc2420_process);
+        }
       }
     }
     
@@ -1041,4 +1099,102 @@ cc2420_set_cca_threshold(int value)
   setreg(CC2420_RSSI, shifted);
   RELEASE_LOCK();
 }
-/*---------------------------------------------------------------------------*/
+
+/* Configures timer B to capture SFD edge (start, end, both),
+ * and sets the link start time for calculating synchronization in ACK */
+void
+cc2420_sfd_sync(uint8_t capture_start_sfd, uint8_t capture_end_sfd)
+{
+  /* Need to select the special function! */
+  P4SEL = BV(CC2420_SFD_PIN);
+
+  /* start timer B - 32768 ticks per second */
+  TBCTL = TBSSEL_1 | TBCLR;
+
+	if(capture_start_sfd && capture_end_sfd) {
+		/* Capture mode: 3 - both edges */
+		TBCCTL1 = CM_3;
+	} else if(capture_end_sfd){
+		/* Capture mode: 2 - neg. edge */
+		TBCCTL1 = CM_2;
+	} else if(capture_start_sfd) {
+		/* Capture mode: 1 - pos. edge */
+		TBCCTL1 = CM_1;
+	} else {
+		/* Capture mode: 0 - disabled */
+		TBCCTL1 = CM_0;
+	}
+	TBCCTL1 |= CAP | SCS;
+
+  /* Start Timer_B in continuous mode. */
+	TBCTL |= MC1; //it is already started?
+
+	/* Sync with RTIMER */
+  TBR = RTIMER_NOW();
+}
+
+/* Read the timer value when the last SFD edge was captured,
+ * this depends on SFD timer configuration */
+uint16_t
+cc2420_read_sfd_timer(void)
+{
+	uint16_t t = TBCCR1;
+	return t;
+}
+
+/* Turn on/off address decoding.
+ * Disabling address decoding would enable reception of
+ * frames not compliant with the 802.15.4-2003 standard */
+void
+cc2420_address_decode(uint8_t enable)
+{
+	GET_LOCK();
+
+	address_decoding_enabled = enable;
+
+	/* Turn on/off address decoding. */
+	uint16_t reg = getreg(CC2420_MDMCTRL0);
+	if(enable) {
+	  reg |= ADR_DECODE;
+	} else {
+		reg &= ~(ADR_DECODE);
+	}
+  /* Writing RAM requires crystal oscillator to be stable. */
+  BUSYWAIT_UNTIL((status() & (BV(CC2420_XOSC16M_STABLE))), RTIMER_SECOND / 10);
+  /* Wait for any transmission to end. */
+  BUSYWAIT_UNTIL(!(status() & BV(CC2420_TX_ACTIVE)), RTIMER_SECOND / 10);
+	setreg(CC2420_MDMCTRL0, reg);
+	RELEASE_LOCK();
+}
+
+/* Enable or disable radio interrupts (both FIFOP and SFD timer capture) */
+void
+cc2420_set_interrupt_enable(uint8_t e)
+{
+	GET_LOCK();
+
+	interrupt_enabled = e;
+
+	if(e) {
+		/* Initialize and enable FIFOP interrupt */
+		CC2420_FIFOP_INT_INIT();
+		CC2420_ENABLE_FIFOP_INT();
+		CC2420_CLEAR_FIFOP_INT();
+		/* Enable SFD timer capture interrupt */
+		TBCCTL1 |= CCIE;
+	} else {
+		/* Disable FIFOP interrupt */
+		CC2420_CLEAR_FIFOP_INT();
+		CC2420_DISABLE_FIFOP_INT();
+		/* Disable SFD timer capture interrupt */
+		TBCCTL1 &= ~CCIE;
+	}
+	RELEASE_LOCK();
+}
+
+/* Get radio interrupt enable status */
+uint8_t
+cc2420_get_interrupt_enable(void)
+{
+	return interrupt_enabled;
+}
