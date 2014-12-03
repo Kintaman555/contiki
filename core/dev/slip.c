@@ -60,7 +60,16 @@ uint16_t slip_rubbish, slip_twopackets, slip_overflow, slip_ip_drop;
 #endif
 
 /* Must be at least one byte larger than UIP_BUFSIZE! */
+#ifdef SLIP_CONF_RX_BUFSIZE
+#define RX_BUFSIZE SLIP_CONF_RX_BUFSIZE
+
+#if RX_BUFSIZE < (UIP_BUFSIZE - UIP_LLH_LEN + 16)
+#error "SLIP_CONF_RX_BUFSIZE too small for UIP_BUFSIZE"
+#endif
+
+#else
 #define RX_BUFSIZE (UIP_BUFSIZE - UIP_LLH_LEN + 16)
+#endif
 
 enum {
   STATE_TWOPACKETS = 0,	/* We have 2 packets and drop incoming data. */
@@ -81,9 +90,9 @@ enum {
  */
 
 static uint8_t state = STATE_TWOPACKETS;
-static uint16_t begin, end;
+static volatile uint16_t begin, end;
 static uint8_t rxbuf[RX_BUFSIZE];
-static uint16_t pkt_end;		/* SLIP_END tracker. */
+static volatile uint16_t pkt_end;		/* SLIP_END tracker. */
 
 static void (* input_callback)(void) = NULL;
 /*---------------------------------------------------------------------------*/
