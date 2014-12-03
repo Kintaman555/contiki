@@ -66,7 +66,7 @@
 
 SENSORS(&button_sensor);
 
-extern unsigned char node_mac[8];
+unsigned char node_mac[8];
 
 #if DCOSYNCH_CONF_ENABLED
 static struct timer mgt_timer;
@@ -161,6 +161,7 @@ set_rime_addr(void)
   }
   printf("%d\n", addr.u8[i]);
 }
+#if !PROCESS_CONF_NO_PROCESS_NAMES
 /*---------------------------------------------------------------------------*/
 static void
 print_processes(struct process * const processes[])
@@ -173,6 +174,7 @@ print_processes(struct process * const processes[])
   }
   putchar('\n');
 }
+#endif
 /*--------------------------------------------------------------------------*/
 #if WITH_UIP
 static void
@@ -218,21 +220,37 @@ main(int argc, char **argv)
 
   /* Restore node id if such has been stored in external mem */
   node_id_restore();
+  {
+  unsigned char buf[12];
+    xmem_pread(buf, 12, NODE_ID_XMEM_OFFSET);
+    if(buf[0] == 0xad &&
+       buf[1] == 0xde) {
+      memcpy(node_mac, &buf[4], 8);
+    }
+  }
 
   /* If no MAC address was burned, we use the node ID. */
   if(!(node_mac[0] | node_mac[1] | node_mac[2] | node_mac[3] |
        node_mac[4] | node_mac[5] | node_mac[6] | node_mac[7])) {
-    node_mac[0] = 0xc1;  /* Hardcoded for Z1 */
-    node_mac[1] = 0x0c;  /* Hardcoded for Revision C */
-    node_mac[2] = 0x00;  /* Hardcoded to arbitrary even number so that
-                            the 802.15.4 MAC address is compatible with
-                            an Ethernet MAC address - byte 0 (byte 2 in
-                            the DS ID) */
-    node_mac[3] = 0x00;  /* Hardcoded */
-    node_mac[4] = 0x00;  /* Hardcoded */
-    node_mac[5] = 0x00;  /* Hardcoded */
-    node_mac[6] = node_id >> 8;
-    node_mac[7] = node_id & 0xff;
+//    node_mac[0] = 0xc1;  /* Hardcoded for Z1 */
+//    node_mac[1] = 0x0c;  /* Hardcoded for Revision C */
+//    node_mac[2] = 0x00;  /* Hardcoded to arbitrary even number so that
+//                            the 802.15.4 MAC address is compatible with
+//                            an Ethernet MAC address - byte 0 (byte 2 in
+//                            the DS ID) */
+//    node_mac[3] = 0x00;  /* Hardcoded */
+//    node_mac[4] = 0x00;  /* Hardcoded */
+//    node_mac[5] = 0x00;  /* Hardcoded */
+//    node_mac[6] = node_id >> 8;
+//    node_mac[7] = node_id & 0xff;
+      node_mac[0] = 0x00;
+      node_mac[1] = 0x12;
+      node_mac[2] = 0x74;
+      node_mac[3] = node_id;
+      node_mac[4] = 0x00;
+      node_mac[5] = node_id;
+      node_mac[6] = node_id;
+      node_mac[7] = node_id;
   }
 
   /* Overwrite node MAC if desired at compile time */
@@ -263,6 +281,7 @@ main(int argc, char **argv)
    /*
    * Initialize Contiki and our processes.
    */
+  random_init(node_mac[0] + node_mac[7] + node_id);
   process_init();
   process_start(&etimer_process, NULL);
 
@@ -411,7 +430,11 @@ main(int argc, char **argv)
   energest_init();
   ENERGEST_ON(ENERGEST_TYPE_CPU);
 
+#if !PROCESS_CONF_NO_PROCESS_NAMES
   print_processes(autostart_processes);
+#else /* !PROCESS_CONF_NO_PROCESS_NAMES */
+  putchar('\n'); /* include putchar() */
+#endif /* !PROCESS_CONF_NO_PROCESS_NAMES */
   autostart_start(autostart_processes);
 
   /*
