@@ -332,22 +332,22 @@ send_packet(mac_callback_t sent, void *ptr)
 	if(q->buf != NULL) {
 	  struct qbuf_metadata *metadata = (struct qbuf_metadata *)q->ptr;
 	  /* Neighbor and packet successfully allocated */
-	  if(packetbuf_attr(PACKETBUF_ATTR_MAX_MAC_TRANSMISSIONS) == 0) {
+//	  if(packetbuf_attr(PACKETBUF_ATTR_MAX_MAC_TRANSMISSIONS) == 0) {
 	    /* Use default configuration for max transmissions */
 	    metadata->max_transmissions = CSMA_MAX_MAC_TRANSMISSIONS;
-	  } else {
-	    metadata->max_transmissions =
-                  packetbuf_attr(PACKETBUF_ATTR_MAX_MAC_TRANSMISSIONS);
-	  }
+//	  } else {
+//	    metadata->max_transmissions =
+//                  packetbuf_attr(PACKETBUF_ATTR_MAX_MAC_TRANSMISSIONS);
+//	  }
 	  metadata->sent = sent;
 	  metadata->cptr = ptr;
 
-	  if(packetbuf_attr(PACKETBUF_ATTR_PACKET_TYPE) ==
-	     PACKETBUF_ATTR_PACKET_TYPE_ACK) {
-	    list_push(n->queued_packet_list, q);
-	  } else {
+//	  if(packetbuf_attr(PACKETBUF_ATTR_PACKET_TYPE) ==
+//	     PACKETBUF_ATTR_PACKET_TYPE_ACK) {
+//	    list_push(n->queued_packet_list, q);
+//	  } else {
 	    list_add(n->queued_packet_list, q);
-	  }
+//	  }
 
 	  /* If q is the first packet in the neighbor's queue, send asap */
 	  if(list_head(n->queued_packet_list) == q) {
