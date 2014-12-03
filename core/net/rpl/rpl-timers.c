@@ -47,7 +47,12 @@
 #include "lib/random.h"
 #include "sys/ctimer.h"
 
+#if IN_COOJA
+#define DEBUG DEBUG_ANNOTATE
+#else
 #define DEBUG DEBUG_NONE
+#endif
+
 #include "net/ip/uip-debug.h"
 
 /*---------------------------------------------------------------------------*/
@@ -61,6 +66,10 @@ static uint16_t next_dis;
 
 /* dio_send_ok is true if the node is ready to send DIOs */
 static uint8_t dio_send_ok;
+
+#ifdef RPL_CALLBACK_NEW_DIO_INTERVAL
+void RPL_CALLBACK_NEW_DIO_INTERVAL(uint8_t dio_interval);
+#endif
 
 /*---------------------------------------------------------------------------*/
 static void
@@ -104,6 +113,11 @@ new_dio_interval(rpl_instance_t *instance)
   instance->dio_next_delay -= ticks;
   instance->dio_send = 1;
 
+#ifdef RPL_CALLBACK_NEW_DIO_INTERVAL
+  RPL_CALLBACK_NEW_DIO_INTERVAL(instance->dio_intcurrent);
+#endif
+
+  ANNOTATE("#A rank=%u\n", instance->current_dag->rank);
 #if RPL_CONF_STATS
   /* keep some stats */
   instance->dio_totint++;
@@ -179,8 +193,10 @@ rpl_reset_periodic_timer(void)
 /*---------------------------------------------------------------------------*/
 /* Resets the DIO timer in the instance to its minimal interval. */
 void
-rpl_reset_dio_timer(rpl_instance_t *instance)
+rpl_reset_dio_timer(rpl_instance_t *instance, int src)
 {
+  LOG("RPL: reset DIO timer, was %d (%d)\n",
+      default_instance != NULL ? default_instance->dio_intcurrent : -1, src);
 #if !RPL_LEAF_ONLY
   /* Do not reset if we are already on the minimum interval,
      unless forced to do so. */
@@ -194,6 +210,7 @@ rpl_reset_dio_timer(rpl_instance_t *instance)
 #endif /* RPL_CONF_STATS */
 #endif /* RPL_LEAF_ONLY */
 }
+#if !DISABLE_ROUTING
 /*---------------------------------------------------------------------------*/
 static void handle_dao_timer(void *ptr);
 static void
@@ -323,5 +340,6 @@ rpl_cancel_dao(rpl_instance_t *instance)
   ctimer_stop(&instance->dao_lifetime_timer);
 }
 /*---------------------------------------------------------------------------*/
+#endif /* !DISABLE_ROUTING */
 
 /** @}*/

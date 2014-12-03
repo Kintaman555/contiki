@@ -167,7 +167,7 @@ dis_input(void)
 #else /* !RPL_LEAF_ONLY */
       if(uip_is_addr_mcast(&UIP_IP_BUF->destipaddr)) {
         PRINTF("RPL: Multicast DIS => reset DIO timer\n");
-        rpl_reset_dio_timer(instance);
+        rpl_reset_dio_timer(instance, 10);
       } else {
 #endif /* !RPL_LEAF_ONLY */
         PRINTF("RPL: Unicast DIS, reply to sender\n");
@@ -199,7 +199,11 @@ dis_output(uip_ipaddr_t *addr)
   if(addr == NULL) {
     uip_create_linklocal_rplnodes_mcast(&tmpaddr);
     addr = &tmpaddr;
+    LOG("RPL: DIS output to 0\n");
+  } else {
+    LOG("RPL: DIS output to %u\n", LOG_NODEID_FROM_IPADDR(addr));
   }
+
 
   PRINTF("RPL: Sending a DIS to ");
   PRINT6ADDR(addr);
@@ -231,6 +235,9 @@ dio_input(void)
   dio.ocp = RPL_OF.ocp;
   dio.default_lifetime = RPL_DEFAULT_LIFETIME;
   dio.lifetime_unit = RPL_DEFAULT_LIFETIME_UNIT;
+
+  dio.rssi = packetbuf_attr(PACKETBUF_ATTR_RSSI);
+  dio.lqi = packetbuf_attr(PACKETBUF_ATTR_LINK_QUALITY);
 
   uip_ipaddr_copy(&from, &UIP_IP_BUF->srcipaddr);
 
@@ -416,7 +423,10 @@ dio_input(void)
   RPL_DEBUG_DIO_INPUT(&from, &dio);
 #endif
 
-  rpl_process_dio(&from, &dio);
+  int ret = rpl_process_dio(&from, &dio);
+  if(ret != 0) {
+    LOG("RPL: rpl_process_dio ret %d\n", ret);
+  }
 
   uip_len = 0;
 }
@@ -542,6 +552,8 @@ dio_output(rpl_instance_t *instance, uip_ipaddr_t *uc_addr)
     PRINTF("RPL: No prefix to announce (len %d)\n",
            dag->prefix_info.length);
   }
+
+  LOG("RPL: DIO ouptut to %d, rank %u\n", LOG_NODEID_FROM_IPADDR(uc_addr), (unsigned)instance->current_dag->rank);
 
 #if RPL_LEAF_ONLY
 #if (DEBUG) & DEBUG_PRINT
@@ -739,6 +751,11 @@ dao_input(void)
         dao_ack_output(instance, &dao_sender_addr, sequence);
       }
     }
+
+    LOG("RPL: DAO input from %d, target %d%s\n",
+        LOG_NODEID_FROM_IPADDR(&dao_sender_addr), LOG_NODEID_FROM_IPADDR(&prefix),
+        dao_fw ? " (fw)" : "");
+
     return;
   }
 
@@ -783,9 +800,11 @@ dao_input(void)
 fwd_dao:
 #endif
 
+  int dao_fw = 0;
   if(learned_from == RPL_ROUTE_FROM_UNICAST_DAO) {
     if(dag->preferred_parent != NULL &&
        rpl_get_parent_ipaddr(dag->preferred_parent) != NULL) {
+      dao_fw = 1;
       PRINTF("RPL: Forwarding DAO to parent ");
       PRINT6ADDR(rpl_get_parent_ipaddr(dag->preferred_parent));
       PRINTF("\n");
@@ -802,6 +821,7 @@ fwd_dao:
 void
 dao_output(rpl_parent_t *parent, uint8_t lifetime)
 {
+#if DISABLE_ROUTING
   /* Destination Advertisement Object */
   uip_ipaddr_t prefix;
 
@@ -812,11 +832,13 @@ dao_output(rpl_parent_t *parent, uint8_t lifetime)
 
   /* Sending a DAO with own prefix as target */
   dao_output_target(parent, &prefix, lifetime);
+#endif /* !DISABLE_ROUTING */
 }
 /*---------------------------------------------------------------------------*/
 void
 dao_output_target(rpl_parent_t *parent, uip_ipaddr_t *prefix, uint8_t lifetime)
 {
+#if  !DISABLE_ROUTING
   rpl_dag_t *dag;
   rpl_instance_t *instance;
   unsigned char *buffer;
@@ -899,9 +921,13 @@ dao_output_target(rpl_parent_t *parent, uip_ipaddr_t *prefix, uint8_t lifetime)
   PRINT6ADDR(rpl_get_parent_ipaddr(parent));
   PRINTF("\n");
 
+  LOG("RPL: DAO ouptut to %d, target %d\n",
+  		LOG_NODEID_FROM_IPADDR(rpl_get_parent_ipaddr(parent)), LOG_NODEID_FROM_IPADDR(prefix));
+
   if(rpl_get_parent_ipaddr(parent) != NULL) {
     uip_icmp6_send(rpl_get_parent_ipaddr(parent), ICMP6_RPL, RPL_CODE_DAO, pos);
   }
+#endif /* !DISABLE_ROUTING */
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -932,11 +958,14 @@ dao_ack_input(void)
 void
 dao_ack_output(rpl_instance_t *instance, uip_ipaddr_t *dest, uint8_t sequence)
 {
+#if  !DISABLE_ROUTING
   unsigned char *buffer;
 
   PRINTF("RPL: Sending a DAO ACK with sequence number %d to ", sequence);
   PRINT6ADDR(dest);
   PRINTF("\n");
+
+  LOG("RPL: DAO-ACK ouptut to %d, sequence %d\n", LOG_NODEID_FROM_IPADDR(dest), sequence);
 
   buffer = UIP_ICMP_PAYLOAD;
 
@@ -946,15 +975,18 @@ dao_ack_output(rpl_instance_t *instance, uip_ipaddr_t *dest, uint8_t sequence)
   buffer[3] = 0;
 
   uip_icmp6_send(dest, ICMP6_RPL, RPL_CODE_DAO_ACK, 4);
+#endif /* !DISABLE_ROUTING */
 }
 /*---------------------------------------------------------------------------*/
 void
 rpl_icmp6_register_handlers()
 {
-  uip_icmp6_register_input_handler(&dis_handler);
   uip_icmp6_register_input_handler(&dio_handler);
+#if !DISABLE_ROUTING
+  uip_icmp6_register_input_handler(&dis_handler);
   uip_icmp6_register_input_handler(&dao_handler);
   uip_icmp6_register_input_handler(&dao_ack_handler);
+#endif /* !DISABLE_ROUTING */
 }
 /*---------------------------------------------------------------------------*/
 

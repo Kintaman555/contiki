@@ -96,7 +96,7 @@ rpl_verify_header(int uip_ext_opt_offset)
     return 1;
   }
 
-  if(UIP_EXT_HDR_OPT_RPL_BUF->flags & RPL_HDR_OPT_FWD_ERR) {
+  if(!DISABLE_ROUTING && UIP_EXT_HDR_OPT_RPL_BUF->flags & RPL_HDR_OPT_FWD_ERR) {
     PRINTF("RPL: Forward error!\n");
     /* We should try to repair it by removing the neighbor that caused
        the packet to be forwareded in the first place. We drop any
@@ -138,9 +138,17 @@ rpl_verify_header(int uip_ext_opt_offset)
 	   sender_closer);
     if(UIP_EXT_HDR_OPT_RPL_BUF->flags & RPL_HDR_OPT_RANK_ERR) {
       PRINTF("RPL: Rank error signalled in RPL option!\n");
-      /* Packet must be dropped and dio trickle timer reset, see RFC6550 - 11.2.2.2 */
-      rpl_reset_dio_timer(instance);
-      return 1;
+      rpl_parent_t *p = nbr_table_get_from_lladdr(rpl_parents, packetbuf_addr(PACKETBUF_ADDR_SENDER));
+      if(p != NULL) {
+        /* Update parent rank from ext header */
+        LOGU("RPL: ext-header rank for %u hdr %u curr %u",
+            LOG_NODEID_FROM_RIMEADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)), UIP_EXT_HDR_OPT_RPL_BUF->senderrank, p->rank);
+        p->rank = UIP_EXT_HDR_OPT_RPL_BUF->senderrank;
+        rpl_select_dag(instance, p);
+      }
+      rpl_reset_dio_timer(instance, 9);
+      /* Forward the packet anyway. */
+      return 0;
     }
     PRINTF("RPL: Single error tolerated\n");
     UIP_EXT_HDR_OPT_RPL_BUF->flags |= RPL_HDR_OPT_RANK_ERR;
@@ -233,7 +241,7 @@ rpl_update_header_empty(void)
        which states that if a packet is going down it should in
        general not go back up again. If this happens, a
        RPL_HDR_OPT_FWD_ERR should be flagged. */
-    if((UIP_EXT_HDR_OPT_RPL_BUF->flags & RPL_HDR_OPT_DOWN)) {
+    if(!DISABLE_ROUTING && (UIP_EXT_HDR_OPT_RPL_BUF->flags & RPL_HDR_OPT_DOWN)) {
       if(uip_ds6_route_lookup(&UIP_IP_BUF->destipaddr) == NULL) {
         UIP_EXT_HDR_OPT_RPL_BUF->flags |= RPL_HDR_OPT_FWD_ERR;
         PRINTF("RPL forwarding error\n");

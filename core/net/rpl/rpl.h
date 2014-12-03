@@ -45,6 +45,7 @@
 #include "net/ipv6/uip-ds6.h"
 #include "sys/ctimer.h"
 
+NBR_TABLE_DECLARE(rpl_parents);
 /*---------------------------------------------------------------------------*/
 typedef uint16_t rpl_rank_t;
 typedef uint16_t rpl_ocp_t;
@@ -115,6 +116,9 @@ struct rpl_parent {
 #endif /* RPL_DAG_MC != RPL_DAG_MC_NONE */
   rpl_rank_t rank;
   uint16_t link_metric;
+  int16_t rssi;
+  int16_t lqi;
+  uint16_t tx_count;
   uint8_t dtsn;
   uint8_t flags;
 };
@@ -283,6 +287,8 @@ enum rpl_mode rpl_set_mode(enum rpl_mode mode);
  * \retval The RPL mode
  */
 enum rpl_mode rpl_get_mode(void);
+
+int rpl_dag_parents_num(void);
 
 /*---------------------------------------------------------------------------*/
 #endif /* RPL_H */
