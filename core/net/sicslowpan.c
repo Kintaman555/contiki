@@ -1315,6 +1315,13 @@ packet_sent(void *ptr, int status, int transmissions)
     callback->output_callback(status);
   }
   last_tx_status = status;
+
+  const rimeaddr_t *dest = packetbuf_addr(PACKETBUF_ADDR_RECEIVER);
+
+  LOGP("6LoWPAN: %s sent to %d, st %d %d (%u bytes)",
+  		rimeaddr_cmp(dest, &rimeaddr_null) ? "bc" : "uc",
+  		LOG_NODEID_FROM_RIMEADDR(dest), status, transmissions,
+  		packetbuf_datalen());
 }
 /*--------------------------------------------------------------------*/
 /**
@@ -1325,6 +1332,11 @@ packet_sent(void *ptr, int status, int transmissions)
 static void
 send_packet(rimeaddr_t *dest)
 {
+  LOGP("6LoWPAN: %s send to %d (%u bytes)",
+  		rimeaddr_cmp(dest, &rimeaddr_null) ? "bc" : "uc",
+  		LOG_NODEID_FROM_RIMEADDR(dest),
+  		packetbuf_datalen());
+
   /* Set the link layer destination address for the packet as a
    * packetbuf attribute. The MAC layer can access the destination
    * address with the function packetbuf_addr(PACKETBUF_ADDR_RECEIVER).
@@ -1504,6 +1516,7 @@ output(uip_lladdr_t *localdest)
     q = queuebuf_new_from_packetbuf();
     if(q == NULL) {
       PRINTFO("could not allocate queuebuf for first fragment, dropping packet\n");
+      LOGP("6LoWPAN: could not allocate queuebuf for first fragment (len %d), dropping packet.", uip_len);
       return 0;
     }
     send_packet(&dest);
@@ -1516,6 +1529,7 @@ output(uip_lladdr_t *localdest)
        (last_tx_status == MAC_TX_ERR) ||
        (last_tx_status == MAC_TX_ERR_FATAL)) {
       PRINTFO("error in fragment tx, dropping subsequent fragments.\n");
+      LOGP("6LoWPAN: error in fragment tx (st %d), dropping subsequent fragments.", last_tx_status);
       return 0;
     }
 
@@ -1550,6 +1564,7 @@ output(uip_lladdr_t *localdest)
       q = queuebuf_new_from_packetbuf();
       if(q == NULL) {
         PRINTFO("could not allocate queuebuf, dropping fragment\n");
+        LOGP("6LoWPAN: could not allocate queuebuf (len %d), dropping fragment\n", rime_payload_len + rime_hdr_len);
         return 0;
       }
       send_packet(&dest);
@@ -1563,11 +1578,13 @@ output(uip_lladdr_t *localdest)
          (last_tx_status == MAC_TX_ERR) ||
          (last_tx_status == MAC_TX_ERR_FATAL)) {
         PRINTFO("error in fragment tx, dropping subsequent fragments.\n");
+        LOGP("6LoWPAN: error in fragment tx (st %d), dropping subsequent fragments.", last_tx_status);
         return 0;
       }
     }
 #else /* SICSLOWPAN_CONF_FRAG */
     PRINTFO("sicslowpan output: Packet too large to be sent without fragmentation support; dropping packet\n");
+    LOGP("6LoWPAN: Packet too large to be sent without fragmentation support; dropping packet");
     return 0;
 #endif /* SICSLOWPAN_CONF_FRAG */
   } else {
@@ -1618,11 +1635,18 @@ input(void)
   /* The MAC puts the 15.4 payload inside the RIME data buffer */
   rime_ptr = packetbuf_dataptr();
 
+  LOGP("6LoWPAN: %s input from %d (%u bytes)",
+  		rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER), &rimeaddr_null) ? "bc" : "uc",
+  		LOG_NODEID_FROM_RIMEADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)),
+  		packetbuf_datalen()
+  		);
+
 #if SICSLOWPAN_CONF_FRAG
   /* if reassembly timed out, cancel it */
   if(timer_expired(&reass_timer)) {
     sicslowpan_len = 0;
     processed_ip_in_len = 0;
+    PRINTFI("sicslowpan input: reassembly timeout\n");
   }
   /*
    * Since we don't support the mesh and broadcast header, the first header
@@ -1700,6 +1724,7 @@ input(void)
        * being reassembled or the packet is not a fragment.
        */
       PRINTFI("sicslowpan input: Dropping 6lowpan packet that is not a fragment of the packet currently being reassembled\n");
+      LOGP("6LoWPAN: input: Dropping 6lowpan packet that is not a fragment of the packet currently being reassembled.");
       return;
     }
   } else {
@@ -1758,6 +1783,8 @@ input(void)
       /* unknown header */
       PRINTFI("sicslowpan input: unknown dispatch: %u\n",
              RIME_HC1_PTR[RIME_HC1_DISPATCH]);
+      LOGP("6LoWPAN input: unknown dispatch: %u\n",
+          RIME_HC1_PTR[RIME_HC1_DISPATCH]);
       return;
   }
    
