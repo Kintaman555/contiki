@@ -471,7 +471,7 @@ eventhandler(process_event_t ev, process_data_t data)
           uip_ds6_periodic();
           tcpip_ipv6_output();
         }*/
-#if !UIP_CONF_ROUTER
+#if !UIP_CONF_ROUTER && UIP_CONF_ND6_SEND_RA
         if(data == &uip_ds6_timer_rs &&
            etimer_expired(&uip_ds6_timer_rs)) {
           uip_ds6_send_rs();
@@ -570,7 +570,11 @@ tcpip_ipv6_output(void)
     } else {
       uip_ds6_route_t *route;
       /* Check if we have a route to the destination address. */
+#if UIP_CONF_ROUTER
       route = uip_ds6_route_lookup(&UIP_IP_BUF->destipaddr);
+#else
+      route = NULL;
+#endif
 
       /* No route was found - we send to the default route instead. */
       if(route == NULL) {
@@ -587,14 +591,16 @@ tcpip_ipv6_output(void)
 	    /* This should be copied from the ext header... */
 	    UIP_IP_BUF->proto = proto;
 	  }
+	  LOGU("Tcpip: fw to fallback interface (%u bytes)", uip_len);
 	  UIP_FALLBACK_INTERFACE.output();
 #else
           PRINTF("tcpip_ipv6_output: Destination off-link but no route\n");
+          LOGU("Tcpip:! no route, dropping (%u bytes)", uip_len);
 #endif /* !UIP_FALLBACK_INTERFACE */
           uip_len = 0;
           return;
         }
-
+        LOGU("Tcpip: fw to %d (default) (%u bytes)", LOG_NODEID_FROM_IPADDR(nexthop), uip_len);
       } else {
         /* A route was found, so we look up the nexthop neighbor for
            the route. */
@@ -621,8 +627,10 @@ tcpip_ipv6_output(void)
 
           /* We don't have a nexthop to send the packet to, so we drop
              it. */
+          LOGU("Tcpip:! next hop is dead (%u bytes)", uip_len);
           return;
         }
+        LOGU("Tcpip: fw to %d (%u bytes)", LOG_NODEID_FROM_IPADDR(nexthop), uip_len);
       }
 #if TCPIP_CONF_ANNOTATE_TRANSMISSIONS
       if(nexthop != NULL) {
