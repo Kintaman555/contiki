@@ -56,7 +56,7 @@
 
 /* Construct enhanced ACK packet and return ACK length */
 int tsch_packet_make_sync_ack(int32_t drift, int nack,
-    uint8_t *ackbuf, int ackbuf_len, rimeaddr_t *dest_addr, uint8_t seqno);
+    uint8_t *ackbuf, int ackbuf_len, linkaddr_t *dest_addr, uint8_t seqno);
 
 /* Parse enhanced ACK packet, extract drift and nack */
 int tsch_packet_parse_sync_ack(int32_t *drift, int *nack,
@@ -66,10 +66,10 @@ int tsch_packet_parse_sync_ack(int32_t *drift, int *nack,
 int tsch_packet_make_eb(uint8_t* const buf, uint8_t buf_size, uint8_t seqno);
 
 /* Extract addresses from raw packet */
-int tsch_packet_extract_addresses(uint8_t *buf, uint8_t len, rimeaddr_t *source_address, rimeaddr_t *dest_address);
+int tsch_packet_extract_addresses(uint8_t *buf, uint8_t len, linkaddr_t *source_address, linkaddr_t *dest_address);
 
 /* Parse EB and extract ASN and join priority */
-uint8_t tsch_parse_eb(uint8_t *buf, uint8_t buf_len, rimeaddr_t *source_address, struct asn_t *asn, uint8_t *join_priority);
+uint8_t tsch_parse_eb(uint8_t *buf, uint8_t buf_len, linkaddr_t *source_address, struct asn_t *asn, uint8_t *join_priority);
 
 /* Update ASN in EB packet */
 int tsch_packet_update_eb(uint8_t *buf, uint8_t buf_len);

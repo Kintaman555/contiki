@@ -26,9 +26,9 @@ PROCESS_THREAD(test_testbed_process, ev, data)
 
     printf("Node id: %u, Rime address: ", node_id);
     for(i=0; i<7; i++) {
-      printf("%02x:", rimeaddr_node_addr.u8[i]);
+      printf("%02x:", linkaddr_node_addr.u8[i]);
     }
-    printf("%02x\n", rimeaddr_node_addr.u8[7]);
+    printf("%02x\n", linkaddr_node_addr.u8[7]);
   }
 
   PROCESS_END();

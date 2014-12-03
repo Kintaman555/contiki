@@ -45,7 +45,7 @@
 #include "lib/list.h"
 #include "net/mac/tsch/tsch-private.h"
 #include "net/mac/tsch/tsch-queue.h"
-#include "net/rime/rimeaddr.h"
+#include "net/linkaddr.h"
 
 /* Link options */
 #define LINK_OPTION_TX              1
@@ -65,7 +65,7 @@ struct tsch_link {
   /* Creation time */
   struct asn_t creation_asn;
   /* MAC address of neighbor */
-  rimeaddr_t addr;
+  linkaddr_t addr;
   /* Slotframe identifier */
   uint16_t slotframe_handle;
   /* Identifier of Slotframe to which this link belongs
@@ -107,7 +107,7 @@ struct tsch_slotframe *tsch_schedule_get_slotframe_from_handle(uint16_t handle);
 struct tsch_link *tsch_schedule_get_link_from_handle(uint16_t handle);
 /* Adds a link to a slotframe, return a pointer to it (NULL if failure) */
 struct tsch_link *tsch_schedule_add_link(struct tsch_slotframe *slotframe,
-                                         uint8_t link_options, enum link_type link_type, const rimeaddr_t *address,
+                                         uint8_t link_options, enum link_type link_type, const linkaddr_t *address,
                                          uint16_t timeslot, uint16_t channel_offset);
 /* Removes a link. Return 1 if success, 0 if failure */
 int tsch_schedule_remove_link(struct tsch_slotframe *slotframe, struct tsch_link *l);

@@ -752,9 +752,8 @@ dao_input(void)
       }
     }
 
-    LOG("RPL: DAO input from %d, target %d%s\n",
-        LOG_NODEID_FROM_IPADDR(&dao_sender_addr), LOG_NODEID_FROM_IPADDR(&prefix),
-        dao_fw ? " (fw)" : "");
+    LOG("RPL: DAO input from %d, target %d\n",
+        LOG_NODEID_FROM_IPADDR(&dao_sender_addr), LOG_NODEID_FROM_IPADDR(&prefix));
 
     return;
   }

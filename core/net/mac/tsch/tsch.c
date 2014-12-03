@@ -65,7 +65,7 @@
 #if CONTIKI_TARGET_JN5168
 #include "dev/micromac-radio.h"
 #else
-#include "dev/cc2420.h"
+#include "dev/cc2420/cc2420.h"
 #endif
 
 /* inject drift to test drift correction */
@@ -75,8 +75,8 @@
 void TSCH_CALLBACK_JOINING_NETWORK();
 #endif
 
-#ifdef TSCH_CALLBACK_JOINING_NETWORK
-void TSCH_CALLBACK_JOINING_NETWORK();
+#ifdef TSCH_CALLBACK_LEAVING_NETWORK
+void TSCH_CALLBACK_LEAVING_NETWORK();
 #endif
 
 /* When associating, check ASN against our own uptime (time in minutes) */
@@ -93,7 +93,7 @@ void TSCH_CALLBACK_JOINING_NETWORK();
 #endif
 
 #define DEBUG DEBUG_NONE
-#include "net/uip-debug.h"
+#include "net/ip/uip-debug.h"
 
 #ifdef TSCH_CONF_N_CHANNELS
 #define TSCH_N_CHANNELS TSCH_CONF_N_CHANNELS
@@ -117,7 +117,7 @@ void TSCH_CALLBACK_JOINING_NETWORK();
 
 #if TSCH_802154_DUPLICATE_DETECTION
 struct seqno {
-  rimeaddr_t sender;
+  linkaddr_t sender;
   uint8_t seqno;
 };
 
@@ -136,9 +136,9 @@ uint8_t hopping_sequence_list[] = { 26, 15, 25, 20, 16, 19, 14, 24, 18, 17, 17, 
 struct asn_divisor_t hopping_sequence_length;
 
 /* 802.15.4 broadcast MAC address  */
-const rimeaddr_t tsch_broadcast_address = { { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff } };
+const linkaddr_t tsch_broadcast_address = { { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff } };
 /* Address used for the EB virtual neighbor queue */
-const rimeaddr_t tsch_eb_address = { { 0, 0, 0, 0, 0, 0, 0, 0 } };
+const linkaddr_t tsch_eb_address = { { 0, 0, 0, 0, 0, 0, 0, 0 } };
 
 /* A global variable telling whether we are coordinator of the TSCH network
  * TODO: have a function to set this */
@@ -414,7 +414,7 @@ send_packet(mac_callback_t sent, void *ptr)
 {
   int ret = MAC_TX_DEFERRED;
   int packet_count_before;
-  const rimeaddr_t *addr = packetbuf_addr(PACKETBUF_ADDR_RECEIVER);
+  const linkaddr_t *addr = packetbuf_addr(PACKETBUF_ADDR_RECEIVER);
 
   /*
   if(!associated) {
@@ -432,11 +432,11 @@ send_packet(mac_callback_t sent, void *ptr)
   }
 
   /* Ask for ACK if we are sending anything other than broadcast */
-  if(!rimeaddr_cmp(addr, &rimeaddr_null)) {
+  if(!linkaddr_cmp(addr, &linkaddr_null)) {
     packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 1);
   } else {
     /* Broadcast packets shall be added to broadcast queue
-     * The broadcast address in Contiki is rimeaddr_null which is equal
+     * The broadcast address in Contiki is linkaddr_null which is equal
      * to tsch_eb_address */
     addr = &tsch_broadcast_address;
   }
@@ -454,7 +454,7 @@ send_packet(mac_callback_t sent, void *ptr)
       ret = MAC_TX_ERR;
     } else {
       LOGP("TSCH: send packet to %u with seqno %u, queue %u %u",
-            LOG_NODEID_FROM_RIMEADDR(addr), tsch_packet_seqno,
+            LOG_NODEID_FROM_LINKADDR(addr), tsch_packet_seqno,
             packet_count_before,
             tsch_queue_packet_count(addr));
     }
@@ -480,10 +480,10 @@ packet_input(void)
     if(frame_parsed < 0) {
       LOGP("TSCH:! failed to parse %u", packetbuf_datalen());
 #if TSCH_ADDRESS_FILTER
-  } else if(!rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER),
-                          &rimeaddr_node_addr)
-            && !rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER),
-                             &rimeaddr_null)) {
+  } else if(!linkaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER),
+                          &linkaddr_node_addr)
+            && !linkaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER),
+                             &linkaddr_null)) {
     LOGP("TSCH:! not for us");
 #endif /* TSCH_ADDRESS_FILTER */
   } else {
@@ -495,11 +495,11 @@ packet_input(void)
     int i;
     for(i = 0; i < MAX_SEQNOS; ++i) {
       if(packetbuf_attr(PACKETBUF_ATTR_PACKET_ID) == received_seqnos[i].seqno &&
-         rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_SENDER),
+         linkaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_SENDER),
                       &received_seqnos[i].sender)) {
         /* Drop the packet. */
         LOGP("TSCH:! drop duplicate link layer packet from %u with seqno %u",
-               LOG_NODEID_FROM_RIMEADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)),
+               LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)),
                packetbuf_attr(PACKETBUF_ATTR_PACKET_ID));
         duplicate = 1;
       }
@@ -510,18 +510,18 @@ packet_input(void)
                sizeof(struct seqno));
       }
       received_seqnos[0].seqno = packetbuf_attr(PACKETBUF_ATTR_PACKET_ID);
-      rimeaddr_copy(&received_seqnos[0].sender,
+      linkaddr_copy(&received_seqnos[0].sender,
                     packetbuf_addr(PACKETBUF_ADDR_SENDER));
     }
 #endif /* TSCH_802154_DUPLICATE_DETECTION */
 
     if(packetbuf_datalen() == 0) {
     LOG("TSCH: KA received from %u\n",
-          LOG_NODEID_FROM_RIMEADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)));
+          LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)));
     } else {
       if(!duplicate) {
         LOGP("TSCH: received from %u with seqno %u",
-                       LOG_NODEID_FROM_RIMEADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)),
+                       LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)),
                        packetbuf_attr(PACKETBUF_ATTR_PACKET_ID));
         NETSTACK_NETWORK.input();
       }
@@ -534,7 +534,7 @@ keepalive_packet_sent(void *ptr, int status, int transmissions)
 {
   uip_ds6_link_neighbor_callback(status, transmissions);
   LOG("TSCH: KA sent to %u, st %d %d\n",
-      LOG_NODEID_FROM_RIMEADDR(packetbuf_addr(PACKETBUF_ADDR_RECEIVER)), status, transmissions);
+      LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_RECEIVER)), status, transmissions);
   tsch_schedule_keepalive();
 }
 /* Prepare and send a keepalive message */
@@ -550,7 +550,7 @@ keepalive_send()
     packetbuf_set_addr(PACKETBUF_ADDR_RECEIVER, &n->addr);
     send_packet(keepalive_packet_sent, NULL);
     LOG("TSCH: sending KA to %u\n",
-        LOG_NODEID_FROM_RIMEADDR(&n->addr));
+        LOG_NODEID_FROM_LINKADDR(&n->addr));
   }
 }
 /* Set ctimer to send a keepalive message after expiration of TSCH_KEEPALIVE_TIMEOUT */
@@ -838,7 +838,7 @@ PT_THREAD(tsch_tx_link(struct pt *pt, struct rtimer *t))
     log->tx.is_data =
         (tsch_packet_parse_frame_type_from_fcf_lsb(((uint8_t*)queuebuf_dataptr(current_packet->qb))[0])
             & IS_DATA) != 0;
-    log->tx.dest = LOG_NODEID_FROM_RIMEADDR(queuebuf_addr(current_packet->qb, PACKETBUF_ADDR_RECEIVER));
+    log->tx.dest = LOG_NODEID_FROM_LINKADDR(queuebuf_addr(current_packet->qb, PACKETBUF_ADDR_RECEIVER));
     appdata_copy(&log->tx.appdata, LOG_APPDATAPTR_FROM_BUFFER(queuebuf_dataptr(current_packet->qb), queuebuf_datalen(current_packet->qb)));
     );
   }
@@ -859,8 +859,8 @@ PT_THREAD(tsch_rx_link(struct pt *pt, struct rtimer *t))
    **/
 
   struct tsch_neighbor *n;
-  static rimeaddr_t source_address;
-  static rimeaddr_t destination_address;
+  static linkaddr_t source_address;
+  static linkaddr_t destination_address;
   static int16_t input_index;
 
   PT_BEGIN(pt);
@@ -935,8 +935,8 @@ PT_THREAD(tsch_rx_link(struct pt *pt, struct rtimer *t))
         t0rxack = RTIMER_NOW();
 
         if(frame_valid) {
-          if(rimeaddr_cmp(&destination_address, &rimeaddr_node_addr)
-              || rimeaddr_cmp(&destination_address, &rimeaddr_null)) {
+          if(linkaddr_cmp(&destination_address, &linkaddr_node_addr)
+              || linkaddr_cmp(&destination_address, &linkaddr_null)) {
             estimated_drift = ((int32_t)expected_rx_time - (int32_t)rx_start_time);
 
             if(ack_needed) {
@@ -972,7 +972,7 @@ PT_THREAD(tsch_rx_link(struct pt *pt, struct rtimer *t))
 
             /* Log every reception */
             TSCH_LOG_ADD(tsch_log_rx,
-              log->rx.src = LOG_NODEID_FROM_RIMEADDR(&source_address);
+              log->rx.src = LOG_NODEID_FROM_LINKADDR(&source_address);
               log->rx.is_unicast = ack_needed;
               log->rx.datalen = current_input->len;
               log->rx.drift = drift_correction;
@@ -1164,7 +1164,7 @@ PT_THREAD(tsch_associate(struct pt *pt))
       }
 
       if(is_packet_pending) {
-        rimeaddr_t source_address;
+        linkaddr_t source_address;
         int eb_parsed = 0;
 
         /* Save packet timestamp */
@@ -1226,8 +1226,8 @@ PT_THREAD(tsch_associate(struct pt *pt))
             /* TODO: Verify if tsch_nbrs are created and timesources are set */
             LOG("TSCH: association done, asn-%x.%lx, jp %u, from %u, time source %u\n",
                 current_asn.ms1b, current_asn.ls4b, tsch_join_priority,
-                LOG_NODEID_FROM_RIMEADDR(&source_address),
-                LOG_NODEID_FROM_RIMEADDR(&tsch_queue_get_time_source()->addr));
+                LOG_NODEID_FROM_LINKADDR(&source_address),
+                LOG_NODEID_FROM_LINKADDR(&tsch_queue_get_time_source()->addr));
           }
         }
       }
@@ -1365,7 +1365,7 @@ tsch_rx_process_pending()
       packet_input();
     } else {
       /* LOG("TSCH: EB received\n"); */
-      rimeaddr_t source_address;
+      linkaddr_t source_address;
       struct asn_t eb_asn;
       uint8_t eb_join_priority;
       /* Verify incoming EB (does its ASN match our Rx time?),
@@ -1374,7 +1374,7 @@ tsch_rx_process_pending()
                     &source_address, &eb_asn, &eb_join_priority)) {
         struct tsch_neighbor *n = tsch_queue_get_time_source();
         /* Did the EB come from our time source? */
-        if(n != NULL && rimeaddr_cmp(&source_address, &n->addr)) {
+        if(n != NULL && linkaddr_cmp(&source_address, &n->addr)) {
           /* Update join priority */
           if(eb_join_priority < TSCH_MAX_JOIN_PRIORITY) {
             if(tsch_join_priority != eb_join_priority + 1) {

@@ -108,7 +108,7 @@ rpl_verify_header(int uip_ext_opt_offset)
     }
     RPL_STAT(rpl_stats.forward_errors++);
     /* Trigger DAO retransmission */
-    rpl_reset_dio_timer(instance);
+    rpl_reset_dio_timer(instance, 17);
     /* drop the packet as it is not routable */
     return 1;
   }
@@ -142,7 +142,7 @@ rpl_verify_header(int uip_ext_opt_offset)
       if(p != NULL) {
         /* Update parent rank from ext header */
         LOGU("RPL: ext-header rank for %u hdr %u curr %u",
-            LOG_NODEID_FROM_RIMEADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)), UIP_EXT_HDR_OPT_RPL_BUF->senderrank, p->rank);
+            LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)), UIP_EXT_HDR_OPT_RPL_BUF->senderrank, p->rank);
         p->rank = UIP_EXT_HDR_OPT_RPL_BUF->senderrank;
         rpl_select_dag(instance, p);
       }
@@ -202,12 +202,12 @@ rpl_update_header_empty(void)
     if(UIP_HBHO_BUF->len != RPL_HOP_BY_HOP_LEN - 8) {
       PRINTF("RPL: Hop-by-hop extension header has wrong size\n");
       uip_ext_len = last_uip_ext_len;
-      return;
+      return 0;
     }
     if(UIP_EXT_HDR_OPT_RPL_BUF->opt_type != UIP_EXT_HDR_OPT_RPL) {
       PRINTF("RPL: Non RPL Hop-by-hop option support not implemented\n");
       uip_ext_len = last_uip_ext_len;
-      return;
+      return 0;
     }
     if(UIP_EXT_HDR_OPT_RPL_BUF->opt_len != RPL_HDR_OPT_LEN) {
       PRINTF("RPL: RPL Hop-by-hop option has wrong length\n");

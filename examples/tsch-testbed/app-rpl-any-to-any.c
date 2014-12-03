@@ -41,7 +41,7 @@
 #include "contiki-conf.h"
 #include "net/netstack.h"
 #include "net/mac/tsch/tsch-schedule.h"
-#include "net/uip-debug.h"
+#include "net/ip/uip-debug.h"
 #include "lib/random.h"
 #include "deployment.h"
 #include "simple-udp.h"

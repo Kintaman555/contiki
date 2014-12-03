@@ -42,17 +42,17 @@
 #include "contiki-conf.h"
 #include "deployment-def.h"
 #include "sys/node-id.h"
-#include "net/uip.h"
-#include "net/rime/rimeaddr.h"
+#include "net/ip/uip.h"
+#include "net/linkaddr.h"
 
 /* Returns the node's node-id */
 uint16_t get_n_nodes();
 /* Returns the total number of nodes in the deployment */
 uint16_t get_node_id();
-/* Returns a node-index from a node's rimeaddr */
-uint16_t node_index_from_rimeaddr(const rimeaddr_t *addr);
+/* Returns a node-index from a node's linkaddr */
+uint16_t node_index_from_linkaddr(const linkaddr_t *addr);
 /* Returns a node-id from a node's link-layer address */
-uint16_t node_id_from_rimeaddr(const rimeaddr_t *addr);
+uint16_t node_id_from_linkaddr(const linkaddr_t *addr);
 /* Returns a node-id from a node's IPv6 address */
 uint16_t node_id_from_ipaddr(const uip_ipaddr_t *addr);
 /* Returns a node-index from a node-id */
@@ -60,11 +60,11 @@ uint16_t get_node_index_from_id(uint16_t id);
 /* Returns a node-id from a node's absolute index in the deployment */
 uint16_t get_node_id_from_index(uint16_t index);
 /* Sets an IPv6 from a link-layer address */
-void set_ipaddr_from_rimeaddr(uip_ipaddr_t *ipaddr, const rimeaddr_t *lladdr);
+void set_ipaddr_from_linkaddr(uip_ipaddr_t *ipaddr, const linkaddr_t *lladdr);
 /* Sets an IPv6 from a link-layer address */
 void set_ipaddr_from_id(uip_ipaddr_t *ipaddr, uint16_t id);
-/* Sets an rimeaddr from a link-layer address */
-void set_rimeaddr_from_id(rimeaddr_t *lladdr, uint16_t id);
+/* Sets an linkaddr from a link-layer address */
+void set_linkaddr_from_id(linkaddr_t *lladdr, uint16_t id);
 /* Initializes global IPv6 and creates DODAG */
 int deployment_init(uip_ipaddr_t *ipaddr, uip_ipaddr_t *br_prefix);
 

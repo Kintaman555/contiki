@@ -43,7 +43,7 @@
 #include "net/mac/tsch/tsch-schedule.h"
 #include "net/uip-ds6-nbr.h"
 #include "net/mac/tsch/tsch.h"
-#include "net/uip-debug.h"
+#include "net/ip/uip-debug.h"
 #include "lib/random.h"
 #include "deployment.h"
 #include "simple-udp.h"
@@ -110,7 +110,7 @@ app_send_to(uint16_t id, int ping, uint32_t seqno)
   set_ipaddr_from_id(&dest_ipaddr, id);
   /* Convert global address into link-local */
   memcpy(&dest_ipaddr, &llprefix, 8);
-  set_rimeaddr_from_id((rimeaddr_t *)&dest_lladdr, id);
+  set_linkaddr_from_id((linkaddr_t *)&dest_lladdr, id);
   uip_ds6_nbr_add(&dest_ipaddr, &dest_lladdr, 1, ADDR_MANUAL);
 
   simple_udp_sendto(&unicast_connection, &data, sizeof(data), &dest_ipaddr);
@@ -128,13 +128,13 @@ test_memb(void)
     uint8_t c; //1
     uint32_t d; //4
     uint8_t e; //1
-    rimeaddr_t addr;
+    linkaddr_t addr;
   };
 
   struct test_12b
   {
     uint16_t a; //2
-    rimeaddr_t addr;
+    linkaddr_t addr;
     uint16_t b[3]; //3*2
     uint32_t c; //4
   };

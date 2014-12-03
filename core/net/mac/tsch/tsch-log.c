@@ -55,7 +55,7 @@
 PROCESS_NAME(tsch_pending_events_process);
 
 #define DEBUG DEBUG_NONE
-#include "net/uip-debug.h"
+#include "net/ip/uip-debug.h"
 
 #define TSCH_MAX_LOGS 32
 #if (TSCH_MAX_LOGS & (TSCH_MAX_LOGS-1)) != 0
@@ -83,7 +83,7 @@ tsch_log_process_pending()
     LOG("TSCH: {asn-%x.%lx link-%u-%u-%u-%u %u-%u-%u ch-%u} ",
         log->asn.ms1b, log->asn.ls4b,
         log->link->slotframe_handle, sf ? sf->size.val : 0, log->link->timeslot, log->link->channel_offset,
-        LOG_NODEID_FROM_RIMEADDR(&log->link->addr), log->link->link_options, log->link->link_type,
+        LOG_NODEID_FROM_LINKADDR(&log->link->addr), log->link->link_options, log->link->link_type,
         tsch_calculate_channel(&log->asn, log->link->channel_offset));
     switch(log->type) {
       case tsch_log_tx:

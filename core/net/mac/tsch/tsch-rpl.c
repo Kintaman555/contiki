@@ -43,7 +43,7 @@
 #include "tsch-rpl.h"
 
 #define DEBUG DEBUG_NONE
-#include "net/uip-debug.h"
+#include "net/ip/uip-debug.h"
 
 /* To use, set #define TSCH_CALLBACK_JOINING_NETWORK tsch_rpl_callback_joining_network */
 void
@@ -90,7 +90,7 @@ tsch_rpl_callback_parent_switch(rpl_parent_t *old, rpl_parent_t *new)
       rpl_parent_t *preferred_parent = dag->preferred_parent;
       if(preferred_parent != NULL) {
         tsch_queue_update_time_source(
-            (const rimeaddr_t *)uip_ds6_nbr_lladdr_from_ipaddr(
+            (const linkaddr_t *)uip_ds6_nbr_lladdr_from_ipaddr(
                 rpl_get_parent_ipaddr(preferred_parent)));
       }
     }

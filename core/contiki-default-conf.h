@@ -269,9 +269,9 @@
 #ifndef LOGU
 #define LOGU LOGN
 #endif /* LOGU */
-#ifndef LOG_NODEID_FROM_RIMEADDR
-#define LOG_NODEID_FROM_RIMEADDR(addr) ((addr) ? (addr)->u8[RIMEADDR_SIZE-1] : 0)
-#endif /* LOG_NODEID_FROM_RIMEADDR */
+#ifndef LOG_NODEID_FROM_LINKADDR
+#define LOG_NODEID_FROM_LINKADDR(addr) ((addr) ? (addr)->u8[LINKADDR_SIZE-1] : 0)
+#endif /* LOG_NODEID_FROM_LINKADDR */
 #ifndef LOG_NODEID_FROM_IPADDR
 #define LOG_NODEID_FROM_IPADDR(addr) ((addr) ? (addr)->u8[15] : 0)
 #endif /* LOG_NODEID_FROM_IPADDR */

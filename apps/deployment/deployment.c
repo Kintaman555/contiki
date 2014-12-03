@@ -40,7 +40,7 @@
 #include "sys/node-id.h"
 #include "net/rpl/rpl.h"
 #include "net/mac/tsch/tsch.h"
-#include "net/uip-debug.h"
+#include "net/ip/uip-debug.h"
 #include "random.h"
 #include <string.h>
 #include <stdio.h>
@@ -76,7 +76,7 @@ static uip_ipaddr_t prefix;
 /* ID<->MAC address mapping */
 struct id_mac {
   uint16_t id;
-  rimeaddr_t mac;
+  linkaddr_t mac;
 };
 
 /* List of ID<->MAC mapping used for different deployments */
@@ -215,10 +215,10 @@ get_node_id()
 {
 #if CONTIKI_TARGET_Z1 || CONTIKI_TARGET_JN5168
   extern unsigned char node_mac[8];
-  return node_id_from_rimeaddr((const rimeaddr_t *)node_mac);
+  return node_id_from_linkaddr((const linkaddr_t *)node_mac);
 #else
   extern unsigned char ds2411_id[8];
-  return node_id_from_rimeaddr((const rimeaddr_t *)&ds2411_id);
+  return node_id_from_linkaddr((const linkaddr_t *)&ds2411_id);
 #endif
 }
 /* Returns the total number of nodes in the deployment */
@@ -238,15 +238,15 @@ lladdr_from_ipaddr_uuid(uip_lladdr_t *lladdr, const uip_ipaddr_t *ipaddr)
 #error orpl.c supports only EUI-64 identifiers
 #endif
 }
-/* Returns a node-index from a node's rimeaddr */
+/* Returns a node-index from a node's linkaddr */
 uint16_t
-node_index_from_rimeaddr(const rimeaddr_t *addr)
+node_index_from_linkaddr(const linkaddr_t *addr)
 {
 #if IN_COOJA
   if(addr == NULL) {
     return 0xffff;
   } else {
-    return node_id_from_rimeaddr(addr)-1;
+    return node_id_from_linkaddr(addr)-1;
   }
 #else /* IN_COOJA */
   if(addr == NULL) {
@@ -263,9 +263,9 @@ node_index_from_rimeaddr(const rimeaddr_t *addr)
   return 0xffff;
 #endif /* IN_COOJA */
 }
-/* Returns a node-id from a node's rimeaddr */
+/* Returns a node-id from a node's linkaddr */
 uint16_t
-node_id_from_rimeaddr(const rimeaddr_t *addr)
+node_id_from_linkaddr(const linkaddr_t *addr)
 {
 #if IN_COOJA
   if(addr == NULL) {
@@ -294,7 +294,7 @@ node_id_from_ipaddr(const uip_ipaddr_t *addr)
 {
   uip_lladdr_t lladdr;
   lladdr_from_ipaddr_uuid(&lladdr, addr);
-  return node_id_from_rimeaddr((const rimeaddr_t *)&lladdr);
+  return node_id_from_linkaddr((const linkaddr_t *)&lladdr);
 }
 /* Returns a node-index from a node-id */
 uint16_t
@@ -327,15 +327,15 @@ get_node_id_from_index(uint16_t index)
 void
 set_ipaddr_from_id(uip_ipaddr_t *ipaddr, uint16_t id)
 {
-  rimeaddr_t lladdr;
+  linkaddr_t lladdr;
   memcpy(ipaddr, &prefix, 8);
-  set_rimeaddr_from_id(&lladdr, id);
+  set_linkaddr_from_id(&lladdr, id);
   uip_ds6_set_addr_iid(ipaddr, (uip_lladdr_t *)&lladdr);
 }
-/* Sets an rimeaddr from a link-layer address */
-/* Sets a rimeaddr from a node-id */
+/* Sets an linkaddr from a link-layer address */
+/* Sets a linkaddr from a node-id */
 void
-set_rimeaddr_from_id(rimeaddr_t *lladdr, uint16_t id)
+set_linkaddr_from_id(linkaddr_t *lladdr, uint16_t id)
 {
 #if IN_COOJA
   lladdr->u8[0] = 0x00;
@@ -353,7 +353,7 @@ set_rimeaddr_from_id(rimeaddr_t *lladdr, uint16_t id)
   const struct id_mac *curr = id_mac_list;
   while(curr->id != 0) {
     if(curr->id == id) {
-      rimeaddr_copy(lladdr, &curr->mac);
+      linkaddr_copy(lladdr, &curr->mac);
       return;
     }
     curr++;
@@ -373,7 +373,7 @@ deployment_init(uip_ipaddr_t *ipaddr, uip_ipaddr_t *br_prefix)
     NETSTACK_RDC.off(0);
     NETSTACK_MAC.off(0);
     printf("Node id unset, my mac is ");
-    uip_debug_lladdr_print((const uip_lladdr_t *)&rimeaddr_node_addr);
+    uip_debug_lladdr_print((const uip_lladdr_t *)&linkaddr_node_addr);
     printf("\n");
     return 0;
   }

@@ -43,7 +43,7 @@
 #define __TSCH_PRIVATE_H__
 
 #include "contiki.h"
-#include "rimeaddr.h"
+#include "net/linkaddr.h"
 
 /* Max time before sending a unicast keep-alive message to the time source */
 #ifdef TSCH_CONF_KEEPALIVE_TIMEOUT
@@ -93,7 +93,7 @@
 #define TSCH_MAX_PACKET_LEN 127
 #define TSCH_BASE_ACK_LEN 3
 #define TSCH_SYNC_IE_LEN 4
-#define TSCH_EACK_DEST_LEN (RIMEADDR_SIZE+2) /* Dest PAN ID + dest MAC address */
+#define TSCH_EACK_DEST_LEN (LINKADDR_SIZE+2) /* Dest PAN ID + dest MAC address */
 /* Send enhanced ACK with Information Elements or Std ACK? */
 #define TSCH_PACKET_WITH_SYNC_IE 1
 #ifdef TSCH_CONF_PACKET_DEST_ADDR_IN_ACK
@@ -167,9 +167,9 @@ struct asn_divisor_t {
   % (div).val
 
 /* 802.15.4 broadcast MAC address */
-extern const rimeaddr_t tsch_broadcast_address;
+extern const linkaddr_t tsch_broadcast_address;
 /* The address we use to identify EB queue */
-extern const rimeaddr_t tsch_eb_address;
+extern const linkaddr_t tsch_eb_address;
 
 /* The current Absolute Slot Number (ASN) */
 extern struct asn_t current_asn;

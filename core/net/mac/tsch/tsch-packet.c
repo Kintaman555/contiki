@@ -51,7 +51,7 @@
 #include <string.h>
 
 #define DEBUG DEBUG_NONE
-#include "net/uip-debug.h"
+#include "net/ip/uip-debug.h"
 
 /* Fixed offset of the sync IE in EBs. Needed for quick update of the fields from interrupt.
  * FCF + seqno + pan ID + source MAC + MLME outer ID */
@@ -109,18 +109,18 @@ parse_panid(uint8_t *buf, int buf_size, uint16_t *panid)
 
 /* Parse destination address and check it is ours */
 static int
-parse_addr(uint8_t *buf, int buf_size, rimeaddr_t *addr)
+parse_addr(uint8_t *buf, int buf_size, linkaddr_t *addr)
 {
-  if(buf_size < RIMEADDR_SIZE) {
+  if(buf_size < LINKADDR_SIZE) {
     return 0;
   } else {
     if(addr) {
       int i;
-      for(i = 0; i<RIMEADDR_SIZE ; i++) {
-        addr->u8[RIMEADDR_SIZE - i - 1] = buf[i];
+      for(i = 0; i<LINKADDR_SIZE ; i++) {
+        addr->u8[LINKADDR_SIZE - i - 1] = buf[i];
       }
     }
-    return RIMEADDR_SIZE;
+    return LINKADDR_SIZE;
   }
 }
 
@@ -139,16 +139,16 @@ append_panid(uint8_t* const buf, int buf_size)
 
 /* Append MAC address to header */
 static int
-append_addr(uint8_t* const buf, int buf_size, rimeaddr_t *addr)
+append_addr(uint8_t* const buf, int buf_size, linkaddr_t *addr)
 {
-  if(buf_size < RIMEADDR_SIZE) {
+  if(buf_size < LINKADDR_SIZE) {
     return 0;
   } else {
     int i;
-    for(i = 0; i<RIMEADDR_SIZE ; i++) {
-      buf[i] = addr->u8[RIMEADDR_SIZE - i - 1];
+    for(i = 0; i<LINKADDR_SIZE ; i++) {
+      buf[i] = addr->u8[LINKADDR_SIZE - i - 1];
     }
-    return RIMEADDR_SIZE;
+    return LINKADDR_SIZE;
   }
 }
 
@@ -188,7 +188,7 @@ int tsch_packet_parse_sync_ack(int32_t *drift, int *nack,
     /* Check FCF byte 1: b12-b13:frame version=2 */
     if((ackbuf[1] & (0x0C | 0x20)) == (0x0C | 0x20)) {
       uint16_t panid;
-      rimeaddr_t addr;
+      linkaddr_t addr;
 
       ret = parse_panid(&ackbuf[curr_len], ackbuf_len-curr_len, &panid);
       if(ret == 0 || panid != IEEE802154_PANID) {
@@ -197,7 +197,7 @@ int tsch_packet_parse_sync_ack(int32_t *drift, int *nack,
       curr_len += ret;
 
       ret = parse_addr(&ackbuf[curr_len], ackbuf_len-curr_len, &addr);
-      if(ret == 0 || !rimeaddr_cmp(&addr, &rimeaddr_node_addr)) {
+      if(ret == 0 || !linkaddr_cmp(&addr, &linkaddr_node_addr)) {
         is_ack = 0;
       }
       curr_len += ret;
@@ -223,7 +223,7 @@ int tsch_packet_parse_sync_ack(int32_t *drift, int *nack,
 /* Construct enhanced ACK packet and return ACK length */
 int
 tsch_packet_make_sync_ack(int32_t drift, int nack,
-    uint8_t *ackbuf, int ackbuf_len, rimeaddr_t *dest_addr, uint8_t seqno)
+    uint8_t *ackbuf, int ackbuf_len, linkaddr_t *dest_addr, uint8_t seqno)
 {
   if(ackbuf_len < TSCH_ACK_LEN) {
     return 0;
@@ -293,13 +293,13 @@ is_broadcast_addr(uint8_t mode, uint8_t *addr)
 
 /* Extract addresses from raw packet */
 int
-tsch_packet_extract_addresses(uint8_t *buf, uint8_t len, rimeaddr_t *source_address, rimeaddr_t *dest_address)
+tsch_packet_extract_addresses(uint8_t *buf, uint8_t len, linkaddr_t *source_address, linkaddr_t *dest_address)
 {
   frame802154_t frame;
   uint8_t parsed = frame802154_parse(buf, len, &frame);
   if(parsed) {
     if(dest_address != NULL) {
-      rimeaddr_copy(dest_address, &rimeaddr_null);
+      linkaddr_copy(dest_address, &linkaddr_null);
     }
     if(frame.fcf.dest_addr_mode) {
       if(frame.dest_pid != IEEE802154_PANID
@@ -310,7 +310,7 @@ tsch_packet_extract_addresses(uint8_t *buf, uint8_t len, rimeaddr_t *source_addr
       }
       if(!is_broadcast_addr(frame.fcf.dest_addr_mode, frame.dest_addr)) {
         if(dest_address != NULL) {
-          rimeaddr_copy(dest_address, (rimeaddr_t *)frame.dest_addr);
+          linkaddr_copy(dest_address, (linkaddr_t *)frame.dest_addr);
         }
       }
     } else { /* broadcast (EB) packet with no addresses */
@@ -321,7 +321,7 @@ tsch_packet_extract_addresses(uint8_t *buf, uint8_t len, rimeaddr_t *source_addr
       }
     }
     if(source_address != NULL) {
-      rimeaddr_copy(source_address, (rimeaddr_t *)frame.src_addr);
+      linkaddr_copy(source_address, (linkaddr_t *)frame.src_addr);
     }
   } else {
     PRINTF("tsch_packet_extract_addresses: failed to parse\n");
@@ -515,7 +515,7 @@ tsch_packet_make_eb(uint8_t* const buf, uint8_t buf_size, uint8_t seqno)
 
   /* Append PANID and src address */
   curr_len += append_panid(&buf[curr_len], buf_size-curr_len);
-  curr_len += append_addr(&buf[curr_len], buf_size-curr_len, &rimeaddr_node_addr);
+  curr_len += append_addr(&buf[curr_len], buf_size-curr_len, &linkaddr_node_addr);
 
   /* Save offset of MLME IE, which will be updated later with the total sub-IEs length */
   ie_mlme_offset = curr_len;
@@ -559,7 +559,7 @@ tsch_packet_update_eb(uint8_t *buf, uint8_t buf_size)
 }
 
 uint8_t
-tsch_parse_eb(uint8_t *buf, uint8_t buf_size, rimeaddr_t *source_address, struct asn_t *asn, uint8_t *join_priority)
+tsch_parse_eb(uint8_t *buf, uint8_t buf_size, linkaddr_t *source_address, struct asn_t *asn, uint8_t *join_priority)
 {
   uint8_t curr_len = 0;
   uint8_t sub_ies_length = 0;
@@ -567,7 +567,7 @@ tsch_parse_eb(uint8_t *buf, uint8_t buf_size, rimeaddr_t *source_address, struct
   uint16_t panid;
   uint8_t slot_template_id;
   uint8_t hop_sequence_id;
-  rimeaddr_t addr;
+  linkaddr_t addr;
   int ret;
 
   /* FCF: 2 bytes */

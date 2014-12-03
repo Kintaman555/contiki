@@ -46,7 +46,7 @@
 
 #include "contiki.h"
 #include "lib/ringbufindex.h"
-#include "net/rime/rimeaddr.h"
+#include "net/linkaddr.h"
 
 /* The maximum number of packets in the system: must be power of two to enable atomic ringbuf operations */
 #ifdef TSCH_CONF_QUEUE_NUM_PER_NEIGHBOR
@@ -78,7 +78,7 @@ struct tsch_packet {
 struct tsch_neighbor {
   /* Neighbors are stored as a list: "next" must be the first field */
   struct tsch_neighbor *next;
-  rimeaddr_t addr; /* MAC address of the neighbor */
+  linkaddr_t addr; /* MAC address of the neighbor */
   uint8_t is_broadcast; /* is this neighbor a virtual neighbor used for broadcast (of data packets or EBs) */
   uint8_t is_time_source; /* is this neighbor a time source? */
   uint8_t backoff_exponent; /* CSMA backoff exponent */
@@ -98,17 +98,17 @@ extern struct tsch_neighbor *n_broadcast;
 extern struct tsch_neighbor *n_eb;
 
 /* Add a TSCH neighbor */
-struct tsch_neighbor *tsch_queue_add_nbr(const rimeaddr_t *addr);
+struct tsch_neighbor *tsch_queue_add_nbr(const linkaddr_t *addr);
 /* Get a TSCH neighbor */
-struct tsch_neighbor *tsch_queue_get_nbr(const rimeaddr_t *addr);
+struct tsch_neighbor *tsch_queue_get_nbr(const linkaddr_t *addr);
 /* Get a TSCH time source (we currently assume there is only one) */
 struct tsch_neighbor *tsch_queue_get_time_source();
 /* Update TSCH time source */
-int tsch_queue_update_time_source(const rimeaddr_t *new_addr);
+int tsch_queue_update_time_source(const linkaddr_t *new_addr);
 /* Add packet to neighbor queue. Use same lockfree implementation as ringbuf.c (put is atomic) */
-int tsch_queue_add_packet(const rimeaddr_t *addr, mac_callback_t sent, void *ptr);
+int tsch_queue_add_packet(const linkaddr_t *addr, mac_callback_t sent, void *ptr);
 /* Returns the number of packets currently in the queue */
-int tsch_queue_packet_count(const rimeaddr_t *addr);
+int tsch_queue_packet_count(const linkaddr_t *addr);
 /* Remove first packet from a neighbor queue. The packet is stored in a seprate
  * dequeued packet list, for later processing. Return the packet. */
 struct tsch_packet *tsch_queue_remove_packet_from_queue(struct tsch_neighbor *n);
@@ -123,7 +123,7 @@ int tsch_queue_is_empty(const struct tsch_neighbor *n);
 /* Returns the first packet from a neighbor queue */
 struct tsch_packet *tsch_queue_get_packet_for_nbr(const struct tsch_neighbor *n, int is_shared_link);
 /* Returns the head packet from a neighbor queue (from neighbor address) */
-struct tsch_packet *tsch_queue_get_packet_for_dest_addr(const rimeaddr_t *addr, int is_shared_link);
+struct tsch_packet *tsch_queue_get_packet_for_dest_addr(const linkaddr_t *addr, int is_shared_link);
 /* Returns the head packet of any neighbor queue with zero backoff counter.
  * Writes pointer to the neighbor in *n */
 struct tsch_packet *tsch_queue_get_unicast_packet_for_any(struct tsch_neighbor **n, int is_shared_link);
@@ -134,7 +134,7 @@ void tsch_queue_backoff_reset(struct tsch_neighbor *n);
 /* Increment backoff exponent, pick a new window */
 void tsch_queue_backoff_inc(struct tsch_neighbor *n);
 /* Decrement backoff window for all queues directed at dest_addr */
-void tsch_queue_update_all_backoff_windows(const rimeaddr_t *dest_addr);
+void tsch_queue_update_all_backoff_windows(const linkaddr_t *dest_addr);
 /* Initialize TSCH queue module */
 void tsch_queue_init(void);
 /* Testing the module */

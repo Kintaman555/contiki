@@ -63,7 +63,7 @@ rpl_print_neighbor_list()
     printf("RPL: rank %u dioint %u, %u/%u neighbor(s)\n", curr_rank, curr_dio_interval, rpl_dag_parents_num(), uip_ds6_nbr_num());
     while(p != NULL) {
       printf("RPL: nbr %3u %4u, %4u => %4u %c (%4u %d)\n",
-          LOG_NODEID_FROM_RIMEADDR(nbr_table_get_lladdr(rpl_parents, p)),
+          LOG_NODEID_FROM_LINKADDR(nbr_table_get_lladdr(rpl_parents, p)),
           p->rank, p->link_metric, default_instance->of->calculate_rank(p, 0),
           p == default_instance->current_dag->preferred_parent ? '*' : ' ',
               p->tx_count, p->rssi

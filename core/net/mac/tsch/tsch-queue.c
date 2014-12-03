@@ -59,7 +59,7 @@ void TSCH_CALLBACK_NEW_TIME_SOURCE(struct tsch_neighbor *old, struct tsch_neighb
 #endif
 
 #define DEBUG DEBUG_NONE
-#include "net/uip-debug.h"
+#include "net/ip/uip-debug.h"
 
 /* We have as many packets are there are queuebuf in the system */
 MEMB(packet_memb, struct tsch_packet, QUEUEBUF_NUM);
@@ -89,7 +89,7 @@ tsch_random_byte(uint8_t window)
 }
 /* Add a TSCH neighbor */
 struct tsch_neighbor *
-tsch_queue_add_nbr(const rimeaddr_t *addr)
+tsch_queue_add_nbr(const linkaddr_t *addr)
 {
   struct tsch_neighbor *n = NULL;
   /* If we have an entry for this neighbor already, we simply update it */
@@ -102,9 +102,9 @@ tsch_queue_add_nbr(const rimeaddr_t *addr)
         /* Initialize neighbor entry */
         memset(n, 0, sizeof(struct tsch_neighbor));
         ringbufindex_init(&n->tx_ringbuf, TSCH_QUEUE_NUM_PER_NEIGHBOR);
-        rimeaddr_copy(&n->addr, addr);
-        n->is_broadcast = rimeaddr_cmp(addr, &tsch_eb_address)
-                    || rimeaddr_cmp(addr, &tsch_broadcast_address);
+        linkaddr_copy(&n->addr, addr);
+        n->is_broadcast = linkaddr_cmp(addr, &tsch_eb_address)
+                    || linkaddr_cmp(addr, &tsch_broadcast_address);
         tsch_queue_backoff_reset(n);
         /* Add neighbor to the list */
         list_add(neighbor_list, n);
@@ -125,12 +125,12 @@ tsch_queue_add_nbr(const rimeaddr_t *addr)
 }
 /* Get a TSCH neighbor */
 struct tsch_neighbor *
-tsch_queue_get_nbr(const rimeaddr_t *addr)
+tsch_queue_get_nbr(const linkaddr_t *addr)
 {
   if(!tsch_is_locked()) {
     struct tsch_neighbor *n = list_head(neighbor_list);
     while(n != NULL) {
-      if(rimeaddr_cmp(&n->addr, addr)) {
+      if(linkaddr_cmp(&n->addr, addr)) {
         return n;
       }
       n = list_item_next(n);
@@ -156,7 +156,7 @@ tsch_queue_get_time_source()
 
 /* Update TSCH time source */
 int
-tsch_queue_update_time_source(const rimeaddr_t *new_addr)
+tsch_queue_update_time_source(const linkaddr_t *new_addr)
 {
   if(!tsch_is_locked()) {
     if(!tsch_is_coordinator) {
@@ -165,8 +165,8 @@ tsch_queue_update_time_source(const rimeaddr_t *new_addr)
 
       if(new_time_src != old_time_src) {
         LOG("TSCH: update time source: %u -> %u\n",
-            LOG_NODEID_FROM_RIMEADDR(old_time_src ? &old_time_src->addr : NULL),
-            LOG_NODEID_FROM_RIMEADDR(new_time_src ? &new_time_src->addr : NULL));
+            LOG_NODEID_FROM_LINKADDR(old_time_src ? &old_time_src->addr : NULL),
+            LOG_NODEID_FROM_LINKADDR(new_time_src ? &new_time_src->addr : NULL));
 
         /* Update time source */
         if(new_time_src != NULL) {
@@ -229,7 +229,7 @@ tsch_queue_remove_nbr(struct tsch_neighbor *n)
 }
 /* Add packet to neighbor queue. Use same lockfree implementation as ringbuf.c (put is atomic) */
 int
-tsch_queue_add_packet(const rimeaddr_t *addr, mac_callback_t sent, void *ptr)
+tsch_queue_add_packet(const linkaddr_t *addr, mac_callback_t sent, void *ptr)
 {
   struct tsch_neighbor *n = NULL;
   int16_t put_index = -1;
@@ -264,7 +264,7 @@ tsch_queue_add_packet(const rimeaddr_t *addr, mac_callback_t sent, void *ptr)
 }
 /* Returns the number of packets currently in the queue */
 int
-tsch_queue_packet_count(const rimeaddr_t *addr)
+tsch_queue_packet_count(const linkaddr_t *addr)
 {
   struct tsch_neighbor *n = NULL;
   if(!tsch_is_locked()) {
@@ -358,7 +358,7 @@ tsch_queue_get_packet_for_nbr(const struct tsch_neighbor *n, int is_shared_link)
 }
 /* Returns the head packet from a neighbor queue (from neighbor address) */
 struct tsch_packet *
-tsch_queue_get_packet_for_dest_addr(const rimeaddr_t *addr, int is_shared_link)
+tsch_queue_get_packet_for_dest_addr(const linkaddr_t *addr, int is_shared_link)
 {
   if(!tsch_is_locked()) {
     return tsch_queue_get_packet_for_nbr(tsch_queue_get_nbr(addr), is_shared_link);
@@ -417,15 +417,15 @@ tsch_queue_backoff_inc(struct tsch_neighbor *n)
 }
 /* Decrement backoff window for all queues directed at dest_addr */
 void
-tsch_queue_update_all_backoff_windows(const rimeaddr_t *dest_addr)
+tsch_queue_update_all_backoff_windows(const linkaddr_t *dest_addr)
 {
   if(!tsch_is_locked()) {
-    int is_broadcast = rimeaddr_cmp(dest_addr, &tsch_broadcast_address);
+    int is_broadcast = linkaddr_cmp(dest_addr, &tsch_broadcast_address);
     struct tsch_neighbor *n = list_head(neighbor_list);
     while(n != NULL) {
       if(n->backoff_window != 0 /* Is the queue in backoff state? */
           && (  (n->tx_links_count == 0  && is_broadcast)
-             || (n->tx_links_count  > 0 && rimeaddr_cmp(dest_addr, &n->addr)))) {
+             || (n->tx_links_count  > 0 && linkaddr_cmp(dest_addr, &n->addr)))) {
         n->backoff_window--;
       }
       n = list_item_next(n);
@@ -437,8 +437,8 @@ void
 tsch_queue_init(void)
 {
   list_init(neighbor_list);
-  tsch_random_init(*((uint32_t *)&rimeaddr_node_addr) +
-      *((uint32_t *)&rimeaddr_node_addr + 1));
+  tsch_random_init(*((uint32_t *)&linkaddr_node_addr) +
+      *((uint32_t *)&linkaddr_node_addr + 1));
   memb_init(&neighbor_memb);
   memb_init(&packet_memb);
   /* Add virtual EB and the broadcast neighbors */
@@ -452,7 +452,7 @@ tsch_queue_test(int num_nbr)
 #define REPEAT 3
 
 #define TEST_NUM_NBR 7
-  const rimeaddr_t node_addr[TEST_NUM_NBR] = {
+  const linkaddr_t node_addr[TEST_NUM_NBR] = {
       { { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } },
       { { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff } },
       { { 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 } },

@@ -55,7 +55,7 @@
 #include <string.h>
 
 #define DEBUG DEBUG_NONE
-#include "net/uip-debug.h"
+#include "net/ip/uip-debug.h"
 
 /* Do we prioritize links with Tx option or do we only look
  * at slotframe handle? The standard stipulatez the former.
@@ -180,7 +180,7 @@ tsch_schedule_get_link_from_handle(uint16_t handle)
 /* Adds a link to a slotframe, return a pointer to it (NULL if failure) */
 struct tsch_link *
 tsch_schedule_add_link(struct tsch_slotframe *slotframe,
-                       uint8_t link_options, enum link_type link_type, const rimeaddr_t *address,
+                       uint8_t link_options, enum link_type link_type, const linkaddr_t *address,
                        uint16_t timeslot, uint16_t channel_offset)
 {
   struct tsch_link *l = NULL;
@@ -209,12 +209,12 @@ tsch_schedule_add_link(struct tsch_slotframe *slotframe,
         l->channel_offset = channel_offset;
         l->creation_asn = current_asn;
         if(address == NULL) {
-          address = &rimeaddr_null;
+          address = &linkaddr_null;
         }
-        rimeaddr_copy(&l->addr, address);
+        linkaddr_copy(&l->addr, address);
 
         PRINTF("TSCH-schedule: add_link %u %u %u %u %u\n",
-            slotframe->handle, link_options, timeslot, channel_offset, LOG_NODEID_FROM_RIMEADDR(address));
+            slotframe->handle, link_options, timeslot, channel_offset, LOG_NODEID_FROM_LINKADDR(address));
 
         /* Release the lock before we update the neighbor (will take the lock) */
         tsch_release_lock();
@@ -241,12 +241,12 @@ tsch_schedule_remove_link(struct tsch_slotframe *slotframe, struct tsch_link *l)
   if(slotframe != NULL && l != NULL && l->slotframe_handle == slotframe->handle) {
     if(tsch_get_lock()) {
       uint8_t link_options;
-      rimeaddr_t addr;
+      linkaddr_t addr;
 
       /* Save link option and addr in local variables as we need them
        * after freeing the link */
       link_options = l->link_options;
-      rimeaddr_copy(&addr, &l->addr);
+      linkaddr_copy(&addr, &l->addr);
 
       /* The link to be removed is the scheduled as next, set it to NULL
        * to abord the next link operation */
@@ -256,7 +256,7 @@ tsch_schedule_remove_link(struct tsch_slotframe *slotframe, struct tsch_link *l)
 
       PRINTF("TSCH-schedule: remove_link %u %u %u %u %u\n",
                   slotframe->handle, l->link_options, l->timeslot, l->channel_offset,
-                  LOG_NODEID_FROM_RIMEADDR(&l->addr));
+                  LOG_NODEID_FROM_LINKADDR(&l->addr));
 
       list_remove(slotframe->links_list, l);
       memb_free(&link_memb, l);
@@ -412,9 +412,9 @@ tsch_schedule_print()
 void
 tsch_schedule_test()
 {
-  static rimeaddr_t link_broadcast_address = { { 0, 0, 0, 0, 0, 0, 0, 0 } };
-  static rimeaddr_t address1 = { { 0x00, 0x12, 0x74, 01, 00, 01, 01, 01 } };
-  static rimeaddr_t address2 = { { 0x00, 0x12, 0x74, 02, 00, 02, 02, 02 } };
+  static linkaddr_t link_broadcast_address = { { 0, 0, 0, 0, 0, 0, 0, 0 } };
+  static linkaddr_t address1 = { { 0x00, 0x12, 0x74, 01, 00, 01, 01, 01 } };
+  static linkaddr_t address2 = { { 0x00, 0x12, 0x74, 02, 00, 02, 02, 02 } };
 
   struct tsch_slotframe *sf1 = tsch_schedule_add_slotframe(20, 5);
   struct tsch_slotframe *sf2 = tsch_schedule_add_slotframe(21, 3);
@@ -486,7 +486,7 @@ tsch_schedule_create_minimal()
       0, 0);
 
   /* Example of a dedicated Tx unicast link. Timeslot: 1, channel offset: 0. */
-  /* static rimeaddr_t dest_addr = { { 0x00, 0x12, 0x74, 01, 00, 01, 01, 01 } }; */
+  /* static linkaddr_t dest_addr = { { 0x00, 0x12, 0x74, 01, 00, 01, 01, 01 } }; */
   /* tsch_schedule_add_link(sf,
             LINK_OPTION_RX,
             LINK_TYPE_NORMAL, &dest_addr,

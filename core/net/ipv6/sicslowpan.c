@@ -1316,11 +1316,11 @@ packet_sent(void *ptr, int status, int transmissions)
   }
   last_tx_status = status;
 
-  const rimeaddr_t *dest = packetbuf_addr(PACKETBUF_ADDR_RECEIVER);
+  const linkaddr_t *dest = packetbuf_addr(PACKETBUF_ADDR_RECEIVER);
 
   LOGP("6LoWPAN: %s sent to %d, st %d %d (%u bytes)",
-    rimeaddr_cmp(dest, &rimeaddr_null) ? "bc" : "uc",
-    LOG_NODEID_FROM_RIMEADDR(dest), status, transmissions,
+    linkaddr_cmp(dest, &linkaddr_null) ? "bc" : "uc",
+    LOG_NODEID_FROM_LINKADDR(dest), status, transmissions,
     packetbuf_datalen());
 }
 /*--------------------------------------------------------------------*/
@@ -1333,8 +1333,8 @@ static void
 send_packet(linkaddr_t *dest)
 {
   LOGP("6LoWPAN: %s send to %d (%u bytes)",
-      rimeaddr_cmp(dest, &rimeaddr_null) ? "bc" : "uc",
-          LOG_NODEID_FROM_RIMEADDR(dest),
+      linkaddr_cmp(dest, &linkaddr_null) ? "bc" : "uc",
+          LOG_NODEID_FROM_LINKADDR(dest),
           packetbuf_datalen());
 
   /* Set the link layer destination address for the packet as a
@@ -1625,8 +1625,8 @@ input(void)
   LOG_INC_HOPCOUNT_FROM_PACKETBUF();
 
   LOGP("6LoWPAN: %s input from %d (%u bytes)",
-      rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER), &rimeaddr_null) ? "bc" : "uc",
-          LOG_NODEID_FROM_RIMEADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)),
+      linkaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER), &linkaddr_null) ? "bc" : "uc",
+          LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)),
           packetbuf_datalen()
   );
 

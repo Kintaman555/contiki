@@ -40,7 +40,7 @@
 #include "net/mac/tsch/tsch-schedule.h"
 #include "net/rpl/rpl-private.h"
 #include "net/mac/tsch/tsch-schedule.h"
-#include "net/uip-debug.h"
+#include "net/ip/uip-debug.h"
 #include "lib/random.h"
 #include "net/mac/tsch/tsch-rpl.h"
 #include "deployment.h"

@@ -46,7 +46,7 @@
 #include "lib/random.h"
 #include "deployment.h"
 #include "simple-udp.h"
-#include "net/uip-debug.h"
+#include "net/ip/uip-debug.h"
 #include <stdio.h>
 
 #define SEND_INTERVAL   (60 * CLOCK_SECOND)

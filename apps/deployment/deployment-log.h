@@ -88,7 +88,7 @@ void rpl_print_neighbor_list();
 #define LOG_APPDATAPTR_FROM_BUFFER(b, l) appdataptr_from_buffer(b, l)
 #define LOG_APPDATAPTR_FROM_PACKETBUF() appdataptr_from_packetbuf()
 #define LOG_APPDATAPTR_FROM_QUEUEBUF(q) appdataptr_from_queuebuf(q)
-#define LOG_NODEID_FROM_RIMEADDR(rimeaddr) node_id_from_rimeaddr((const rimeaddr_t *)rimeaddr)
+#define LOG_NODEID_FROM_LINKADDR(linkaddr) node_id_from_linkaddr((const linkaddr_t *)linkaddr)
 #define LOG_NODEID_FROM_IPADDR(ipaddr) node_id_from_ipaddr((const uip_ipaddr_t *)ipaddr)
 #define LOG_PRINT_NEIGHBOR_LIST rpl_print_neighbor_list
 
@@ -106,7 +106,7 @@ void rpl_print_neighbor_list();
 #define LOG_APPDATAPTR_FROM_BUFFER(b, l) NULL
 #define LOG_APPDATAPTR_FROM_PACKETBUF() NULL
 #define LOG_APPDATAPTR_FROM_QUEUEBUF(q) NULL
-#define LOG_NODEID_FROM_RIMEADDR(addr) ((addr) ? (addr)->u8[7] : 0)
+#define LOG_NODEID_FROM_LINKADDR(addr) ((addr) ? (addr)->u8[7] : 0)
 #define LOG_NODEID_FROM_IPADDR(addr) ((addr) ? (addr)->u8[15] : 0)
 #define LOG_PRINT_NEIGHBOR_LIST rpl_print_neighbor_list
 
