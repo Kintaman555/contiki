@@ -98,6 +98,12 @@ void uip_log(char *msg);
 #define UIP_LOG(m)
 #endif /* UIP_LOGGING == 1 */
 
+/* Shall we drop outbound IP packet if we don't have enough queuebuf
+ * for the fragments? */
+#ifndef DROP_FRAGMENTS_WHEN_Q_BUFFERS_FULL
+#define DROP_FRAGMENTS_WHEN_Q_BUFFERS_FULL 1
+#endif /* DROP_FRAGMENTS_WHEN_Q_BUFFERS_FULL */
+
 #ifdef SICSLOWPAN_CONF_MAX_MAC_TRANSMISSIONS
 #define SICSLOWPAN_MAX_MAC_TRANSMISSIONS SICSLOWPAN_CONF_MAX_MAC_TRANSMISSIONS
 #else
@@ -1457,6 +1463,16 @@ output(uip_lladdr_t *localdest)
      * IPv6/HC1/HC06/HC_UDP dispatchs/headers.
      * The following fragments contain only the fragn dispatch.
      */
+
+#if DROP_FRAGMENTS_WHEN_Q_BUFFERS_FULL
+    int estimated_fragments = ((int)uip_len) / ((int)MAC_MAX_PAYLOAD - SICSLOWPAN_FRAGN_HDR_LEN) + 1;
+    int freebuf = queuebuf_numfree() - 1;
+    PRINTFO("uip_len: %d, fragments: %d, free bufs: %d\n", uip_len, estimated_fragments, freebuf);
+    if(freebuf < estimated_fragments) {
+      PRINTFO("Dropping packet, not enough free bufs\n");
+      return 0;
+    }
+#endif /* DROP_FRAGMENTS_WHEN_Q_BUFFERS_FULL */
 
     PRINTFO("Fragmentation sending packet len %d\n", uip_len);
 
