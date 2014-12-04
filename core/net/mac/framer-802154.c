@@ -103,7 +103,9 @@ create_frame(int type, int do_create)
 
   /* Build the FCF. */
   params.fcf.frame_type = packetbuf_attr(PACKETBUF_ATTR_FRAME_TYPE);
+#ifndef WITHOUT_CONTIKIMAC
   params.fcf.frame_pending = packetbuf_attr(PACKETBUF_ATTR_PENDING);
+#endif /* WITHOUT_CONTIKIMAC */
   if(packetbuf_holds_broadcast()) {
     params.fcf.ack_required = 0;
   } else {
@@ -241,7 +243,9 @@ parse(void)
       }
     }
     packetbuf_set_addr(PACKETBUF_ADDR_SENDER, (linkaddr_t *)&frame.src_addr);
+#ifndef WITHOUT_CONTIKIMAC
     packetbuf_set_attr(PACKETBUF_ATTR_PENDING, frame.fcf.frame_pending);
+#endif /* WITHOUT_CONTIKIMAC */
     /*    packetbuf_set_attr(PACKETBUF_ATTR_RELIABLE, frame.fcf.ack_required);*/
     packetbuf_set_attr(PACKETBUF_ATTR_PACKET_ID, frame.seq);
     

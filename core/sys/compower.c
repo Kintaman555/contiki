@@ -37,6 +37,8 @@
  *         Adam Dunkels <adam@sics.se>
  */
 
+#ifndef WITHOUT_COMPOWER
+
 /**
  * \addtogroup compower
  * @{
@@ -96,3 +98,5 @@ compower_accumulate_attrs(struct compower_activity *e)
 }
 /*---------------------------------------------------------------------------*/
 /** @} */
+
+#endif /* WITHOUT_COMPOWER */

@@ -281,6 +281,7 @@ rime_sniffer_remove(struct rime_sniffer *s)
 static void
 set_packet_attrs()
 {
+#ifndef WITHOUT_6LOWPAN_ATTR
   int c = 0;
   /* set protocol in NETWORK_ID */
   packetbuf_set_attr(PACKETBUF_ATTR_NETWORK_ID, UIP_IP_BUF->proto);
@@ -305,7 +306,7 @@ set_packet_attrs()
 /*   if(uip_ds6_is_my_addr(&UIP_IP_BUF->srcipaddr)) { */
 /*     own = 1; */
 /*   } */
-
+#endif /* WITHOUT_6LOWPAN_ATTR */
 }
 
 
@@ -1391,8 +1392,10 @@ output(const uip_lladdr_t *localdest)
   packetbuf_clear();
   packetbuf_ptr = packetbuf_dataptr();
 
+#ifndef WITHOUT_MAC_TX_ATTR
   packetbuf_set_attr(PACKETBUF_ATTR_MAX_MAC_TRANSMISSIONS,
                      SICSLOWPAN_MAX_MAC_TRANSMISSIONS);
+#endif /* WITHOUT_MAC_TX_ATTR */
 
   if(callback) {
     /* call the attribution when the callback comes, but set attributes
@@ -1403,6 +1406,7 @@ output(const uip_lladdr_t *localdest)
 #define TCP_FIN 0x01
 #define TCP_ACK 0x10
 #define TCP_CTL 0x3f
+#if UIP_CONF_TCP
   /* Set stream mode for all TCP packets, except FIN packets. */
   if(UIP_IP_BUF->proto == UIP_PROTO_TCP &&
      (UIP_TCP_BUF->flags & TCP_FIN) == 0 &&
@@ -1414,6 +1418,7 @@ output(const uip_lladdr_t *localdest)
     packetbuf_set_attr(PACKETBUF_ATTR_PACKET_TYPE,
                        PACKETBUF_ATTR_PACKET_TYPE_STREAM_END);
   }
+#endif /* UIP_CONF_TCP */
 
   /*
    * The destination address will be tagged to each outbound

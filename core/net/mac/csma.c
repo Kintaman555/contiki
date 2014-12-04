@@ -364,6 +364,7 @@ send_packet(mac_callback_t sent, void *ptr)
           if(q->buf != NULL) {
             struct qbuf_metadata *metadata = (struct qbuf_metadata *)q->ptr;
             /* Neighbor and packet successfully allocated */
+#ifndef WITHOUT_MAC_TX_ATTR
             if(packetbuf_attr(PACKETBUF_ATTR_MAX_MAC_TRANSMISSIONS) == 0) {
               /* Use default configuration for max transmissions */
               metadata->max_transmissions = CSMA_MAX_MAC_TRANSMISSIONS;
@@ -371,15 +372,22 @@ send_packet(mac_callback_t sent, void *ptr)
               metadata->max_transmissions =
                 packetbuf_attr(PACKETBUF_ATTR_MAX_MAC_TRANSMISSIONS);
             }
+#else /* WITHOUT_MAC_TX_ATTR */
+            metadata->max_transmissions = CSMA_MAX_MAC_TRANSMISSIONS;
+#endif /* WITHOUT_MAC_TX_ATTR */
             metadata->sent = sent;
             metadata->cptr = ptr;
 
+#if NETSTACK_CONF_WITH_RIME || UIP_CONF_TCP
             if(packetbuf_attr(PACKETBUF_ATTR_PACKET_TYPE) ==
                PACKETBUF_ATTR_PACKET_TYPE_ACK) {
               list_push(n->queued_packet_list, q);
             } else {
               list_add(n->queued_packet_list, q);
             }
+#else /* NETSTACK_CONF_WITH_RIME || UIP_CONF_TCP */
+            list_add(n->queued_packet_list, q);
+#endif /* NETSTACK_CONF_WITH_RIME || UIP_CONF_TCP */
 
             PRINTF("csma: send_packet, queue length %d, free packets %d\n",
                    list_length(n->queued_packet_list), memb_numfree(&packet_memb));

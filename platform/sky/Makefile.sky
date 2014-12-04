@@ -12,7 +12,7 @@ include $(CONTIKI)/platform/sky/Makefile.common
 
 MODULES += core/net/mac \
            core/net \
-           core/net/mac/contikimac core/net/mac/cxmac \
+           core/net/mac/contikimac \
            core/net/mac/tsch \
-           core/net/llsec core/net/llsec/noncoresec \
+           core/net/llsec \
            dev/cc2420 dev/sht11 dev/ds2411

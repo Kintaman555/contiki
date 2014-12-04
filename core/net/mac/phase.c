@@ -37,6 +37,8 @@
  *         Adam Dunkels <adam@sics.se>
  */
 
+#ifndef WITHOUT_CONTIKIMAC
+
 #include "net/mac/phase.h"
 #include "net/packetbuf.h"
 #include "sys/clock.h"
@@ -245,3 +247,5 @@ phase_init(void)
   nbr_table_register(nbr_phase, NULL);
 }
 /*---------------------------------------------------------------------------*/
+
+#endif /* WITHOUT_CONTIKIMAC */

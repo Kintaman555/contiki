@@ -932,7 +932,9 @@ PROCESS_THREAD(cc2420_process, ev, data)
     PRINTF("cc2420_process: calling receiver callback\n");
 
     packetbuf_clear();
+#ifndef WITHOUT_ATTR_TIMESTAMP
     packetbuf_set_attr(PACKETBUF_ATTR_TIMESTAMP, last_packet_timestamp);
+#endif /* WITHOUT_ATTR_TIMESTAMP */
     len = cc2420_read(packetbuf_dataptr(), PACKETBUF_SIZE);
     
     packetbuf_set_datalen(len);
@@ -976,7 +978,9 @@ cc2420_read(void *buf, unsigned short bufsize)
         /* If interrupt are disabled, this function is possibly called from interrupt
          * by the MAC or RDC layer. Don't write to packetbuf in interrupt. */
         packetbuf_set_attr(PACKETBUF_ATTR_RSSI, cc2420_last_rssi-45);
+#ifndef WITHOUT_ATTR_LINK_QUALITY
         packetbuf_set_attr(PACKETBUF_ATTR_LINK_QUALITY, cc2420_last_correlation);
+#endif /* WITHOUT_ATTR_LINK_QUALITY */
       }
   
       RIMESTATS_ADD(llrx);

@@ -39,6 +39,8 @@
  *         Joakim Eriksson <joakime@sics.se>
  */
 
+#ifndef WITHOUT_CONTIKIMAC
+
 #include "contiki-conf.h"
 #include "dev/leds.h"
 #include "dev/radio.h"
@@ -998,3 +1000,5 @@ contikimac_debug_print(void)
   return 0;
 }
 /*---------------------------------------------------------------------------*/
+
+#endif /* WITHOUT_CONTIKIMAC */
