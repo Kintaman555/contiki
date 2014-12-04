@@ -259,7 +259,7 @@ handle_dao_timer(void *ptr)
 
 #if RPL_CONF_MULTICAST
     /* Send DAOs for multicast prefixes only if the instance is in MOP 3 */
-    if(instance->mop == RPL_MOP_STORING_MULTICAST) {
+    if(RPL_CONF_MOP == RPL_MOP_STORING_MULTICAST) {
       /* Send a DAO for own multicast addresses */
       for(i = 0; i < UIP_DS6_MADDR_NB; i++) {
         if(uip_ds6_if.maddr_list[i].isused

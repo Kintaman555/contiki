@@ -223,7 +223,6 @@ struct rpl_dio {
   rpl_ocp_t ocp;
   rpl_rank_t rank;
   uint8_t grounded;
-  uint8_t mop;
   uint8_t preference;
   uint8_t version;
   uint8_t instance_id;

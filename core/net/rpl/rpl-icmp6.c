@@ -285,7 +285,6 @@ dio_input(void)
          (unsigned)dio.rank);
 
   dio.grounded = buffer[i] & RPL_DIO_GROUNDED;
-  dio.mop = (buffer[i]& RPL_DIO_MOP_MASK) >> RPL_DIO_MOP_SHIFT;
   dio.preference = buffer[i++] & RPL_DIO_PREFERENCE_MASK;
 
   dio.dtsn = buffer[i++];
@@ -469,7 +468,7 @@ dio_output(rpl_instance_t *instance, uip_ipaddr_t *uc_addr)
     buffer[pos] |= RPL_DIO_GROUNDED;
   }
 
-  buffer[pos] |= instance->mop << RPL_DIO_MOP_SHIFT;
+  buffer[pos] |= RPL_CONF_MOP << RPL_DIO_MOP_SHIFT;
   buffer[pos] |= dag->preference & RPL_DIO_PREFERENCE_MASK;
   pos++;
 

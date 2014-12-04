@@ -227,7 +227,7 @@ static int
 should_send_dao(rpl_instance_t *instance, rpl_dio_t *dio, rpl_parent_t *p)
 {
   /* if MOP is set to no downward routes no DAO should be sent */
-  if(RPL_CONF_MOP == RPL_MOP_NO_DOWNWARD_ROUTES || instance->mop == RPL_MOP_NO_DOWNWARD_ROUTES) {
+  if(RPL_CONF_MOP == RPL_MOP_NO_DOWNWARD_ROUTES) {
     return 0;
   }
   /* check if the new DTSN is more recent */
@@ -305,7 +305,6 @@ rpl_set_root(uint8_t instance_id, uip_ipaddr_t *dag_id)
   dag->joined = 1;
   dag->grounded = RPL_GROUNDED;
   dag->preference = RPL_PREFERENCE;
-  instance->mop = RPL_MOP_DEFAULT;
   instance->of = &RPL_OF;
   rpl_set_preferred_parent(dag, NULL);
 
@@ -747,7 +746,7 @@ rpl_select_dag(rpl_instance_t *instance, rpl_parent_t *p)
   } else if(!acceptable_rank(best_dag, best_dag->rank)) {
     PRINTF("RPL: New rank unacceptable!\n");
     rpl_set_preferred_parent(instance->current_dag, NULL);
-    if(instance->mop != RPL_MOP_NO_DOWNWARD_ROUTES && last_parent != NULL) {
+    if(RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES && last_parent != NULL) {
       /* Send a No-Path DAO to the removed preferred parent. */
       dao_output(last_parent, RPL_ZERO_LIFETIME);
     }
@@ -759,7 +758,7 @@ rpl_select_dag(rpl_instance_t *instance, rpl_parent_t *p)
     PRINTF("RPL: Changed preferred parent, rank changed from %u to %u\n",
   	(unsigned)old_rank, best_dag->rank);
     RPL_STAT(rpl_stats.parent_switch++);
-    if(instance->mop != RPL_MOP_NO_DOWNWARD_ROUTES) {
+    if(RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES) {
       if(last_parent != NULL) {
         /* Send a No-Path DAO to the removed preferred parent. */
         dao_output(last_parent, RPL_ZERO_LIFETIME);
@@ -977,7 +976,6 @@ rpl_join_instance(uip_ipaddr_t *from, rpl_dio_t *dio)
   dag->version = dio->version;
 
   instance->of = of;
-  instance->mop = dio->mop;
   instance->current_dag = dag;
   instance->dtsn_out = RPL_LOLLIPOP_INIT;
 
@@ -1015,7 +1013,7 @@ rpl_join_instance(uip_ipaddr_t *from, rpl_dio_t *dio)
   rpl_reset_dio_timer(instance, 4);
   rpl_set_default_route(instance, from);
 
-  if(instance->mop != RPL_MOP_NO_DOWNWARD_ROUTES) {
+  if(RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES) {
     rpl_schedule_dao(instance);
   } else {
     PRINTF("RPL: The DIO does not meet the prerequisites for sending a DAO\n");
@@ -1062,7 +1060,6 @@ rpl_add_dag(uip_ipaddr_t *from, rpl_dio_t *dio)
      objective code point of the DIO. */
   of = rpl_find_of(dio->ocp);
   if(of != instance->of ||
-     instance->mop != dio->mop ||
      instance->max_rankinc != dio->dag_max_rankinc ||
      instance->min_hoprankinc != dio->dag_min_hoprankinc ||
      instance->dio_intdoubl != dio->dag_intdoubl ||
@@ -1236,11 +1233,11 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
 #if RPL_CONF_MULTICAST
   /* If the root is advertising MOP 2 but we support MOP 3 we can still join
    * In that scenario, we suppress DAOs for multicast targets */
-  if(dio->mop < RPL_MOP_STORING_NO_MULTICAST) {
+  if(RPL_CONF_MOP < RPL_MOP_STORING_NO_MULTICAST) {
 #else
-  if(dio->mop != RPL_MOP_DEFAULT) {
+  if(RPL_CONF_MOP != RPL_MOP_DEFAULT) {
 #endif
-    PRINTF("RPL: Ignoring a DIO with an unsupported MOP: %d\n", dio->mop);
+    PRINTF("RPL: Ignoring a DIO with an unsupported MOP: %d\n", RPL_CONF_MOP);
     return 1;
   }
 
