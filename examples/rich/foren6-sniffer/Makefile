@@ -1,3 +1,4 @@
+TARGET=jn5168
 DEFINES+=PROJECT_CONF_H=\"project-conf.h\"
 PROJECT_SOURCEFILES += sniffer-rdc.c
 
