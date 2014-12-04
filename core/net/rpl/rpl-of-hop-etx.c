@@ -65,21 +65,32 @@ rpl_of_t rpl_of_hop_etx = {
   1
 };
 
+#ifndef MIN
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
+
 /* Constants for the ETX moving average */
 #define ETX_SCALE   100
 #define ETX_ALPHA   90
+/* Parent with less than ETX_EARLY_THRESHOLD Tx history use a more
+ * aggressive alpha of ETX_EARLY_ALPHA */
+#define ETX_EARLY_THRESHOLD   2
+#define ETX_EARLY_ALPHA      70
+/* Transmissions with more than ETX_BADLINK_THRESHOLD Tx count
+ * use a more aggressive alpha of ETX_BADLINKY_ALPHA */
+//#define ETX_BADLINK_THRESHOLD   3
+//#define ETX_BADLINK_ALPHA      80
+/* Non-acked transmissions translate to an ETX of NOACK_ETX_PENALTY */
+#define NOACK_ETX_PENALTY     16
+
+/* Reject parents that have a higher path cost than the following. */
+#define MAX_PATH_COST     100
 
 #ifdef RPL_OF_HOP_ETX_CONF_THRESHOLD
 #define RPL_OF_HOP_ETX_THRESHOLD RPL_OF_HOP_ETX_CONF_THRESHOLD
 #else
 #define RPL_OF_HOP_ETX_THRESHOLD (RPL_DAG_MC_ETX_DIVISOR / 2)
 #endif
-
-/* Transmission failures count as this many transmissions attempts */
-#define NOACK_TX_COUNT      10
-
-/* Reject parents that have a higher path cost than the following. */
-#define MAX_PATH_COST			100
 
 typedef uint16_t rpl_path_metric_t;
 
@@ -97,12 +108,22 @@ neighbor_link_callback(rpl_parent_t *p, int status, int numtx)
 
   /* Do not penalize the ETX when collisions or transmission errors occur. */
   if(status == MAC_TX_OK || status == MAC_TX_NOACK) {
-    if(status == MAC_TX_NOACK) {
-      packet_etx = NOACK_TX_COUNT * RPL_DAG_MC_ETX_DIVISOR;
+    int etx_alpha = ETX_ALPHA;
+
+    if(p->tx_count < ETX_EARLY_THRESHOLD) {
+      etx_alpha = MIN(etx_alpha, ETX_EARLY_ALPHA);
     }
 
-    new_etx = ((uint32_t)recorded_etx * ETX_ALPHA +
-               (uint32_t)packet_etx * (ETX_SCALE - ETX_ALPHA)) / ETX_SCALE;
+//    if(numtx > ETX_BADLINK_THRESHOLD) {
+//      etx_alpha = MIN(etx_alpha, ETX_BADLINK_ALPHA);
+//    }
+
+    if(status == MAC_TX_NOACK) {
+      packet_etx = NOACK_ETX_PENALTY * RPL_DAG_MC_ETX_DIVISOR;
+    }
+
+    new_etx = ((uint32_t)recorded_etx * etx_alpha +
+               (uint32_t)packet_etx * (ETX_SCALE - etx_alpha)) / ETX_SCALE;
 
     PRINTF("RPL: ETX changed from %u to %u (packet ETX = %u)\n",
         (unsigned)(recorded_etx / RPL_DAG_MC_ETX_DIVISOR),
