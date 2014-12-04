@@ -13,7 +13,7 @@
 #if UART_XONXOFF_FLOW_CTRL
 #define TXBUFSIZE 16
 #else
-#define TXBUFSIZE 2047
+#define TXBUFSIZE 1281
 #endif
 
 static unsigned char txbuf_data[TXBUFSIZE];
