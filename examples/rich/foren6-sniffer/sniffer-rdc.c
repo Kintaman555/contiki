@@ -43,6 +43,7 @@
 #include "net/netstack.h"
 #include "net/mac/mac.h"
 #include "net/mac/rdc.h"
+#include "dev/micromac-radio.h"
 
 /* Declaration of the sniffer processing function, defined in sniffer.c */
 void sniffer_input();
