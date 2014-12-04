@@ -122,8 +122,8 @@ static uint8_t micromac_radio_last_msq = 0;
 signed char radio_last_rssi;
 uint8_t radio_last_correlation;
 
-uint16_t radio_last_rx_crc;
-uint8_t radio_last_rx_crc_ok;
+volatile uint16_t radio_last_rx_crc;
+volatile uint8_t radio_last_rx_crc_ok;
 
 volatile static uint16_t my_pan_id = (uint16_t) IEEE802154_PANID;
 volatile static uint16_t my_short_address = (uint16_t) 0xffff;
@@ -786,8 +786,10 @@ PROCESS_THREAD(micromac_radio_process, ev, data)
       packetbuf_clear();
       /* TODO PACKETBUF_ATTR_TIMESTAMP is 16bits while last_packet_timestamp is 32bits*/
       packetbuf_set_attr(PACKETBUF_ATTR_TIMESTAMP, last_packet_timestamp >> 16);
-
       int len = micromac_radio_read(packetbuf_dataptr(), PACKETBUF_SIZE);
+      /* XXX Another packet could have come; thus, the rssi value is wrongly matched to an older packet */
+      packetbuf_set_attr(PACKETBUF_ATTR_RSSI, radio_last_rssi);
+      packetbuf_set_attr(PACKETBUF_ATTR_LINK_QUALITY, radio_last_lqi);
       /* is packet valid? */
       if(len >0) {
         packetbuf_set_datalen(len);
