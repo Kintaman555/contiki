@@ -233,7 +233,6 @@ struct rpl_dio {
   uint8_t dag_redund;
   uint8_t default_lifetime;
   uint16_t lifetime_unit;
-  int16_t lqi;
   int16_t rssi;
   rpl_rank_t dag_max_rankinc;
   rpl_rank_t dag_min_hoprankinc;

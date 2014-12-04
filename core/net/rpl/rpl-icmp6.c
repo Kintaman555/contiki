@@ -237,7 +237,6 @@ dio_input(void)
   dio.lifetime_unit = RPL_DEFAULT_LIFETIME_UNIT;
 
   dio.rssi = packetbuf_attr(PACKETBUF_ATTR_RSSI);
-  dio.lqi = packetbuf_attr(PACKETBUF_ATTR_LINK_QUALITY);
 
   uip_ipaddr_copy(&from, &UIP_IP_BUF->srcipaddr);
 

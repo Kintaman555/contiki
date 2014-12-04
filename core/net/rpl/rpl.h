@@ -117,7 +117,6 @@ struct rpl_parent {
   rpl_rank_t rank;
   uint16_t link_metric;
   int16_t rssi;
-  int16_t lqi;
   uint16_t tx_count;
   uint8_t dtsn;
   uint8_t flags;

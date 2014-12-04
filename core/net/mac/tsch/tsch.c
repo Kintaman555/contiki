@@ -194,7 +194,6 @@ static struct tsch_packet *dequeued_array[DEQUEUED_ARRAY_SIZE];
    struct asn_t rx_asn;
    int len;
    uint16_t rssi;
-   uint16_t lqi;
  };
 
 static struct input_packet input_eb;
@@ -925,7 +924,6 @@ PT_THREAD(tsch_rx_link(struct pt *pt, struct rtimer *t))
         current_input->len = NETSTACK_RADIO.read((void *)current_input->payload, TSCH_MAX_PACKET_LEN);
         current_input->rx_asn = current_asn;
         current_input->rssi = radio_last_rssi + RSSI_CORRECTION_CONSTANT;
-        current_input->lqi = radio_last_correlation;
         ack_needed = tsch_packet_parse_frame_type((uint8_t *)current_input->payload, current_input->len, &seqno) & DO_ACK;
         frame_valid = tsch_packet_extract_addresses((uint8_t*)current_input->payload,
             current_input->len, &source_address, &destination_address);
@@ -1354,7 +1352,6 @@ tsch_rx_process_pending()
       packetbuf_copyfrom(current_input->payload, current_input->len);
 #endif
       packetbuf_set_attr(PACKETBUF_ATTR_RSSI, current_input->rssi);
-      packetbuf_set_attr(PACKETBUF_ATTR_LINK_QUALITY, current_input->lqi);
     }
 
     /* Remove input from ringbuf */

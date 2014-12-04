@@ -635,7 +635,6 @@ rpl_add_parent(rpl_dag_t *dag, rpl_dio_t *dio, uip_ipaddr_t *addr)
       p->tx_count = 0;
       p->link_metric = rpl_init_link_metric(p, dio);
       p->rssi = dio->rssi;
-      p->lqi = dio->lqi;
 #if RPL_DAG_MC != RPL_DAG_MC_NONE
       memcpy(&p->mc, &dio->mc, sizeof(p->mc));
 #endif /* RPL_DAG_MC != RPL_DAG_MC_NONE */
@@ -1366,7 +1365,6 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
 
   /* Update link quality info */
   p->rssi = dio->rssi;
-  p->lqi = dio->lqi;
 
   PRINTF("RPL: preferred DAG ");
   PRINT6ADDR(&instance->current_dag->dag_id);
