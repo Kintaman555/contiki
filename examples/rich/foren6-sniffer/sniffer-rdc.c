@@ -37,7 +37,9 @@
  *         
  * \author
  *         Daniele Alessandrelli - <d.alessandrelli@sssup.it>
+ *         Beshr Al Nahas <beshr@sics.se> (Porting to NXP jn5168)
  */
+
 #include "net/netstack.h"
 #include "net/mac/mac.h"
 #include "net/mac/rdc.h"

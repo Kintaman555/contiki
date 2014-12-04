@@ -37,14 +37,13 @@
  *
  * \author
  *         Daniele Alessandrelli - <d.alessandrelli@sssup.it>
+ *         Beshr Al Nahas <beshr@sics.se> (Porting to NXP jn5168)
  */
-
-
 
 #include "contiki.h"
 #include "netstack.h"
 #include "net/packetbuf.h"
-#include "dev/cc2420.h"
+#include "dev/micromac-radio.h"
 
 #define DEBUG DEBUG_NONE
 #include "net/uip-debug.h"

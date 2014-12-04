@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Scuola Superiore Sant'Anna
+ * Copyright (c) 2014, SICS Swedish ICT
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,10 +32,10 @@
 /**
  * \file
  *         Project specific configuration defines for the android sniffer 
- *         example for the Tmote Sky platform
+ *         example for the NXP jn5168 platform
  *
  * \author
- *         Daniele Alessandrelli - <d.alessandrelli@sssup.it>
+ *         Beshr Al Nahas <beshr@sics.se>
  */
 
 #ifndef PROJECT_CONF_H_
@@ -49,5 +49,14 @@
 
 #undef NETSTACK_CONF_RDC
 #define NETSTACK_CONF_RDC      sniffer_rdc_driver
+
+#undef UART_HW_FLOW_CTRL
+#define UART_HW_FLOW_CTRL  1
+
+#undef UART_BAUD_RATE
+#define UART_BAUD_RATE UART_RATE_1000000
+
+#define WITH_TSCH_LOG 0
+#define WITH_RPL_LOG 0
 
 #endif /* PROJECT_CONF_H_ */
