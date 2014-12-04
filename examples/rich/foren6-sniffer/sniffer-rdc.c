@@ -80,13 +80,12 @@ on(void)
 static int
 off(int keep_radio_on)
 {
-  /*micromac_radio_set_always_on(keep_radio_on);
+  micromac_radio_set_always_on(keep_radio_on);
   if(keep_radio_on) {
     return NETSTACK_RADIO.on();
   } else {
     return NETSTACK_RADIO.off();
-  }*/
-  return keep_radio_on;
+  }
 }
 /*---------------------------------------------------------------------------*/
 static unsigned short
@@ -101,7 +100,7 @@ init(void)
   micromac_radio_address_decode(0);
   micromac_radio_set_always_on(1);
   micromac_radio_set_interrupt_enable(1);
-  on();
+//  on();
 }
 /*---------------------------------------------------------------------------*/
 const struct rdc_driver sniffer_rdc_driver = {

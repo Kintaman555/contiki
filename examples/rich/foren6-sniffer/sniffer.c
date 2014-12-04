@@ -103,6 +103,12 @@ extern process_event_t serial_line_event_message;
 static uint8_t snif_enabled;
 static uint8_t channel;
 
+static int
+sniffer_putchar(int c)
+{
+  uart0_writeb(c);
+  return 1;
+}
 /*---------------------------------------------------------------------------*/
 void
 sniffer_input()
@@ -135,31 +141,31 @@ sniffer_input()
   */
   /* magic | type | len | pkt | crc_ok | rssi | lqi */
   for (i = 0; i < MAGIC_LEN; i++) {
-    putchar(magic[i]);
+    sniffer_putchar(magic[i]);
   }
-  putchar(MY_TYPE);
-  putchar((uint8_t) pkt_len);
+  sniffer_putchar(MY_TYPE);
+  sniffer_putchar((uint8_t) pkt_len);
   for (i = 0; i < pkt_len; i++) {
-    putchar(pkt[i]);
+    sniffer_putchar(pkt[i]);
   }
   if (MY_TYPE & FIELD_CRC) {
-//    putchar(sniffer_crc[0]);
-//    putchar(sniffer_crc[1]);
-    putchar((uint8_t)radio_last_rx_crc);
-    putchar((uint8_t)(radio_last_rx_crc >> 8));
+//    sniffer_putchar(sniffer_crc[0]);
+//    sniffer_putchar(sniffer_crc[1]);
+    sniffer_putchar((uint8_t)radio_last_rx_crc);
+    sniffer_putchar((uint8_t)(radio_last_rx_crc >> 8));
   }
   if (MY_TYPE & FIELD_CRC_OK) {
-    putchar(radio_last_rx_crc_ok);
+    sniffer_putchar(radio_last_rx_crc_ok);
   }
   if (MY_TYPE & FIELD_RSSI) {
-    putchar(rssi);
+    sniffer_putchar(rssi);
   }
   if (MY_TYPE & FIELD_LQI) {
-    putchar(lqi);
+    sniffer_putchar(lqi);
   }
   if (MY_TYPE & FIELD_TIMESTAMP) {
-    putchar((timestamp >> 8) & 0xFF);
-    putchar(timestamp & 0xFF);
+    sniffer_putchar((timestamp >> 8) & 0xFF);
+    sniffer_putchar(timestamp & 0xFF);
   }
 }
 
