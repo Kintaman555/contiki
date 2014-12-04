@@ -276,8 +276,4 @@
 #define LOG_NODEID_FROM_IPADDR(addr) ((addr) ? (addr)->u8[15] : 0)
 #endif /* LOG_NODEID_FROM_IPADDR */
 
-#ifndef DISABLE_ROUTING
-#define DISABLE_ROUTING 0
-#endif /* DISABLE_ROUTING */
-
 #endif /* CONTIKI_DEFAULT_CONF_H */

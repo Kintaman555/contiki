@@ -210,7 +210,7 @@ rpl_reset_dio_timer(rpl_instance_t *instance, int src)
 #endif /* RPL_CONF_STATS */
 #endif /* RPL_LEAF_ONLY */
 }
-#if !DISABLE_ROUTING
+#if RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES
 /*---------------------------------------------------------------------------*/
 static void handle_dao_timer(void *ptr);
 static void
@@ -340,6 +340,6 @@ rpl_cancel_dao(rpl_instance_t *instance)
   ctimer_stop(&instance->dao_lifetime_timer);
 }
 /*---------------------------------------------------------------------------*/
-#endif /* !DISABLE_ROUTING */
+#endif /* RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES */
 
 /** @}*/

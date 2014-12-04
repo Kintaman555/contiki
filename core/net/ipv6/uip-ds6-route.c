@@ -38,7 +38,7 @@
 
 #include <string.h>
 
-#if !DISABLE_ROUTING
+#if UIP_DS6_ROUTE_NB > 0
 
 /* The nbr_routes holds a neighbor table to be able to maintain
    information about what routes go through what neighbor. This
@@ -54,7 +54,7 @@ MEMB(neighborroutememb, struct uip_ds6_route_neighbor_route, UIP_DS6_ROUTE_NB);
 LIST(routelist);
 MEMB(routememb, uip_ds6_route_t, UIP_DS6_ROUTE_NB);
 
-#endif /* !DISABLE_ROUTING */
+#endif /* UIP_DS6_ROUTE_NB > 0 */
 
 /* Default routes are held on the defaultrouterlist and their
    structures are allocated from the defaultroutermemb memory block.*/
@@ -145,12 +145,12 @@ uip_ds6_notification_rm(struct uip_ds6_notification *n)
 void
 uip_ds6_route_init(void)
 {
-#if !DISABLE_ROUTING
+#if UIP_DS6_ROUTE_NB > 0
   memb_init(&routememb);
   list_init(routelist);
   nbr_table_register(nbr_routes,
                      (nbr_table_callback *)rm_routelist_callback);
-#endif /* !DISABLE_ROUTING */
+#endif /* UIP_DS6_ROUTE_NB > 0 */
 
   memb_init(&defaultroutermemb);
   list_init(defaultrouterlist);
@@ -159,7 +159,7 @@ uip_ds6_route_init(void)
   list_init(notificationlist);
 #endif
 }
-#if !DISABLE_ROUTING
+#if UIP_DS6_ROUTE_NB > 0
 /*---------------------------------------------------------------------------*/
 static uip_lladdr_t *
 uip_ds6_route_nexthop_lladdr(uip_ds6_route_t *route)
@@ -499,7 +499,7 @@ uip_ds6_route_rm_by_nexthop(uip_ipaddr_t *nexthop)
                                      (linkaddr_t *)nexthop_lladdr);
   rm_routelist(routes);
 }
-#endif /* !DISABLE_ROUTING */
+#endif /* UIP_DS6_ROUTE_NB > 0 */
 /*---------------------------------------------------------------------------*/
 uip_ds6_defrt_t *
 uip_ds6_defrt_add(uip_ipaddr_t *ipaddr, unsigned long interval)

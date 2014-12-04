@@ -145,7 +145,7 @@ void uip_ds6_defrt_periodic(void);
 
 /** \name Routing Table basic routines */
 /** @{ */
-#if !DISABLE_ROUTING
+#if UIP_DS6_ROUTE_NB > 0
 uip_ds6_route_t *uip_ds6_route_lookup(uip_ipaddr_t *destipaddr);
 uip_ds6_route_t *uip_ds6_route_add(uip_ipaddr_t *ipaddr, uint8_t length,
                                    uip_ipaddr_t *next_hop);
@@ -165,7 +165,7 @@ uip_ds6_route_t *uip_ds6_route_next(uip_ds6_route_t *);
 #define uip_ds6_route_num_routes() 0
 #define uip_ds6_route_head() NULL
 #define uip_ds6_route_next(route) NULL
-#endif /* !DISABLE_ROUTING */
+#endif /* UIP_DS6_ROUTE_NB > 0 */
 
 /** @} */
 

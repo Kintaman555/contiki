@@ -207,8 +207,8 @@
 #define NBR_TABLE_CONF_MAX_NEIGHBORS 24
 
 /* The routing table size */
-/*#undef UIP_CONF_MAX_ROUTES
-#define UIP_CONF_MAX_ROUTES  16*/
+#undef UIP_CONF_MAX_ROUTES
+#define UIP_CONF_MAX_ROUTES  0
 
 /* No RPL DIS */
 #undef RPL_CONF_DIS_SEND
@@ -234,10 +234,6 @@
 /* Disable UDP checksum, needed as we have mutable fields (hop count) in the data packet */
 #undef UIP_CONF_UDP_CHECKSUMS
 #define UIP_CONF_UDP_CHECKSUMS   0
-
-/* Space optimization */
-#undef DISABLE_ROUTING
-#define DISABLE_ROUTING 1
 
 #define RPL_CONF_MAX_INSTANCES    1 /* default 1 */
 #define RPL_CONF_MAX_DAG_PER_INSTANCE 1 /* default 2 */

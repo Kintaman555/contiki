@@ -819,7 +819,7 @@ fwd_dao:
 void
 dao_output(rpl_parent_t *parent, uint8_t lifetime)
 {
-#if DISABLE_ROUTING
+#if RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES
   /* Destination Advertisement Object */
   uip_ipaddr_t prefix;
 
@@ -830,13 +830,13 @@ dao_output(rpl_parent_t *parent, uint8_t lifetime)
 
   /* Sending a DAO with own prefix as target */
   dao_output_target(parent, &prefix, lifetime);
-#endif /* !DISABLE_ROUTING */
+#endif /* RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES */
 }
 /*---------------------------------------------------------------------------*/
 void
 dao_output_target(rpl_parent_t *parent, uip_ipaddr_t *prefix, uint8_t lifetime)
 {
-#if  !DISABLE_ROUTING
+#if  RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES
   rpl_dag_t *dag;
   rpl_instance_t *instance;
   unsigned char *buffer;
@@ -925,7 +925,7 @@ dao_output_target(rpl_parent_t *parent, uip_ipaddr_t *prefix, uint8_t lifetime)
   if(rpl_get_parent_ipaddr(parent) != NULL) {
     uip_icmp6_send(rpl_get_parent_ipaddr(parent), ICMP6_RPL, RPL_CODE_DAO, pos);
   }
-#endif /* !DISABLE_ROUTING */
+#endif /* RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES */
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -956,7 +956,7 @@ dao_ack_input(void)
 void
 dao_ack_output(rpl_instance_t *instance, uip_ipaddr_t *dest, uint8_t sequence)
 {
-#if  !DISABLE_ROUTING
+#if  RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES
   unsigned char *buffer;
 
   PRINTF("RPL: Sending a DAO ACK with sequence number %d to ", sequence);
@@ -973,18 +973,18 @@ dao_ack_output(rpl_instance_t *instance, uip_ipaddr_t *dest, uint8_t sequence)
   buffer[3] = 0;
 
   uip_icmp6_send(dest, ICMP6_RPL, RPL_CODE_DAO_ACK, 4);
-#endif /* !DISABLE_ROUTING */
+#endif /* RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES */
 }
 /*---------------------------------------------------------------------------*/
 void
 rpl_icmp6_register_handlers()
 {
   uip_icmp6_register_input_handler(&dio_handler);
-#if !DISABLE_ROUTING
+#if RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES
   uip_icmp6_register_input_handler(&dis_handler);
   uip_icmp6_register_input_handler(&dao_handler);
   uip_icmp6_register_input_handler(&dao_ack_handler);
-#endif /* !DISABLE_ROUTING */
+#endif /* RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES */
 }
 /*---------------------------------------------------------------------------*/
 

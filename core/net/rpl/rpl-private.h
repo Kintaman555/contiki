@@ -315,11 +315,11 @@ void rpl_lock_parent(rpl_parent_t *p);
 rpl_of_t *rpl_find_of(rpl_ocp_t);
 
 /* Timer functions. */
-#if !DISABLE_ROUTING
+#if RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES
 void rpl_schedule_dao(rpl_instance_t *);
 #else
 #define rpl_schedule_dao(i)
-#endif
+#endif /* RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES */
 void rpl_schedule_dao_immediately(rpl_instance_t *);
 void rpl_cancel_dao(rpl_instance_t *instance);
 
