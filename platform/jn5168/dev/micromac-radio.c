@@ -31,6 +31,15 @@
  * in Phy receive but not transmit. This is incorrect according to Sheffield */
 #define CRC_SW 1
 
+/* Shall we accept corrupted packets? */
+#if MICROMAC_CONF_ACCEPT_FCS_ERROR
+#define MICROMAC_ACCEPT_FCS_ERROR 1
+#define MICROMAC_CONF_RX_FCS_ERROR E_MMAC_RX_ALLOW_FCS_ERROR
+#else
+#define MICROMAC_ACCEPT_FCS_ERROR 0
+#define MICROMAC_CONF_RX_FCS_ERROR E_MMAC_RX_NO_FCS_ERROR
+#endif
+
 /* XXX JPT functions disabled for a potential compatibility issue with MMAC */
 #ifndef ENABLE_JPT
 #define ENABLE_JPT 0
@@ -112,6 +121,9 @@ static uint8_t micromac_radio_last_msq = 0;
 
 signed char radio_last_rssi;
 uint8_t radio_last_correlation;
+
+uint16_t radio_last_rx_crc;
+uint8_t radio_last_rx_crc_ok;
 
 volatile static uint16_t my_pan_id = (uint16_t) IEEE802154_PANID;
 volatile static uint16_t my_short_address = (uint16_t) 0xffff;
@@ -304,7 +316,7 @@ micromac_radio_phy_rx(void)
   if(rx_frame_buffer != NULL) {
     vMMAC_StartPhyReceive(rx_frame_buffer,
       (uint16_t) (E_MMAC_RX_START_NOW
-                 | E_MMAC_RX_NO_FCS_ERROR) /* means: reject FCS errors */
+                 | MICROMAC_CONF_RX_FCS_ERROR) /* means: reject FCS errors */
       );
   } else {
     missed_radio_on_request = 1;
@@ -521,10 +533,14 @@ micromac_radio_read(void *buf, unsigned short bufsize)
     /* Check CRC */
 #if CRC_SW
     uint16_t checksum = crc16_data(input_frame_buffer->uPayload.au8Byte, len, 0);
-    uint16_t rx_checksum =
+    radio_last_rx_crc =
         (uint16_t) (input_frame_buffer->uPayload.au8Byte[len + 1] << (uint16_t) 8)
             | input_frame_buffer->uPayload.au8Byte[len];
-    if(checksum == rx_checksum)
+    radio_last_rx_crc_ok = (checksum == radio_last_rx_crc);
+    if(!radio_last_rx_crc_ok) {
+      RIMESTATS_ADD(badcrc);
+    }
+    if(radio_last_rx_crc_ok || MICROMAC_ACCEPT_FCS_ERROR)
 #endif /* CRC_SW */
     {
       /* if interrupt_enabled then address check is done there */
@@ -533,9 +549,15 @@ micromac_radio_read(void *buf, unsigned short bufsize)
       } else {
         /* if interrupt is disabled we need to read LQI */
         micromac_radio_last_lqi = u8MMAC_GetRxLqi(&micromac_radio_last_msq);
-        packet_for_me = micromac_radio_is_packet_for_us(input_frame_buffer->uPayload.au8Byte, len);
+        radio_last_rssi = micromac_radio_last_msq;
+        radio_last_correlation = micromac_radio_last_lqi;
+        if(!address_decoding_enabled) {
+          packet_for_me = 1;
+        } else {
+          packet_for_me = micromac_radio_is_packet_for_us(input_frame_buffer->uPayload.au8Byte, len);
+        }
       }
-      if(packet_for_me || !address_decoding_enabled) {
+      if(packet_for_me) {
         bufsize = MIN(len, bufsize);
         memcpy(buf, input_frame_buffer->uPayload.au8Byte, bufsize);
         RIMESTATS_ADD(llrx);
@@ -546,9 +568,8 @@ micromac_radio_read(void *buf, unsigned short bufsize)
 #if CRC_SW
     else {
       len = 0;
-      RIMESTATS_ADD(badcrc);
     }
-    PRINTF("micromac_radio: reading %d bytes checksum %04x %04x, packet_for_me %d\n", len, checksum, rx_checksum, packet_for_me);
+    PRINTF("micromac_radio: reading %d bytes checksum %04x %04x, packet_for_me %d\n", len, checksum, radio_last_rx_crc, packet_for_me);
 #else /* CRC_SW */
     PRINTF("micromac_radio: reading %d bytes, packet_for_me %d\n", len, packet_for_me);
 #endif /* CRC_SW */
