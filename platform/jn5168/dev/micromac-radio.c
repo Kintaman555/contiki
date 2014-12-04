@@ -789,7 +789,7 @@ PROCESS_THREAD(micromac_radio_process, ev, data)
       int len = micromac_radio_read(packetbuf_dataptr(), PACKETBUF_SIZE);
       /* XXX Another packet could have come; thus, the rssi value is wrongly matched to an older packet */
       packetbuf_set_attr(PACKETBUF_ATTR_RSSI, radio_last_rssi);
-      packetbuf_set_attr(PACKETBUF_ATTR_LINK_QUALITY, radio_last_lqi);
+      packetbuf_set_attr(PACKETBUF_ATTR_LINK_QUALITY, radio_last_correlation);
       /* is packet valid? */
       if(len >0) {
         packetbuf_set_datalen(len);
