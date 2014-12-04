@@ -83,13 +83,13 @@
  */
 #define TYPE_STOP_SNIF  0xFB
 
-#define set_channel cc2420_set_channel
+#define set_channel micromac_radio_set_channel
 
 /*---------------------------------------------------------------------------*/
 /* The variable where the radio driver stores the result of the FCS check */
-uint8_t sniffer_crc_ok;
+extern volatile uint8_t radio_last_rx_crc_ok;
 /* The variable where the radio driver stores the FCS of the sniffed packet */
-uint8_t sniffer_crc[2];
+extern volatile uint16_t radio_last_rx_crc;
 
 /* 
  * The magic sequence for synchronizing the communication from the sniffer to 
@@ -129,7 +129,7 @@ sniffer_input()
   }
   printf("\n");
   printf("CRC: none\n");
-  printf("CRC OK: %d\n", !!sniffer_crc_ok);
+  printf("CRC OK: %d\n", !!radio_last_rx_crc_ok);
   printf("RSSI: %u\n", 255 - rssi);
   printf("LQI: %u\n", lqi);
   printf("Timestamp: %u\n", timestamp);
@@ -144,11 +144,13 @@ sniffer_input()
     putchar(pkt[i]);
   }
   if (MY_TYPE & FIELD_CRC) {
-    putchar(sniffer_crc[0]);
-    putchar(sniffer_crc[1]);
+//    putchar(sniffer_crc[0]);
+//    putchar(sniffer_crc[1]);
+    putchar((uint8_t)radio_last_rx_crc);
+    putchar((uint8_t)(radio_last_rx_crc >> 8));
   }
   if (MY_TYPE & FIELD_CRC_OK) {
-    putchar(sniffer_crc_ok);
+    putchar(radio_last_rx_crc_ok);
   }
   if (MY_TYPE & FIELD_RSSI) {
     putchar(rssi);

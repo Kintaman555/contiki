@@ -45,7 +45,7 @@
 #define MICROMAC_RADIO_CONF_AUTOACK 0
 
 #define MICROMAC_CONF_ACCEPT_FCS_ERROR 1
-//#define CC2420_SNIFFER 1
+#define RADIO_BUF_CONF_NUM 16 /* should be a power of two */
 
 #undef NETSTACK_CONF_RDC
 #define NETSTACK_CONF_RDC      sniffer_rdc_driver
