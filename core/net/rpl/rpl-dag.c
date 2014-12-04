@@ -240,7 +240,7 @@ acceptable_rank(rpl_dag_t *dag, rpl_rank_t rank)
 {
   return rank != INFINITE_RANK &&
     ((dag->instance->max_rankinc == 0) ||
-     rank <= dag->min_rank + dag->instance->max_rankinc);
+     DAG_RANK(rank, dag->instance) <= DAG_RANK(dag->min_rank + dag->instance->max_rankinc, dag->instance));
 }
 #ifdef RPL_CONF_MAX_NBRHOPINC
 /*---------------------------------------------------------------------------*/
