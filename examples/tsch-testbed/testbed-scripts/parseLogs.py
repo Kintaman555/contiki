@@ -123,7 +123,7 @@ def parseRPL(line, time, id, log, packetInfo, asnInfo):
     global nodeState
 
 #---- RPL: parent switch -------------------------------------------------------------------------------------------------------------    
-    if log.startswith("preferred parent switch"):
+    if log.startswith("parent switch"):
         return {'event': 'parentSwitch'}
     
 #---- RPL: state overview  -------------------------------------------------------------------------------------------------------------

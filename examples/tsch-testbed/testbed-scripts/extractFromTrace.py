@@ -401,6 +401,13 @@ def main():
                         MIN_INTERVAL)
         )
         allPlottableData.append( 
+            extractData(parsed, "TSCH Unicast Count", "%",
+                        lambda x: x['module'] == 'TSCH' and x['info']['event'] == 'Tx' and x['info']['is_unicast'],
+                        lambda x: 1,
+                        {'min': 1, 'max': 1},
+                        MIN_INTERVAL, doSum=True)
+        )
+        allPlottableData.append( 
             extractData(parsed, "TSCH Unicast Success", "%",
                         lambda x: x['module'] == 'TSCH' and x['info']['event'] == 'Tx' and x['info']['is_unicast'],
                         lambda x: 100 if x['info']['status'] == 0 else 0,
