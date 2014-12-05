@@ -59,7 +59,7 @@ tsch_rpl_callback_leaving_network()
 {
   rpl_dag_t *dag = rpl_get_any_dag();
   if(dag != NULL) {
-    rpl_local_repair(dag->instance, 1);
+    rpl_local_repair(dag->instance);
   }
 }
 

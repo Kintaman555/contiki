@@ -1130,7 +1130,7 @@ global_repair(uip_ipaddr_t *from, rpl_dag_t *dag, rpl_dio_t *dio)
 }
 /*---------------------------------------------------------------------------*/
 void
-rpl_local_repair(rpl_instance_t *instance, int src)
+rpl_local_repair(rpl_instance_t *instance)
 {
   int i;
 
@@ -1138,7 +1138,7 @@ rpl_local_repair(rpl_instance_t *instance, int src)
     PRINTF("RPL: local repair requested for instance NULL\n");
     return;
   }
-  LOG("RPL: local repair (%d)\n", src);
+  LOG("RPL: local repair\n");
   for(i = 0; i < RPL_MAX_DAG_PER_INSTANCE; i++) {
     if(instance->dag_table[i].used) {
       instance->dag_table[i].rank = INFINITE_RANK;
@@ -1202,7 +1202,7 @@ rpl_process_parent_event(rpl_instance_t *instance, rpl_parent_t *p)
   if(rpl_select_dag(instance, p) == NULL) {
     /* No suitable parent; trigger a local repair. */
     PRINTF("RPL: No parents found in any DAG\n");
-    rpl_local_repair(instance, 2);
+    rpl_local_repair(instance);
     return 0;
   }
 
