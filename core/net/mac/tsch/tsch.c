@@ -791,7 +791,7 @@ PT_THREAD(tsch_tx_link(struct pt *pt, struct rtimer *t))
                   ackbuf, ack_len, seqno, is_time_source);
 
               if(ret & TSCH_ACK_OK) {
-                if(is_time_source && ret & TSCH_ACK_HAS_SYNC_IE) {
+                if(is_time_source && (ret & TSCH_ACK_HAS_SYNC_IE)) {
                   drift_correction = received_drift;
                   drift_neighbor = current_neighbor;
                   /* Keep track of sync time */
