@@ -114,7 +114,7 @@
 #define RPL_ZERO_LIFETIME               0
 
 #define RPL_LIFETIME(instance, lifetime) \
-          ((unsigned long)(instance)->lifetime_unit * (lifetime))
+          ((unsigned long)RPL_DEFAULT_LIFETIME_UNIT * (lifetime))
 
 #ifndef RPL_CONF_MIN_HOPRANKINC
 #define RPL_MIN_HOPRANKINC          256
@@ -128,13 +128,13 @@
 #endif
 
 #define DAG_RANK(fixpt_rank, instance) \
-  ((fixpt_rank) / (instance)->min_hoprankinc)
+  ((fixpt_rank) / RPL_MIN_HOPRANKINC)
 
 /* Rank of a virtual root node that coordinates DAG root nodes. */
 #define BASE_RANK                       0
 
 /* Rank of a root node. */
-#define ROOT_RANK(instance)             (instance)->min_hoprankinc
+#define ROOT_RANK(instance)             RPL_MIN_HOPRANKINC
 
 #define INFINITE_RANK                   0xffff
 
@@ -228,14 +228,14 @@ struct rpl_dio {
   uint8_t version;
   uint8_t instance_id;
   uint8_t dtsn;
-  uint8_t dag_intdoubl;
-  uint8_t dag_intmin;
-  uint8_t dag_redund;
-  uint8_t default_lifetime;
-  uint16_t lifetime_unit;
+//  uint8_t dag_intdoubl;
+//  uint8_t dag_intmin;
+//  uint8_t dag_redund;
+//  uint8_t default_lifetime;
+//  uint16_t lifetime_unit;
   int16_t rssi;
-  rpl_rank_t dag_max_rankinc;
-  rpl_rank_t dag_min_hoprankinc;
+//  rpl_rank_t dag_max_rankinc;
+//  rpl_rank_t dag_min_hoprankinc;
   rpl_prefix_t destination_prefix;
   rpl_prefix_t prefix_info;
   struct rpl_metric_container mc;

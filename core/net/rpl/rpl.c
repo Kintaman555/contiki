@@ -231,7 +231,7 @@ rpl_add_route(rpl_dag_t *dag, uip_ipaddr_t *prefix, int prefix_len,
   }
 
   rep->state.dag = dag;
-  rep->state.lifetime = RPL_LIFETIME(dag->instance, dag->instance->default_lifetime);
+  rep->state.lifetime = RPL_LIFETIME(dag->instance, RPL_DEFAULT_LIFETIME);
   rep->state.learned_from = RPL_ROUTE_FROM_INTERNAL;
 
   PRINTF("RPL: Added a route to ");

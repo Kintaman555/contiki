@@ -212,16 +212,16 @@ struct rpl_instance {
   uint8_t used;
   uint8_t dtsn_out;
 //  uint8_t mop;
-  uint8_t dio_intdoubl;
-  uint8_t dio_intmin;
-  uint8_t dio_redundancy;
-  uint8_t default_lifetime;
+//  uint8_t dio_intdoubl;
+//  uint8_t dio_intmin;
+//  uint8_t dio_redundancy;
+//  uint8_t default_lifetime;
   uint8_t dio_intcurrent;
   uint8_t dio_send; /* for keeping track of which mode the timer is in */
   uint8_t dio_counter;
-  rpl_rank_t max_rankinc;
-  rpl_rank_t min_hoprankinc;
-  uint16_t lifetime_unit; /* lifetime in seconds = l_u * d_l */
+//  rpl_rank_t max_rankinc;
+//  rpl_rank_t min_hoprankinc;
+//  uint16_t lifetime_unit; /* lifetime in seconds = l_u * d_l */
 #if RPL_CONF_STATS
   uint16_t dio_totint;
   uint16_t dio_totsend;
@@ -229,8 +229,10 @@ struct rpl_instance {
 #endif /* RPL_CONF_STATS */
   clock_time_t dio_next_delay; /* delay for completion of dio interval */
   struct ctimer dio_timer;
+#if RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES
   struct ctimer dao_timer;
   struct ctimer dao_lifetime_timer;
+#endif /* RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES */
 };
 
 /*---------------------------------------------------------------------------*/

@@ -124,7 +124,7 @@ new_dio_interval(rpl_instance_t *instance)
   instance->dio_totrecv += instance->dio_counter;
   ANNOTATE("#A rank=%u.%u(%u),stats=%d %d %d %d,color=%s\n",
 	   DAG_RANK(instance->current_dag->rank, instance),
-           (10 * (instance->current_dag->rank % instance->min_hoprankinc)) / instance->min_hoprankinc,
+           (10 * (instance->current_dag->rank % RPL_MIN_HOPRANKINC)) / RPL_MIN_HOPRANKINC,
            instance->current_dag->version,
            instance->dio_totint, instance->dio_totsend,
            instance->dio_totrecv,instance->dio_intcurrent,
@@ -159,14 +159,14 @@ handle_dio_timer(void *ptr)
 
   if(instance->dio_send) {
     /* send DIO if counter is less than desired redundancy */
-    if(instance->dio_counter < instance->dio_redundancy) {
+    if(instance->dio_counter < RPL_DIO_REDUNDANCY) {
 #if RPL_CONF_STATS
       instance->dio_totsend++;
 #endif /* RPL_CONF_STATS */
       dio_output(instance, NULL);
     } else {
       PRINTF("RPL: Supressing DIO transmission (%d >= %d)\n",
-             instance->dio_counter, instance->dio_redundancy);
+             instance->dio_counter, RPL_DIO_REDUNDANCY);
     }
     instance->dio_send = 0;
     PRINTF("RPL: Scheduling DIO timer %lu ticks in future (sent)\n",
@@ -174,7 +174,7 @@ handle_dio_timer(void *ptr)
     ctimer_set(&instance->dio_timer, instance->dio_next_delay, handle_dio_timer, instance);
   } else {
     /* check if we need to double interval */
-    if(instance->dio_intcurrent < instance->dio_intmin + instance->dio_intdoubl) {
+    if(instance->dio_intcurrent < RPL_DIO_INTERVAL_MIN + RPL_DIO_INTERVAL_DOUBLINGS) {
       instance->dio_intcurrent++;
       PRINTF("RPL: DIO Timer interval doubled %d\n", instance->dio_intcurrent);
     }
@@ -200,9 +200,9 @@ rpl_reset_dio_timer(rpl_instance_t *instance, int src)
 #if !RPL_LEAF_ONLY
   /* Do not reset if we are already on the minimum interval,
      unless forced to do so. */
-  if(instance->dio_intcurrent > instance->dio_intmin) {
+  if(instance->dio_intcurrent > RPL_DIO_INTERVAL_MIN) {
     instance->dio_counter = 0;
-    instance->dio_intcurrent = instance->dio_intmin;
+    instance->dio_intcurrent = RPL_DIO_INTERVAL_MIN;
     new_dio_interval(instance);
   }
 #if RPL_CONF_STATS
@@ -222,10 +222,10 @@ set_dao_lifetime_timer(rpl_instance_t *instance)
 
   /* Set up another DAO within half the expiration time, if such a
      time has been configured */
-  if(instance->lifetime_unit != 0xffff && instance->default_lifetime != 0xff) {
+  if(RPL_DEFAULT_LIFETIME_UNIT != 0xffff && RPL_DEFAULT_LIFETIME != 0xff) {
     clock_time_t expiration_time;
-    expiration_time = (clock_time_t)instance->default_lifetime *
-      (clock_time_t)instance->lifetime_unit *
+    expiration_time = (clock_time_t)RPL_DEFAULT_LIFETIME *
+      (clock_time_t)RPL_DEFAULT_LIFETIME_UNIT *
       CLOCK_SECOND / 2;
     PRINTF("RPL: Scheduling DAO lifetime timer %u ticks in the future\n",
            (unsigned)expiration_time);
@@ -255,7 +255,7 @@ handle_dao_timer(void *ptr)
   if(instance->current_dag->preferred_parent != NULL) {
     PRINTF("RPL: handle_dao_timer - sending DAO\n");
     /* Set the route lifetime to the default value. */
-    dao_output(instance->current_dag->preferred_parent, instance->default_lifetime);
+    dao_output(instance->current_dag->preferred_parent, RPL_DEFAULT_LIFETIME);
 
 #if RPL_CONF_MULTICAST
     /* Send DAOs for multicast prefixes only if the instance is in MOP 3 */

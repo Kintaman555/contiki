@@ -84,7 +84,7 @@ calculate_rank(rpl_parent_t *p, rpl_rank_t base_rank)
   }
 
   increment = p != NULL ?
-                p->dag->instance->min_hoprankinc :
+      RPL_MIN_HOPRANKINC :
                 DEFAULT_RANK_INCREMENT;
 
   if((rpl_rank_t)(base_rank + increment) < base_rank) {

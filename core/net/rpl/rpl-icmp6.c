@@ -227,14 +227,14 @@ dio_input(void)
   memset(&dio, 0, sizeof(dio));
 
   /* Set default values in case the DIO configuration option is missing. */
-  dio.dag_intdoubl = RPL_DIO_INTERVAL_DOUBLINGS;
-  dio.dag_intmin = RPL_DIO_INTERVAL_MIN;
-  dio.dag_redund = RPL_DIO_REDUNDANCY;
-  dio.dag_min_hoprankinc = RPL_MIN_HOPRANKINC;
-  dio.dag_max_rankinc = RPL_MAX_RANKINC;
+//  dio.dag_intdoubl = RPL_DIO_INTERVAL_DOUBLINGS;
+//  dio.dag_intmin = RPL_DIO_INTERVAL_MIN;
+//  dio.dag_redund = RPL_DIO_REDUNDANCY;
+//  dio.dag_min_hoprankinc = RPL_MIN_HOPRANKINC;
+//  dio.dag_max_rankinc = RPL_MAX_RANKINC;
   dio.ocp = RPL_OF.ocp;
-  dio.default_lifetime = RPL_DEFAULT_LIFETIME;
-  dio.lifetime_unit = RPL_DEFAULT_LIFETIME_UNIT;
+//  dio.default_lifetime = RPL_DEFAULT_LIFETIME;
+//  dio.lifetime_unit = RPL_DEFAULT_LIFETIME_UNIT;
 
   dio.rssi = packetbuf_attr(PACKETBUF_ATTR_RSSI);
 
@@ -382,19 +382,19 @@ dio_input(void)
       }
 
       /* Path control field not yet implemented - at i + 2 */
-      dio.dag_intdoubl = buffer[i + 3];
-      dio.dag_intmin = buffer[i + 4];
-      dio.dag_redund = buffer[i + 5];
-      dio.dag_max_rankinc = get16(buffer, i + 6);
-      dio.dag_min_hoprankinc = get16(buffer, i + 8);
+//      dio.dag_intdoubl = buffer[i + 3];
+//      dio.dag_intmin = buffer[i + 4];
+//      dio.dag_redund = buffer[i + 5];
+//      dio.dag_max_rankinc = get16(buffer, i + 6);
+//      dio.dag_min_hoprankinc = get16(buffer, i + 8);
       dio.ocp = get16(buffer, i + 10);
       /* buffer + 12 is reserved */
-      dio.default_lifetime = buffer[i + 13];
-      dio.lifetime_unit = get16(buffer, i + 14);
+//      dio.default_lifetime = buffer[i + 13];
+//      dio.lifetime_unit = get16(buffer, i + 14);
       PRINTF("RPL: DAG conf:dbl=%d, min=%d red=%d maxinc=%d mininc=%d ocp=%d d_l=%u l_u=%u\n",
-             dio.dag_intdoubl, dio.dag_intmin, dio.dag_redund,
-             dio.dag_max_rankinc, dio.dag_min_hoprankinc, dio.ocp,
-             dio.default_lifetime, dio.lifetime_unit);
+             RPL_DIO_INTERVAL_DOUBLINGS, RPL_DIO_INTERVAL_MIN, RPL_DIO_REDUNDANCY,
+             RPL_MAX_RANKINC, RPL_MIN_HOPRANKINC, dio.ocp,
+             dio.default_lifetime, RPL_DEFAULT_LIFETIME_UNIT);
       break;
     case RPL_OPTION_PREFIX_INFO:
       if(len != 32) {
@@ -514,19 +514,19 @@ dio_output(rpl_instance_t *instance, uip_ipaddr_t *uc_addr)
   buffer[pos++] = RPL_OPTION_DAG_CONF;
   buffer[pos++] = 14;
   buffer[pos++] = 0; /* No Auth, PCS = 0 */
-  buffer[pos++] = instance->dio_intdoubl;
-  buffer[pos++] = instance->dio_intmin;
-  buffer[pos++] = instance->dio_redundancy;
-  set16(buffer, pos, instance->max_rankinc);
+  buffer[pos++] = RPL_DIO_INTERVAL_DOUBLINGS;
+  buffer[pos++] = RPL_DIO_INTERVAL_MIN;
+  buffer[pos++] = RPL_DIO_REDUNDANCY;
+  set16(buffer, pos, RPL_MAX_RANKINC);
   pos += 2;
-  set16(buffer, pos, instance->min_hoprankinc);
+  set16(buffer, pos, RPL_MIN_HOPRANKINC);
   pos += 2;
   /* OCP is in the DAG_CONF option */
   set16(buffer, pos, instance->of->ocp);
   pos += 2;
   buffer[pos++] = 0; /* reserved */
-  buffer[pos++] = instance->default_lifetime;
-  set16(buffer, pos, instance->lifetime_unit);
+  buffer[pos++] = RPL_DEFAULT_LIFETIME;
+  set16(buffer, pos, RPL_DEFAULT_LIFETIME_UNIT);
   pos += 2;
 
   /* Check if we have a prefix to send also. */
@@ -631,7 +631,7 @@ dao_input(void)
     return;
   }
 
-  lifetime = instance->default_lifetime;
+  lifetime = RPL_DEFAULT_LIFETIME;
 
   flags = buffer[pos++];
   /* reserved */

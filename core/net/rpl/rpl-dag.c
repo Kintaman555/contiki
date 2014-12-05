@@ -239,8 +239,8 @@ static int
 acceptable_rank(rpl_dag_t *dag, rpl_rank_t rank)
 {
   return rank != INFINITE_RANK &&
-    ((dag->instance->max_rankinc == 0) ||
-     DAG_RANK(rank, dag->instance) <= DAG_RANK(dag->min_rank + dag->instance->max_rankinc, dag->instance));
+    ((RPL_MAX_RANKINC == 0) ||
+     DAG_RANK(rank, dag->instance) <= DAG_RANK(dag->min_rank + RPL_MAX_RANKINC, dag->instance));
 }
 #ifdef RPL_CONF_MAX_NBRHOPINC
 /*---------------------------------------------------------------------------*/
@@ -310,17 +310,17 @@ rpl_set_root(uint8_t instance_id, uip_ipaddr_t *dag_id)
 
   memcpy(&dag->dag_id, dag_id, sizeof(dag->dag_id));
 
-  instance->dio_intdoubl = RPL_DIO_INTERVAL_DOUBLINGS;
-  instance->dio_intmin = RPL_DIO_INTERVAL_MIN;
+//  instance->dio_intdoubl = RPL_DIO_INTERVAL_DOUBLINGS;
+//  instance->dio_intmin = RPL_DIO_INTERVAL_MIN;
   /* The current interval must differ from the minimum interval in order to
      trigger a DIO timer reset. */
   instance->dio_intcurrent = RPL_DIO_INTERVAL_MIN +
     RPL_DIO_INTERVAL_DOUBLINGS;
-  instance->dio_redundancy = RPL_DIO_REDUNDANCY;
-  instance->max_rankinc = RPL_MAX_RANKINC;
-  instance->min_hoprankinc = RPL_MIN_HOPRANKINC;
-  instance->default_lifetime = RPL_DEFAULT_LIFETIME;
-  instance->lifetime_unit = RPL_DEFAULT_LIFETIME_UNIT;
+//  instance->dio_redundancy = RPL_DIO_REDUNDANCY;
+//  instance->max_rankinc = RPL_MAX_RANKINC;
+//  instance->min_hoprankinc = RPL_MIN_HOPRANKINC;
+//  instance->default_lifetime = RPL_DEFAULT_LIFETIME;
+//  instance->lifetime_unit = RPL_DEFAULT_LIFETIME_UNIT;
 
   dag->rank = ROOT_RANK(instance);
 
@@ -456,7 +456,7 @@ rpl_set_default_route(rpl_instance_t *instance, uip_ipaddr_t *from)
     PRINTF("\n");
     instance->def_route = uip_ds6_defrt_add(from,
         RPL_LIFETIME(instance,
-            instance->default_lifetime));
+            RPL_DEFAULT_LIFETIME));
     if(instance->def_route == NULL) {
       return 0;
     }
@@ -544,8 +544,10 @@ rpl_free_instance(rpl_instance_t *instance)
   rpl_set_default_route(instance, NULL);
 
   ctimer_stop(&instance->dio_timer);
+#if RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES
   ctimer_stop(&instance->dao_timer);
   ctimer_stop(&instance->dao_lifetime_timer);
+#endif /* RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES */
 
   if(default_instance == instance) {
     default_instance = NULL;
@@ -980,14 +982,14 @@ rpl_join_instance(uip_ipaddr_t *from, rpl_dio_t *dio)
   instance->current_dag = dag;
   instance->dtsn_out = RPL_LOLLIPOP_INIT;
 
-  instance->max_rankinc = dio->dag_max_rankinc;
-  instance->min_hoprankinc = dio->dag_min_hoprankinc;
-  instance->dio_intdoubl = dio->dag_intdoubl;
-  instance->dio_intmin = dio->dag_intmin;
-  instance->dio_intcurrent = instance->dio_intmin + instance->dio_intdoubl;
-  instance->dio_redundancy = dio->dag_redund;
-  instance->default_lifetime = dio->default_lifetime;
-  instance->lifetime_unit = dio->lifetime_unit;
+//  instance->max_rankinc = dio->dag_max_rankinc;
+//  instance->min_hoprankinc = dio->dag_min_hoprankinc;
+//  instance->dio_intdoubl = dio->dag_intdoubl;
+//  instance->dio_intmin = dio->dag_intmin;
+  instance->dio_intcurrent = RPL_DIO_INTERVAL_MIN + RPL_DIO_INTERVAL_DOUBLINGS;
+//  instance->dio_redundancy = dio->dag_redund;
+//  instance->default_lifetime = dio->default_lifetime;
+//  instance->lifetime_unit = dio->lifetime_unit;
 
   memcpy(&dag->dag_id, &dio->dag_id, sizeof(dio->dag_id));
 
@@ -1061,13 +1063,13 @@ rpl_add_dag(uip_ipaddr_t *from, rpl_dio_t *dio)
      objective code point of the DIO. */
   of = rpl_find_of(dio->ocp);
   if(of != instance->of ||
-     instance->max_rankinc != dio->dag_max_rankinc ||
-     instance->min_hoprankinc != dio->dag_min_hoprankinc ||
-     instance->dio_intdoubl != dio->dag_intdoubl ||
-     instance->dio_intmin != dio->dag_intmin ||
-     instance->dio_redundancy != dio->dag_redund ||
-     instance->default_lifetime != dio->default_lifetime ||
-     instance->lifetime_unit != dio->lifetime_unit) {
+//     instance->max_rankinc != dio->dag_max_rankinc ||
+//     instance->min_hoprankinc != dio->dag_min_hoprankinc ||
+//     instance->dio_intdoubl != dio->dag_intdoubl ||
+//     instance->dio_intmin != dio->dag_intmin ||
+//     instance->dio_redundancy != dio->dag_redund ||
+//     instance->default_lifetime != dio->default_lifetime ||
+//     instance->lifetime_unit != dio->lifetime_unit) {
     PRINTF("RPL: DIO for DAG instance %u incompatible with previous DIO\n",
 	   dio->instance_id);
     rpl_remove_parent(p);
@@ -1389,7 +1391,7 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
     }
     /* We received a new DIO from our preferred parent.
      * Call uip_ds6_defrt_add to set a fresh value for the lifetime counter */
-    uip_ds6_defrt_add(from, RPL_LIFETIME(instance, instance->default_lifetime));
+    uip_ds6_defrt_add(from, RPL_LIFETIME(instance, RPL_DEFAULT_LIFETIME));
   }
   p->dtsn = dio->dtsn;
 
