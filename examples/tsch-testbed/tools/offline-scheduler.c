@@ -34,6 +34,8 @@
  * \author Simon Duquennoy <simonduq@sics.se>
  */
 
+#if WITH_OFFLINE_SCHEDULE_SHARED || WITH_OFFLINE_SCHEDULE_DEDICATED
+
 #include "contiki.h"
 #include "net/packetbuf.h"
 #include "net/rpl/rpl.h"
@@ -264,3 +266,5 @@ offline_scheduler_init_shared()
       node_index % UNICAST_SF_PERIOD, 2);
 #endif
 }
+
+#endif /* WITH_OFFLINE_SCHEDULE_SHARED || WITH_OFFLINE_SCHEDULE_DEDICATED */
