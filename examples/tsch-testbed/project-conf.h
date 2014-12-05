@@ -41,7 +41,7 @@
 
 /* #define WITH_OF_HOP_ETX 1 */
 /* #define WITH_OF_PDR 1 */
-/* #define WITH_OF_ETX_EXP 1 */
+#define WITH_OF_ETX_EXP 1
 
 #define TSCH_SCHEDULE_CONF_DEFAULT_LENGTH 5
 #define TSCH_CONF_USE_SFD_FOR_SYNC !IN_COOJA

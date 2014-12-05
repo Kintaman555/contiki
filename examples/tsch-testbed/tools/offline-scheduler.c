@@ -34,9 +34,10 @@
  * \author Simon Duquennoy <simonduq@sics.se>
  */
 
+#include "contiki.h"
+
 #if WITH_OFFLINE_SCHEDULE_SHARED || WITH_OFFLINE_SCHEDULE_DEDICATED
 
-#include "contiki.h"
 #include "net/packetbuf.h"
 #include "net/rpl/rpl.h"
 #include "net/mac/tsch/tsch.h"
