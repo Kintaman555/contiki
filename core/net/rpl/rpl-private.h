@@ -290,7 +290,7 @@ void rpl_icmp6_register_handlers(void);
 /* RPL logic functions. */
 void rpl_join_dag(uip_ipaddr_t *from, rpl_dio_t *dio);
 void rpl_join_instance(uip_ipaddr_t *from, rpl_dio_t *dio);
-void rpl_local_repair(rpl_instance_t *instance, int src);
+void rpl_local_repair(rpl_instance_t *instance);
 int rpl_process_dio(uip_ipaddr_t *, rpl_dio_t *);
 int rpl_process_parent_event(rpl_instance_t *, rpl_parent_t *);
 
