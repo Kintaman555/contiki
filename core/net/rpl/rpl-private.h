@@ -270,7 +270,11 @@ extern rpl_instance_t instance_table[];
 extern rpl_instance_t *default_instance;
 
 /* ICMPv6 functions for RPL. */
+#if RPL_CONF_DIS_SEND
 void dis_output(uip_ipaddr_t *addr);
+#else
+#define dis_output(addr)
+#endif /* RPL_CONF_DIS_SEND */
 void dio_output(rpl_instance_t *, uip_ipaddr_t *uc_addr);
 #if RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES
 void dao_output(rpl_parent_t *, uint8_t lifetime);
