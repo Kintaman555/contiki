@@ -272,9 +272,15 @@ extern rpl_instance_t *default_instance;
 /* ICMPv6 functions for RPL. */
 void dis_output(uip_ipaddr_t *addr);
 void dio_output(rpl_instance_t *, uip_ipaddr_t *uc_addr);
+#if RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES
 void dao_output(rpl_parent_t *, uint8_t lifetime);
 void dao_output_target(rpl_parent_t *, uip_ipaddr_t *, uint8_t lifetime);
 void dao_ack_output(rpl_instance_t *, uip_ipaddr_t *, uint8_t);
+#else
+#define dao_output(p, l)
+#define dao_output_target(p, a, l)
+#define dao_ack_output(i, a, d)
+#endif /* RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES */
 void rpl_icmp6_register_handlers(void);
 
 /* RPL logic functions. */
@@ -317,11 +323,13 @@ rpl_of_t *rpl_find_of(rpl_ocp_t);
 /* Timer functions. */
 #if RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES
 void rpl_schedule_dao(rpl_instance_t *);
-#else
-#define rpl_schedule_dao(i)
-#endif /* RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES */
 void rpl_schedule_dao_immediately(rpl_instance_t *);
 void rpl_cancel_dao(rpl_instance_t *instance);
+#else
+#define rpl_schedule_dao(i)
+#define rpl_schedule_dao_immediately(i)
+#define rpl_cancel_dao(i)
+#endif /* RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES */
 
 void rpl_reset_dio_timer(rpl_instance_t *, int src);
 void rpl_reset_periodic_timer(void);

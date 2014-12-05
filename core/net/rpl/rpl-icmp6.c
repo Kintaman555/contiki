@@ -816,11 +816,11 @@ fwd_dao:
   }
   uip_len = 0;
 }
+#if RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES
 /*---------------------------------------------------------------------------*/
 void
 dao_output(rpl_parent_t *parent, uint8_t lifetime)
 {
-#if RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES
   /* Destination Advertisement Object */
   uip_ipaddr_t prefix;
 
@@ -831,13 +831,11 @@ dao_output(rpl_parent_t *parent, uint8_t lifetime)
 
   /* Sending a DAO with own prefix as target */
   dao_output_target(parent, &prefix, lifetime);
-#endif /* RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES */
 }
 /*---------------------------------------------------------------------------*/
 void
 dao_output_target(rpl_parent_t *parent, uip_ipaddr_t *prefix, uint8_t lifetime)
 {
-#if  RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES
   rpl_dag_t *dag;
   rpl_instance_t *instance;
   unsigned char *buffer;
@@ -926,7 +924,6 @@ dao_output_target(rpl_parent_t *parent, uip_ipaddr_t *prefix, uint8_t lifetime)
   if(rpl_get_parent_ipaddr(parent) != NULL) {
     uip_icmp6_send(rpl_get_parent_ipaddr(parent), ICMP6_RPL, RPL_CODE_DAO, pos);
   }
-#endif /* RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES */
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -957,7 +954,6 @@ dao_ack_input(void)
 void
 dao_ack_output(rpl_instance_t *instance, uip_ipaddr_t *dest, uint8_t sequence)
 {
-#if  RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES
   unsigned char *buffer;
 
   PRINTF("RPL: Sending a DAO ACK with sequence number %d to ", sequence);
@@ -974,8 +970,8 @@ dao_ack_output(rpl_instance_t *instance, uip_ipaddr_t *dest, uint8_t sequence)
   buffer[3] = 0;
 
   uip_icmp6_send(dest, ICMP6_RPL, RPL_CODE_DAO_ACK, 4);
-#endif /* RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES */
 }
+#endif /* RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES */
 /*---------------------------------------------------------------------------*/
 void
 rpl_icmp6_register_handlers()
