@@ -976,6 +976,7 @@ rpl_join_instance(uip_ipaddr_t *from, rpl_dio_t *dio)
   dag->version = dio->version;
 
   instance->of = of;
+//  instance->mop = dio->mop;
   instance->current_dag = dag;
   instance->dtsn_out = RPL_LOLLIPOP_INIT;
 
