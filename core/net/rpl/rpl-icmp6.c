@@ -177,6 +177,7 @@ dis_input(void)
   }
   uip_len = 0;
 }
+#if RPL_CONF_DIS_SEND
 /*---------------------------------------------------------------------------*/
 void
 dis_output(uip_ipaddr_t *addr)
@@ -211,6 +212,7 @@ dis_output(uip_ipaddr_t *addr)
 
   uip_icmp6_send(addr, ICMP6_RPL, RPL_CODE_DIS, 2);
 }
+#endif /* RPL_CONF_DIS_SEND */
 /*---------------------------------------------------------------------------*/
 static void
 dio_input(void)
