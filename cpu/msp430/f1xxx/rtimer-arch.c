@@ -42,6 +42,7 @@
 #include "sys/energest.h"
 #include "sys/rtimer.h"
 #include "sys/process.h"
+#include "leds.h"
 #include "dev/watchdog.h"
 #include "isr_compat.h"
 
@@ -59,9 +60,9 @@ ISR(TIMERA0, timera0)
   ENERGEST_ON(ENERGEST_TYPE_IRQ);
 
   watchdog_start();
-
+leds_on(LEDS_RED);
   rtimer_run_next();
-
+leds_off(LEDS_RED);
   if(process_nevents() > 0) {
     LPM4_EXIT;
   }
