@@ -59,15 +59,15 @@ static struct tsch_slotframe *sf_unicast;
 // Data-UC 7 co:2 so:Rx-id%7
 // Data-UC 7 co:2 so:TxSh-DestId%7
 #define EB_SF_PERIOD 397
-#define DEFAULT_SF_PERIOD 17
-#define UNICAST_SF_PERIOD 7
+#define DEFAULT_SF_PERIOD 113
+#define UNICAST_SF_PERIOD 17
 #elif WITH_OFFLINE_SCHEDULE_DEDICATED
 #define N_UNICAST_SF 2
 static struct tsch_slotframe *sf_default;
 static struct tsch_slotframe *sf_unicast[N_UNICAST_SF];
 static int sf_unicast_len[N_UNICAST_SF] = {103,107};
 #define EB_SF_PERIOD 397
-#define DEFAULT_SF_PERIOD 13
+#define DEFAULT_SF_PERIOD 31
 
 #endif
 

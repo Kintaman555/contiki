@@ -36,8 +36,8 @@
 
 #include "deployment-def.h"
 
-/* #define WITH_OFFLINE_SCHEDULE_SHARED 1 */
-#define WITH_OFFLINE_SCHEDULE_DEDICATED 1
+#define WITH_OFFLINE_SCHEDULE_SHARED 1
+/* #define WITH_OFFLINE_SCHEDULE_DEDICATED 1 */
 
 /* #define WITH_OF_HOP_ETX 1 */
 /* #define WITH_OF_PDR 1 */
