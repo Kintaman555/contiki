@@ -72,6 +72,10 @@
 #define CC2420_CONF_AUTOACK 0
 #endif /* CC2420_CONF_AUTOACK */
 
+#ifndef CC2420_CONF_ADR_DECODE
+#define CC2420_CONF_ADR_DECODE 1
+#endif /* CC2420_CONF_ADR_DECODE */
+
 #define CHECKSUM_LEN        2
 #define FOOTER_LEN          2
 #define FOOTER1_CRC_OK      0x80
@@ -198,7 +202,7 @@ static int channel;
 
 /* A flag to enable or disable FIFOP interrupt */
 static uint8_t volatile interrupt_enabled = 1;
-static uint8_t volatile address_decoding_enabled = 1;
+static uint8_t volatile address_decoding_enabled = CC2420_CONF_ADR_DECODE;
 
 static radio_result_t
 get_value(radio_param_t param, radio_value_t *value)
@@ -630,11 +634,17 @@ cc2420_init(void)
   reg = getreg(CC2420_MDMCTRL0);
 
 #if CC2420_CONF_AUTOACK
-  reg |= AUTOACK | ADR_DECODE;
+  reg |= AUTOACK;
 #else
-  reg &= ~(AUTOACK | ADR_DECODE);
+  reg &= ~(AUTOACK);
 #endif /* CC2420_CONF_AUTOACK */
-  
+
+  if(address_decoding_enabled) {
+    reg |= ADR_DECODE;
+  } else {
+    reg &= ~(ADR_DECODE);
+  }
+
   /* Enabling CRC in hardware; this is required by AUTOACK anyway
      and provides us with RSSI and link quality indication (LQI)
      information. */
