@@ -1168,8 +1168,9 @@ PT_THREAD(tsch_associate(struct pt *pt))
         /* Save packet timestamp */
         t0 = NETSTACK_RADIO_read_sfd_timer();
 
-        /* Wait until reception is finished */
-        BUSYWAIT_UNTIL_ABS(!NETSTACK_RADIO.receiving_packet(), t0, TSCH_DATA_MAX_DURATION);
+        /* Wait until reception is finished
+         * TODO the following line shouldn't be there. Check this. */
+        // BUSYWAIT_UNTIL_ABS(!NETSTACK_RADIO.receiving_packet(), t0, TSCH_DATA_MAX_DURATION);
 
         /* Read packet */
         input_eb.len = NETSTACK_RADIO.read(input_eb.payload, TSCH_MAX_PACKET_LEN);
