@@ -72,15 +72,26 @@ extern uint32_t heap_location;
 #include "net/rime.h"
 #include "MMAC.h"
 
-#ifdef SELECT_CONF_MAX
-#define SELECT_MAX SELECT_CONF_MAX
-#else
-#define SELECT_MAX 8
-#endif
-
 /*&pir_sensor, &vib_sensor*/
 SENSORS(&button_sensor);
 
+#ifndef WITH_UIP
+#define WITH_UIP 0
+#endif
+
+#if WITH_UIP
+#include "net/uip.h"
+#include "net/uip-fw.h"
+#include "net/uip-fw-drv.h"
+#include "net/uip-over-mesh.h"
+static struct uip_fw_netif slipif =
+  {UIP_FW_NETIF(192,168,1,2, 255,255,255,255, slip_send)};
+static struct uip_fw_netif meshif =
+  {UIP_FW_NETIF(172,16,0,0, 255,255,0,0, uip_over_mesh_send)};
+
+#define UIP_OVER_MESH_CHANNEL 8
+static uint8_t is_gateway;
+#endif /* WITH_UIP */
 /*---------------------------------------------------------------------------*/
 #define VERBOSE 1
 #if VERBOSE
@@ -89,44 +100,37 @@ SENSORS(&button_sensor);
 #define PRINTF(...) do {} while (0)
 #endif
 /*---------------------------------------------------------------------------*/
-
-//static void
-//init_net(void)
-//{
-//  uip_ipaddr_t ipaddr;
-//  uip_ip6addr(&ipaddr, 0xfe80, 0, 0, 0, 0, 0, 0, 0);
-//
-//  /* load mac address */
-//  memcpy(uip_lladdr.addr, micromac_get_hw_mac_address_location(), sizeof(uip_lladdr.addr));
-//
-//#if UIP_CONF_ROUTER
-//  uip_ds6_prefix_add(&ipaddr, UIP_DEFAULT_PREFIX_LEN, 0, 0, 0, 0);
-//#else /* UIP_CONF_ROUTER */
-//  uip_ds6_prefix_add(&ipaddr, UIP_DEFAULT_PREFIX_LEN, 0);
-//#endif /* UIP_CONF_ROUTER */
-//  uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
-//  uip_ds6_addr_add(&ipaddr, 0, ADDR_TENTATIVE);
-//
-//  PRINTF("Tentative link-local IPv6 address ");
-//  {
-//    int i, a;
-//    for(a = 0; a < UIP_DS6_ADDR_NB; a++) {
-//      if (uip_ds6_if.addr_list[a].isused) {
-//        for(i = 0; i < 7; ++i) {
-//          PRINTF("%02x%02x:",
-//                 uip_ds6_if.addr_list[a].ipaddr.u8[i * 2],
-//                 uip_ds6_if.addr_list[a].ipaddr.u8[i * 2 + 1]);
-//        }
-//        PRINTF("%02x%02x\n",
-//               uip_ds6_if.addr_list[a].ipaddr.u8[14],
-//               uip_ds6_if.addr_list[a].ipaddr.u8[15]);
-//      }
-//    }
-//  }
-//
-//  netstack_init();
-//}
-
+#if !PROCESS_CONF_NO_PROCESS_NAMES
+static void
+print_processes(struct process * const processes[])
+{
+  /*  const struct process * const * p = processes;*/
+  PRINTF("Starting");
+  while(*processes != NULL) {
+    PRINTF(" '%s'", (*processes)->name);
+    processes++;
+  }
+  putchar('\n');
+}
+#endif /* !PROCESS_CONF_NO_PROCESS_NAMES */
+/*---------------------------------------------------------------------------*/
+#if WITH_UIP
+static void
+set_gateway(void)
+{
+  if(!is_gateway) {
+    leds_on(LEDS_RED);
+    printf("%d.%d: making myself the IP network gateway.\n\n",
+     rimeaddr_node_addr.u8[0], rimeaddr_node_addr.u8[1]);
+    printf("IPv4 address of the gateway: %d.%d.%d.%d\n\n",
+     uip_ipaddr_to_quad(&uip_hostaddr));
+    uip_over_mesh_set_gateway(&rimeaddr_node_addr);
+    uip_over_mesh_make_announced_gateway();
+    is_gateway = 1;
+  }
+}
+#endif /* WITH_UIP */
+/*--------------------------------------------------------------------------*/
 static void
 set_rime_addr(void)
 {
@@ -146,10 +150,7 @@ set_rime_addr(void)
   PRINTF("%02x\n", addr.u8[i]);
   PRINTF("HW MAC tsExtAddr: %08x.%08x\n", psExtAddress.sExt.u32H, psExtAddress.sExt.u32L);
 }
-
-
 /*---------------------------------------------------------------------------*/
-
 int
 main(void)
 {
@@ -201,7 +202,6 @@ main(void)
   tsExtAddr psExtAddress;
   vMMAC_GetMacAddress(&psExtAddress);
   copy_to_rimeaddress((rimeaddr_t *)&uip_lladdr, (tuAddr *)&psExtAddress);
-//  memcpy(&uip_lladdr.addr, micromac_get_hw_mac_address_location(), sizeof(uip_lladdr.addr));
 
 #ifndef WITH_SLIP_RADIO
   process_start(&tcpip_process, NULL);
@@ -210,6 +210,7 @@ main(void)
   process_start(&tcpip_process, NULL);
 #endif
 #endif /* WITH_SLIP_RADIO */
+
   PRINTF("Tentative link-local IPv6 address ");
   {
     uip_ds6_addr_t *lladdr;
@@ -224,16 +225,66 @@ main(void)
 
     PRINTF("%02x%02x\n", lladdr->ipaddr.u8[14], lladdr->ipaddr.u8[15]);
   }
-#else
+
+  if(!UIP_CONF_IPV6_RPL) {
+    uip_ipaddr_t ipaddr;
+    int i;
+    uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0, 0, 0, 0);
+    uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
+    uip_ds6_addr_add(&ipaddr, 0, ADDR_TENTATIVE);
+    PRINTF("Tentative global IPv6 address ");
+    for(i = 0; i < 7; ++i) {
+      PRINTF("%02x%02x:",
+             ipaddr.u8[i * 2], ipaddr.u8[i * 2 + 1]);
+    }
+    PRINTF("%02x%02x\n",
+           ipaddr.u8[7 * 2], ipaddr.u8[7 * 2 + 1]);
+  }
+#endif /* WITH_UIP6 */
+
+#if WITH_UIP
   process_start(&tcpip_process, NULL);
+  process_start(&uip_fw_process, NULL); /* Start IP output */
+  process_start(&slip_process, NULL);
+
+  slip_set_input_callback(set_gateway);
+
+  {
+    uip_ipaddr_t hostaddr, netmask;
+
+    uip_init();
+
+    uip_ipaddr(&hostaddr, 172,16,
+         rimeaddr_node_addr.u8[0],rimeaddr_node_addr.u8[1]);
+    uip_ipaddr(&netmask, 255,255,0,0);
+    uip_ipaddr_copy(&meshif.ipaddr, &hostaddr);
+
+    uip_sethostaddr(&hostaddr);
+    uip_setnetmask(&netmask);
+    uip_over_mesh_set_net(&hostaddr, &netmask);
+    /*    uip_fw_register(&slipif);*/
+    uip_over_mesh_set_gateway_netif(&slipif);
+    uip_fw_default(&meshif);
+    uip_over_mesh_init(UIP_OVER_MESH_CHANNEL);
+    printf("uIP started with IP address %d.%d.%d.%d\n",
+     uip_ipaddr_to_quad(&hostaddr));
+  }
+#endif /* WITH_UIP */
+
+#if !WITH_UIP && !WITH_UIP6
+  uart0_set_input(serial_line_input_byte);
+  serial_line_init();
 #endif
+
+#if !PROCESS_CONF_NO_PROCESS_NAMES
+  print_processes(autostart_processes);
+#endif /* !PROCESS_CONF_NO_PROCESS_NAMES */
 
   watchdog_start();
   autostart_start(autostart_processes);
   leds_off(LEDS_ALL);
   int r;
   while(1) {
-    //etimer_request_poll();
     do {
       /* Reset watchdog. */
     	watchdog_periodic();
@@ -284,7 +335,7 @@ AppColdStart(void)
 	main();
 
 }
-
+/*---------------------------------------------------------------------------*/
 void
 AppWarmStart(void)
 {
