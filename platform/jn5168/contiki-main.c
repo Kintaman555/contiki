@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, Adam Dunkels.
+ * Copyright (c) 2014, SICS Swedish ICT.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,14 @@
  *
  * This file is part of the Contiki OS
  *
+ */
+
+/**
+ * \file
+ *         Contiki main for NXP JN5168 platform
+ *
+ * \author
+ *         Beshr Al Nahas <beshr@sics.se>
  */
 
 #include <stdio.h>
