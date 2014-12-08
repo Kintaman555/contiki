@@ -116,11 +116,14 @@ typedef uint32_t rtimer_clock_t;
 /* 10ms timer tick */
 #define CLOCK_CONF_SECOND 100
 
-/* How often shall we attempt to calibrate VCO?
+/* Shall we calibrate the DCO periodically? */
+#define DCOSYNCH_CONF_ENABLED 1
+
+/* How often shall we attempt to calibrate DCO?
  * PS: It should be calibrated upon temperature changes,
  * but the naive approach of periodic calibration is fine too */
-#ifndef VCO_CALIBRATION_INTERVAL
-#define VCO_CALIBRATION_INTERVAL (5*60)
+#ifndef DCOSYNCH_PERIOD
+#define DCOSYNCH_PERIOD (5*60)
 #endif /* VCO_CALIBRATION_INTERVAL */
 
 /* Disable UART HW flow control */

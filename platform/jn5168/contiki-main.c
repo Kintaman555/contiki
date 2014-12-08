@@ -238,17 +238,21 @@ main(void)
      * Idle processing.
      */
     watchdog_stop();
-    /* TODO calibrate the VCO every x minutes
-     * if we have more than 200uSec until next rtimer
+
+#if DCOSYNCH_CONF_ENABLED
+    /* Calibrate the DCO every DCOSYNCH_PERIOD
+     * if we have more than 500uSec until next rtimer
+     * PS: Calibration disables interrupts and blocks for 200uSec.
      *  */
-    static unsigned long last_vco_calibration_time = 0;
-    if(clock_seconds() - last_vco_calibration_time > VCO_CALIBRATION_INTERVAL) {
+    static unsigned long last_dco_calibration_time = 0;
+    if(clock_seconds() - last_dco_calibration_time > DCOSYNCH_PERIOD) {
       if(rtimer_get_time_until_next_wakeup() > RTIMER_SECOND/2000) {
-        /* PRINTF("ContikiMain: Calibrating the VCO\n"); */
+        /* PRINTF("ContikiMain: Calibrating the DCO\n"); */
         eAHI_AttemptCalibration();
-        last_vco_calibration_time = clock_seconds();
+        last_dco_calibration_time = clock_seconds();
       }
     }
+#endif /* DCOSYNCH_CONF_ENABLED */
     vAHI_CpuDoze();
     watchdog_start();
   }
