@@ -51,8 +51,12 @@
 #include "dev/button-sensor.h"
 #include "dev/micromac-radio.h"
 
-#include "sys/node-id.h"
+#include "lib/random.h"
+
 #include "Recal/Include/recal.h"
+
+#include "sys/node-id.h"
+extern unsigned char node_mac[8];
 
 //#include "dev/pir-sensor.h"
 //#include "dev/vib-sensor.h"
@@ -156,19 +160,20 @@ main(void)
   watchdog_init();
   leds_init();
   leds_on(LEDS_ALL);
+  node_id_restore();
+  /* TODO initialize random with a seed from the SoC random generator */
+  random_init(node_mac[0] + node_mac[7] + node_id);
   process_init();
   ctimer_init();
   queuebuf_init();
-  serial_line_init();
   uart0_init(UART_BAUD_RATE); /* Must come before first PRINTF */
-  node_id_restore();
 
 #if USE_SLIP_UART1
 #include "dev/uart1.h"
   uart1_init(UART_BAUD_RATE);
 #endif /* USE_SLIP_UART1 */
 
-  //check for reset source
+  /* check for reset source */
   if (bAHI_WatchdogResetEvent()) {
 		PRINTF("Init: Watchdog timer has reset device!\r\n");
 	}
