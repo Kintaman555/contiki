@@ -50,13 +50,28 @@
 #undef NETSTACK_CONF_RDC
 #define NETSTACK_CONF_RDC      sniffer_rdc_driver
 
-#undef UART_HW_FLOW_CTRL
-#define UART_HW_FLOW_CTRL  1
-
-#undef UART_BAUD_RATE
-#define UART_BAUD_RATE UART_RATE_1000000
-
 #define WITH_TSCH_LOG 0
 #define WITH_RPL_LOG 0
+
+/* The settings for the sniffer interface in foren6 are hard-coded to
+ * No flow control
+ * Baudrate: 115200bps
+ * To change these settings you need to edit: foren6/capture/interface_snif.c
+ * and then change the settings here.
+ * PS: I have included an example under foren6-patch */
+#define DEFAULT_FOREN6_SETTINGS 0
+
+#undef UART_HW_FLOW_CTRL
+#undef UART_SW_FLOW_CTRL
+#undef UART_BAUD_RATE
+#if DEFAULT_FOREN6_SETTINGS
+#define UART_SW_FLOW_CTRL  0
+#define UART_HW_FLOW_CTRL  0
+#define UART_BAUD_RATE UART_RATE_115200
+#else /* DEFAULT_FOREN6_SETTINGS */
+#define UART_SW_FLOW_CTRL  0
+#define UART_HW_FLOW_CTRL  1
+#define UART_BAUD_RATE UART_RATE_1000000
+#endif /* DEFAULT_FOREN6_SETTINGS */
 
 #endif /* PROJECT_CONF_H_ */
