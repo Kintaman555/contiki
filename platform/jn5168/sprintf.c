@@ -92,7 +92,6 @@ start_format:
           goto start_format;
         }
         case 'u':
-        case 'i':
         case 'd':
           num=va_arg(va, unsigned int);
           if (ch=='d' && (int)num<0) {
