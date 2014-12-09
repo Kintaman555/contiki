@@ -169,7 +169,7 @@ offline_scheduler_init_dedicated()
 
   /* Default slotframe: for broadcast or unicast to neighbors we
    * do not have a link to. */
-  sf_default = tsch_schedule_add_slotframe(1, DEFAULT_SF_PERIOD);
+  sf_default = tsch_schedule_add_slotframe(N_UNICAST_SF+1, DEFAULT_SF_PERIOD);
   tsch_schedule_add_link(sf_default,
       LINK_OPTION_RX | LINK_OPTION_TX | LINK_OPTION_SHARED,
       LINK_TYPE_NORMAL, &tsch_broadcast_address,
@@ -177,7 +177,7 @@ offline_scheduler_init_dedicated()
 
   /* Slotframes for unicast */
   for(i=0; i<N_UNICAST_SF; i++) {
-    sf_unicast[i] = tsch_schedule_add_slotframe(i+2, sf_unicast_len[i]);
+    sf_unicast[i] = tsch_schedule_add_slotframe(i+1, sf_unicast_len[i]);
   }
 
   rime_sniffer_add(&offline_scheduler_sniffer);
