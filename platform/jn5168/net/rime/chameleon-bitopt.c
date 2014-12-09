@@ -38,7 +38,7 @@
 
 #include "net/rime/chameleon.h"
 
-#include "net/rime.h"
+#include "net/rime/rime.h"
 
 #include <string.h>
 
@@ -268,7 +268,7 @@ pack_header(struct channel *c)
     }
 #endif /* CHAMELEON_WITH_MAC_LINK_ADDRESSES */
     PRINTF("%d.%d: pack_header type %d, len %d, bitptr %d, ",
-	   rimeaddr_node_addr.u8[0], rimeaddr_node_addr.u8[1],
+	   linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1],
 	   a->type, a->len, bitptr);
     /*    len = (a->len & 0xf8) + ((a->len & 7) ? 8: 0);*/
     len = a->len;
@@ -277,7 +277,7 @@ pack_header(struct channel *c)
       set_bits(&hdrptr[byteptr], bitptr & 7,
 	       (uint8_t *)packetbuf_addr(a->type), len);
       PRINTF("address %d.%d\n",
-	    /*	    rimeaddr_node_addr.u8[0], rimeaddr_node_addr.u8[1],*/
+	    /*	    linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1],*/
 	    ((uint8_t *)packetbuf_addr(a->type))[0],
 	    ((uint8_t *)packetbuf_addr(a->type))[1]);
     } else {
@@ -286,7 +286,7 @@ pack_header(struct channel *c)
       set_bits(&hdrptr[byteptr], bitptr & 7,
 	       (uint8_t *)&val, len);
       PRINTF("value %d\n",
-	    /*rimeaddr_node_addr.u8[0], rimeaddr_node_addr.u8[1],*/
+	    /*linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1],*/
 	    val);
     }
     /*    printhdr(hdrptr, hdrbytesize);*/
@@ -338,16 +338,16 @@ unpack_header(void)
     }
 #endif /* CHAMELEON_WITH_MAC_LINK_ADDRESSES */
     PRINTF("%d.%d: unpack_header type %d, len %d, bitptr %d\n",
-	   rimeaddr_node_addr.u8[0], rimeaddr_node_addr.u8[1],
+	   linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1],
 	   a->type, a->len, bitptr);
     /*    len = (a->len & 0xf8) + ((a->len & 7) ? 8: 0);*/
     len = a->len;
     byteptr = bitptr / 8;
     if(PACKETBUF_IS_ADDR(a->type)) {
-      rimeaddr_t addr;
+      linkaddr_t addr;
       get_bits((uint8_t *)&addr, &hdrptr[byteptr], bitptr & 7, len);
       PRINTF("%d.%d: unpack_header type %d, addr %d.%d\n",
-	     rimeaddr_node_addr.u8[0], rimeaddr_node_addr.u8[1],
+	     linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1],
 	     a->type, addr.u8[0], addr.u8[1]);
       packetbuf_set_addr(a->type, &addr);
     } else {
@@ -356,7 +356,7 @@ unpack_header(void)
 
       packetbuf_set_attr(a->type, val);
       PRINTF("%d.%d: unpack_header type %d, val %d\n",
-	     rimeaddr_node_addr.u8[0], rimeaddr_node_addr.u8[1],
+	     linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1],
 	     a->type, val);
     }
     /*    byteptr += len / 8;*/

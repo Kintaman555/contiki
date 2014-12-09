@@ -50,6 +50,8 @@ int8_t uart0_interrupt_is_enabled(void);
 void uart0_restore_interrupts(void);
 void uart0_store_interrupts(void);
 
+uint8_t uart0_active(void);
+
 /* Used in slip-bridge */
 #ifndef BAUD2UBR
 #define BAUD2UBR(X) (X)

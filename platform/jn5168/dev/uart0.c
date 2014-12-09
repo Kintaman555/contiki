@@ -20,6 +20,12 @@ static unsigned char txbuf_data[TXBUFSIZE];
 static unsigned char rxbuf_data[RXBUFSIZE];
 static int (*uart0_input)(unsigned char c);
 
+uint8_t
+uart0_active(void)
+{
+  return uart_driver_tx_in_progress(uart_dev);
+}
+
 void
 uart0_set_input(int
 (*input)(unsigned char c))

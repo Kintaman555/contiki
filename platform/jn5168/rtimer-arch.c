@@ -89,6 +89,10 @@ rtimer_arch_run_next(uint32 u32DeviceId, uint32 u32ItemBitmap)
 
       watchdog_stop();
       last_expired_time = temp;
+  } else {
+    /* No match. Schedule again. */
+    vAHI_TickTimerIntEnable(true);
+    vAHI_TickTimerInterval(compare_time);
   }
   ENERGEST_OFF(ENERGEST_TYPE_IRQ);
 }
@@ -128,5 +132,17 @@ rtimer_arch_schedule(rtimer_clock_t t)
 	vAHI_TickTimerIntEnable(true);
 	vAHI_TickTimerInterval(t);
 	compare_time = t;
+}
+/*---------------------------------------------------------------------------*/
+rtimer_clock_t
+rtimer_arch_get_time_until_next_wakeup(void)
+{
+  rtimer_clock_t now = RTIMER_NOW();
+  rtimer_clock_t next_wakeup = compare_time;
+  if(bAHI_TickTimerIntStatus()) {
+    return next_wakeup >= now ? next_wakeup - now : (rtimer_clock_t)(-1) - next_wakeup + now;
+  }
+  /* if no wakeup is scheduled yet return maximum time */
+  return (rtimer_clock_t)-1;
 }
 /*---------------------------------------------------------------------------*/

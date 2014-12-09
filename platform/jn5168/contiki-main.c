@@ -53,7 +53,7 @@
 
 #include "dev/serial-line.h"
 
-#include "net/uip.h"
+#include "net/ip/uip.h"
 #include "dev/leds.h"
 
 #include "dev/button-sensor.h"
@@ -64,6 +64,9 @@
 #include "Recal/Include/recal.h"
 
 #include "sys/node-id.h"
+
+#include "rtimer-arch.h"
+
 extern unsigned char node_mac[8];
 
 //#include "dev/pir-sensor.h"
@@ -73,25 +76,25 @@ extern unsigned char node_mac[8];
  * marks the end of the stack taking into account the used heap  */
 extern uint32_t heap_location;
 
-#if WITH_UIP6
-#include "net/uip-ds6.h"
-#endif /* WITH_UIP6 */
+#if NETSTACK_CONF_WITH_IPV6
+#include "net/ipv6/uip-ds6.h"
+#endif /* NETSTACK_CONF_WITH_IPV6 */
 
-#include "net/rime.h"
+#include "net/rime/rime.h"
 #include "MMAC.h"
 
 /*&pir_sensor, &vib_sensor*/
 SENSORS(&button_sensor);
 
-#ifndef WITH_UIP
-#define WITH_UIP 0
+#ifndef NETSTACK_CONF_WITH_IPV4
+#define NETSTACK_CONF_WITH_IPV4 0
 #endif
 
-#if WITH_UIP
-#include "net/uip.h"
-#include "net/uip-fw.h"
-#include "net/uip-fw-drv.h"
-#include "net/uip-over-mesh.h"
+#if NETSTACK_CONF_WITH_IPV4
+#include "net/ip/uip.h"
+#include "net/ipv4/uip-fw.h"
+#include "net/ipv4/uip-fw-drv.h"
+#include "net/ipv4/uip-over-mesh.h"
 static struct uip_fw_netif slipif =
   {UIP_FW_NETIF(192,168,1,2, 255,255,255,255, slip_send)};
 static struct uip_fw_netif meshif =
@@ -99,10 +102,15 @@ static struct uip_fw_netif meshif =
 
 #define UIP_OVER_MESH_CHANNEL 8
 static uint8_t is_gateway;
-#endif /* WITH_UIP */
+#endif /* NETSTACK_CONF_WITH_IPV4 */
+
+#ifdef EXPERIMENT_SETUP
+#include "experiment-setup.h"
+#endif
+
 /*---------------------------------------------------------------------------*/
-#define VERBOSE 1
-#if VERBOSE
+#define DEBUG 1
+#if DEBUG
 #define PRINTF(...) do {printf(__VA_ARGS__);} while(0)
 #else
 #define PRINTF(...) do {} while (0)
@@ -122,94 +130,37 @@ print_processes(struct process * const processes[])
 }
 #endif /* !PROCESS_CONF_NO_PROCESS_NAMES */
 /*---------------------------------------------------------------------------*/
-#if WITH_UIP
+#if NETSTACK_CONF_WITH_IPV4
 static void
 set_gateway(void)
 {
   if(!is_gateway) {
     leds_on(LEDS_RED);
     printf("%d.%d: making myself the IP network gateway.\n\n",
-     rimeaddr_node_addr.u8[0], rimeaddr_node_addr.u8[1]);
+     linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1]);
     printf("IPv4 address of the gateway: %d.%d.%d.%d\n\n",
      uip_ipaddr_to_quad(&uip_hostaddr));
-    uip_over_mesh_set_gateway(&rimeaddr_node_addr);
+    uip_over_mesh_set_gateway(&linkaddr_node_addr);
     uip_over_mesh_make_announced_gateway();
     is_gateway = 1;
   }
 }
-#endif /* WITH_UIP */
-/*--------------------------------------------------------------------------*/
+#endif /* NETSTACK_CONF_WITH_IPV4 */
+/*---------------------------------------------------------------------------*/
 static void
-set_rime_addr(void)
+start_autostart_processes()
 {
-  rimeaddr_t addr;
-  int i;
-
-  memset(&addr, 0, sizeof(addr));
-  tuAddr psExtAddress;
-  vMMAC_GetMacAddress(&psExtAddress.sExt);
-
-  copy_to_rimeaddress(&addr, &psExtAddress);
-  rimeaddr_set_node_addr(&addr);
-  PRINTF("Rime started with address ");
-  for(i = 0; i < sizeof(addr.u8) - 1; i++) {
-    PRINTF("%02x.", addr.u8[i]);
-  }
-  PRINTF("%02x\n", addr.u8[i]);
-  PRINTF("HW MAC tsExtAddr: %08x.%08x\n", psExtAddress.sExt.u32H, psExtAddress.sExt.u32L);
+#if !PROCESS_CONF_NO_PROCESS_NAMES
+  print_processes(autostart_processes);
+#endif /* !PROCESS_CONF_NO_PROCESS_NAMES */
+  autostart_start(autostart_processes);
 }
 /*---------------------------------------------------------------------------*/
-int
-main(void)
+#if NETSTACK_CONF_WITH_IPV6
+static void
+start_uip6(void)
 {
-  /* Set stack overflow address */
-  vAHI_SetStackOverflow(TRUE, ((uint32_t *)&heap_location)[0]);
-
-  clock_init();
-  watchdog_init();
-  leds_init();
-  leds_on(LEDS_ALL);
-  node_id_restore();
-  /* TODO initialize random with a seed from the SoC random generator */
-  random_init(node_mac[0] + node_mac[7] + node_id);
-  process_init();
-  ctimer_init();
-  queuebuf_init();
-  uart0_init(UART_BAUD_RATE); /* Must come before first PRINTF */
-
-#if USE_SLIP_UART1
-#include "dev/uart1.h"
-  uart1_init(UART_BAUD_RATE);
-#endif /* USE_SLIP_UART1 */
-
-  /* check for reset source */
-  if (bAHI_WatchdogResetEvent()) {
-		PRINTF("Init: Watchdog timer has reset device!\r\n");
-	}
-
-  process_start(&etimer_process, NULL);
-  set_rime_addr();
-  netstack_init();
-
-#if UIP_CONF_IPV6
-#if UIP_CONF_IPV6_RPL
-  PRINTF(CONTIKI_VERSION_STRING " started with IPV6, RPL\n");
-#else
-  PRINTF(CONTIKI_VERSION_STRING " started with IPV6\n");
-#endif
-#else
-  PRINTF(CONTIKI_VERSION_STRING " started\n");
-#endif
-  NETSTACK_MAC.init();
-  NETSTACK_RDC.init();
   NETSTACK_NETWORK.init();
-  PRINTF("MAC %s RDC %s NETWORK %s\n", NETSTACK_MAC.name, NETSTACK_RDC.name, NETSTACK_NETWORK.name);
-
-#if WITH_UIP6
-
-  tsExtAddr psExtAddress;
-  vMMAC_GetMacAddress(&psExtAddress);
-  copy_to_rimeaddress((rimeaddr_t *)&uip_lladdr, (tuAddr *)&psExtAddress);
 
 #ifndef WITH_SLIP_RADIO
   process_start(&tcpip_process, NULL);
@@ -219,6 +170,7 @@ main(void)
 #endif
 #endif /* WITH_SLIP_RADIO */
 
+#if DEBUG
   PRINTF("Tentative link-local IPv6 address ");
   {
     uip_ds6_addr_t *lladdr;
@@ -233,6 +185,7 @@ main(void)
 
     PRINTF("%02x%02x\n", lladdr->ipaddr.u8[14], lladdr->ipaddr.u8[15]);
   }
+#endif /* DEBUG */
 
   if(!UIP_CONF_IPV6_RPL) {
     uip_ipaddr_t ipaddr;
@@ -248,9 +201,141 @@ main(void)
     PRINTF("%02x%02x\n",
            ipaddr.u8[7 * 2], ipaddr.u8[7 * 2 + 1]);
   }
-#endif /* WITH_UIP6 */
+}
+#endif /* NETSTACK_CONF_WITH_IPV6 */
+/*---------------------------------------------------------------------------*/
+static void
+start_network_layer(void)
+{
+#if NETSTACK_CONF_WITH_IPV6
+  start_uip6();
+#endif /* NETSTACK_CONF_WITH_IPV6 */
+  start_autostart_processes();
+  /* To support link layer security in combination with NETSTACK_CONF_WITH_IPV4 and
+   * TIMESYNCH_CONF_ENABLED further things may need to be moved here */
+}
+/*--------------------------------------------------------------------------*/
+static void
+set_rime_addr(void)
+{
+  int i;
+  linkaddr_t addr;
+  memset(&addr, 0, sizeof(linkaddr_t));
+#if NETSTACK_CONF_WITH_IPV6
+  memcpy(addr.u8, node_mac, sizeof(addr.u8));
+#else
+  if(node_id == 0) {
+    for(i = 0; i < sizeof(linkaddr_t); ++i) {
+      addr.u8[i] = node_mac[7 - i];
+    }
+  } else {
+    addr.u8[0] = node_id & 0xff;
+    addr.u8[1] = node_id >> 8;
+  }
+#endif
+  linkaddr_set_node_addr(&addr);
+#if DEBUG
+  PRINTF("Rime started with address ");
+  for(i = 0; i < sizeof(addr.u8) - 1; i++) {
+    PRINTF("%d.", addr.u8[i]);
+  }
+  PRINTF("%d\n", addr.u8[i]);
+#endif
+}
+/*---------------------------------------------------------------------------*/
+#if WITH_TINYOS_AUTO_IDS
+uint16_t TOS_NODE_ID = 0x1234; /* non-zero */
+uint16_t TOS_LOCAL_ADDRESS = 0x1234; /* non-zero */
+#endif /* WITH_TINYOS_AUTO_IDS */
+int
+main(void)
+{
+  /* Set stack overflow address */
+  vAHI_SetStackOverflow(TRUE, ((uint32_t *)&heap_location)[0]);
 
-#if WITH_UIP
+  clock_init();
+  watchdog_init();
+  leds_init();
+  leds_on(LEDS_ALL);
+  node_id_restore();
+#if WITH_TINYOS_AUTO_IDS
+  node_id = TOS_NODE_ID;
+#endif /* WITH_TINYOS_AUTO_IDS */
+  /* for setting "hardcoded" IEEE 802.15.4 MAC addresses */
+#ifdef IEEE_802154_MAC_ADDRESS
+  {
+    uint8_t ieee[] = IEEE_802154_MAC_ADDRESS;
+    memcpy(node_mac, ieee, sizeof(uip_lladdr.addr));
+    node_mac[7] = node_id & 0xff;
+  }
+#endif
+  /* TODO initialize random with a seed from the SoC random generator */
+  random_init(node_mac[0] + node_mac[7] + node_id);
+  process_init();
+  ctimer_init();
+  uart0_init(UART_BAUD_RATE); /* Must come before first PRINTF */
+
+#if USE_SLIP_UART1
+#include "dev/uart1.h"
+  uart1_init(UART_BAUD_RATE);
+#endif /* USE_SLIP_UART1 */
+
+#if NETSTACK_CONF_WITH_IPV4
+  slip_arch_init(UART_BAUD_RATE);
+#endif /* NETSTACK_CONF_WITH_IPV4 */
+
+  /* check for reset source */
+  if (bAHI_WatchdogResetEvent()) {
+		PRINTF("Init: Watchdog timer has reset device!\r\n");
+	}
+
+  process_start(&etimer_process, NULL);
+  set_rime_addr();
+  netstack_init();
+
+#if NETSTACK_CONF_WITH_IPV6
+#if UIP_CONF_IPV6_RPL
+  PRINTF(CONTIKI_VERSION_STRING " started with IPV6, RPL\n");
+#else
+  PRINTF(CONTIKI_VERSION_STRING " started with IPV6\n");
+#endif
+#elif NETSTACK_CONF_WITH_IPV4
+  PRINTF(CONTIKI_VERSION_STRING " started with IPV4\n");
+#else
+  PRINTF(CONTIKI_VERSION_STRING " started\n");
+#endif
+
+  if(node_id > 0) {
+    PRINTF("Node id is set to %u.\n", node_id);
+  } else {
+    PRINTF("Node id is not set.\n");
+  }
+
+#if NETSTACK_CONF_WITH_IPV6
+  memcpy(&uip_lladdr.addr, node_mac, sizeof(uip_lladdr.addr));
+
+  queuebuf_init();
+  NETSTACK_RDC.init();
+  NETSTACK_MAC.init();
+#else
+  NETSTACK_RDC.init();
+  NETSTACK_MAC.init();
+  NETSTACK_NETWORK.init();
+#endif /* NETSTACK_CONF_WITH_IPV6 */
+
+  PRINTF("%s %s %s\n", NETSTACK_LLSEC.name, NETSTACK_MAC.name, NETSTACK_RDC.name);
+
+#if !NETSTACK_CONF_WITH_IPV4 && !NETSTACK_CONF_WITH_IPV6
+  uart0_set_input(serial_line_input_byte);
+  serial_line_init();
+#endif
+
+#if TIMESYNCH_CONF_ENABLED
+  timesynch_init();
+  timesynch_set_authority_level((linkaddr_node_addr.u8[0] << 4) + 16);
+#endif /* TIMESYNCH_CONF_ENABLED */
+
+#if NETSTACK_CONF_WITH_IPV4
   process_start(&tcpip_process, NULL);
   process_start(&uip_fw_process, NULL); /* Start IP output */
   process_start(&slip_process, NULL);
@@ -263,7 +348,7 @@ main(void)
     uip_init();
 
     uip_ipaddr(&hostaddr, 172,16,
-         rimeaddr_node_addr.u8[0],rimeaddr_node_addr.u8[1]);
+         linkaddr_node_addr.u8[0],linkaddr_node_addr.u8[1]);
     uip_ipaddr(&netmask, 255,255,0,0);
     uip_ipaddr_copy(&meshif.ipaddr, &hostaddr);
 
@@ -274,22 +359,19 @@ main(void)
     uip_over_mesh_set_gateway_netif(&slipif);
     uip_fw_default(&meshif);
     uip_over_mesh_init(UIP_OVER_MESH_CHANNEL);
-    printf("uIP started with IP address %d.%d.%d.%d\n",
+    PRINTF("uIP started with IP address %d.%d.%d.%d\n",
      uip_ipaddr_to_quad(&hostaddr));
   }
-#endif /* WITH_UIP */
-
-#if !WITH_UIP && !WITH_UIP6
-  uart0_set_input(serial_line_input_byte);
-  serial_line_init();
-#endif
+#endif /* NETSTACK_CONF_WITH_IPV4 */
 
 #if !PROCESS_CONF_NO_PROCESS_NAMES
   print_processes(autostart_processes);
 #endif /* !PROCESS_CONF_NO_PROCESS_NAMES */
 
   watchdog_start();
-  autostart_start(autostart_processes);
+  start_network_layer();
+//  NETSTACK_LLSEC.bootstrap(start_network_layer);
+
   leds_off(LEDS_ALL);
   int r;
   while(1) {
@@ -310,7 +392,7 @@ main(void)
      *  */
     static unsigned long last_dco_calibration_time = 0;
     if(clock_seconds() - last_dco_calibration_time > DCOSYNCH_PERIOD) {
-      if(rtimer_get_time_until_next_wakeup() > RTIMER_SECOND/2000) {
+      if(rtimer_arch_get_time_until_next_wakeup() > RTIMER_SECOND/2000) {
         /* PRINTF("ContikiMain: Calibrating the DCO\n"); */
         eAHI_AttemptCalibration();
         last_dco_calibration_time = clock_seconds();
@@ -324,11 +406,13 @@ main(void)
   return 0;
 }
 /*---------------------------------------------------------------------------*/
+#if LOG_CONF_ENABLED
 void
 log_message(char *m1, char *m2)
 {
-  PRINTF("log_message: %s%s\n", m1, m2);
+  printf("%s%s\n", m1, m2);
 }
+#endif /* LOG_CONF_ENABLED */
 /*---------------------------------------------------------------------------*/
 void
 uip_log(char *m)

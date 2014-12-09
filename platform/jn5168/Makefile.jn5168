@@ -4,22 +4,40 @@ endif
 
 ## Show a warning for potentially unaligned pointer cast
 #CFLAGS += -Wcast-align
- 
+
+CLEAN += *.jn5168 
+CLEAN += *.jn5168.bin
+
+MODULES += core/net \
+           core/net/mac core/net/mac/contikimac \
+           core/net/mac/tsch \
+           core/net/llsec
+           
 ifeq ($(UIP_CONF_IPV6),1)
-CFLAGS += -DWITH_UIP6=1
+CFLAGS += -DNETSTACK_CONF_WITH_IPV6=1
 endif
 
-CONTIKI_TARGET_DIRS = . dev net net/mac net/rime
-CONTIKI_TARGET_MAIN = ${addprefix $(OBJECTDIR)/,contiki-main.o}
-
-CONTIKI_TARGET_SOURCEFILES = contiki-main.c clock.c sprintf.c ringbuf32.c uart-driver.c uart0.c uart1.c watchdog.c rtimer-arch.c leds-arch.c \
- button-sensor.c sensors.c leds.c slip.c slip_uart0.c exceptions.c chameleon-bitopt.c
+ARCH=clock.c sprintf.c ringbuf32.c uart-driver.c uart0.c uart1.c watchdog.c rtimer-arch.c leds-arch.c \
+ button-sensor.c sensors.c leds.c slip_uart0.c exceptions.c micromac-radio.c node-id.c
 # pir-sensor.c vib-sensor.c xmem.c irq.c 
-#For MicroMAC (radio) library
-CONTIKI_TARGET_SOURCEFILES += micromac-radio.c node-id.c nullrdc.c
+
+UIPDRIVERS += slip.c nullrdc.c chameleon-bitopt.c
+
 APPLIBS += MMAC 
 STACKLIBS += JPT
-CONTIKI_SOURCEFILES += $(CONTIKI_TARGET_SOURCEFILES)
+
+CONTIKI_TARGET_DIRS = . dev net net/mac net/rime
+CONTIKI_TARGET_MAIN = contiki-main.c
+
+ifdef nodemac
+CFLAGS += -DMACID=$(nodemac)
+endif
+
+CONTIKI_TARGET_SOURCEFILES += $(ARCH) $(UIPDRIVERS)
+CONTIKI_SOURCEFILES        += $(CONTIKI_TARGET_SOURCEFILES)
+
+#PROJECT_OBJECTFILES += ${addprefix $(OBJECTDIR)/,node-id.o}
+PROJECT_OBJECTFILES += ${addprefix $(OBJECTDIR)/,$(CONTIKI_TARGET_MAIN:.c=.o)}
 
 ##############################################################################
 # User definable make parameters that may be overwritten from the command line
@@ -518,6 +536,7 @@ CFLAGS += $(INCFLAGS)
 # Library search paths
 LDFLAGS += -L$(CHIP_BASE_DIR)/Build
 LDFLAGS += -L$(CHIP_BASE_DIR)/Library
+
 #### make targets
 
 ifeq ($(HOST_OS),Windows)

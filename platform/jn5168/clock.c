@@ -64,8 +64,6 @@ static volatile unsigned long seconds = 0;
 static volatile uint8_t ticking = FALSE;
 static volatile clock_time_t clock_ticks = 0;
 /* last_tar is used for calculating clock_fine */
-#define CPU_CLOCK_FREQ_HZ               16000000UL
-//#define TICK_PERIOD_ms                  10UL
 
 #define CLOCK_TIMER 					E_AHI_TIMER_1
 #define CLOCK_TIMER_ISR_DEV  	E_AHI_DEVICE_TIMER1

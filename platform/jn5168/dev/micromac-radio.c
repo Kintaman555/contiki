@@ -55,7 +55,7 @@
 #define STRESS_TEST 0
 
 #define DEBUG DEBUG_NONE
-#include "net/uip-debug.h"
+#include "net/ip/uip-debug.h"
 
 #define MIN(A,B)                ( ( ( A ) < ( B ) ) ? ( A ) : ( B ) )
 
@@ -79,6 +79,22 @@
 #ifndef RF_POWER
 #define RF_POWER (MICROMAC_RADIO_TXPOWER_MAX)
 #endif
+
+struct output_config {
+  int8_t power;
+  uint8_t config;
+};
+/* TODO OUTPUT_POWER_ values are adhoc. Check datasheet */
+static const struct output_config output_power[] = {
+  {  0, 3 }, /* 0xff */
+  { -7, 2 }, /* 0xef */
+  {-15,  1 }, /* 0xe7 */
+  {-25,  0 }, /* 0xe3 */
+};
+
+#define OUTPUT_NUM (sizeof(output_power) / sizeof(struct output_config))
+#define OUTPUT_POWER_MAX   0
+#define OUTPUT_POWER_MIN -25
 
 /* XXX RSSI_THR has an arbitrary value */
 /* an integer between 0 and 255, used only with micromac_radio_cca() */
@@ -507,14 +523,14 @@ micromac_radio_set_pan_addr(unsigned pan, unsigned addr,
 }
 /*---------------------------------------------------------------------------*/
 /* Extract addresses from raw packet */
-int tsch_packet_extract_addresses(uint8_t *buf, uint8_t len, rimeaddr_t *source_address, rimeaddr_t *dest_address);
+int tsch_packet_extract_addresses(uint8_t *buf, uint8_t len, linkaddr_t *source_address, linkaddr_t *dest_address);
 static int
 micromac_radio_is_packet_for_us(uint8_t* data, int len)
 {
-  rimeaddr_t dest_address;
+  linkaddr_t dest_address;
   uint8_t parsed = tsch_packet_extract_addresses(data, len, NULL, &dest_address);
-  return parsed && (rimeaddr_cmp(&dest_address, &rimeaddr_node_addr)
-               || rimeaddr_cmp(&dest_address, &rimeaddr_null));
+  return parsed && (linkaddr_cmp(&dest_address, &linkaddr_node_addr)
+               || linkaddr_cmp(&dest_address, &linkaddr_null));
 }
 /*---------------------------------------------------------------------------*/
 static int
@@ -664,23 +680,23 @@ micromac_radio_set_cca_threshold(int c)
 }
 /*---------------------------------------------------------------------------*/
 void
-copy_from_rimeaddress(tuAddr* tu_addr, rimeaddr_t* addr)
+copy_from_linkaddress(tuAddr* tu_addr, linkaddr_t* addr)
 {
   if(addr != NULL && tu_addr != NULL) {
-#if(RIMEADDR_SIZE==8)
+#if(LINKADDR_SIZE==8)
     tu_addr->sExt.u32L=addr->u8[7] | addr->u8[6]<<8 | addr->u8[5]<<16 | addr->u8[4]<<24;
     tu_addr->sExt.u32H=addr->u8[3] | addr->u8[2]<<8 | addr->u8[1]<<16 | addr->u8[0]<<24;
-#elif(RIMEADDR_SIZE==2)
+#elif(LINKADDR_SIZE==2)
     tu_addr->u16Short = addr->u8[1] | addr->u8[0] << 8;
 #endif
   }
 }
 /*---------------------------------------------------------------------------*/
 void
-copy_to_rimeaddress(rimeaddr_t* addr, tuAddr* tu_addr)
+copy_to_linkaddress(linkaddr_t* addr, tuAddr* tu_addr)
 {
   if(addr != NULL && tu_addr != NULL) {
-#if(RIMEADDR_SIZE==8)
+#if(LINKADDR_SIZE==8)
     addr->u8[7] = tu_addr->sExt.u32L;
     addr->u8[6] = tu_addr->sExt.u32L >> (uint32_t)8;
     addr->u8[5] = tu_addr->sExt.u32L >> (uint32_t)16;
@@ -689,7 +705,7 @@ copy_to_rimeaddress(rimeaddr_t* addr, tuAddr* tu_addr)
     addr->u8[2] = tu_addr->sExt.u32H >> (uint32_t)8;
     addr->u8[1] = tu_addr->sExt.u32H >> (uint32_t)16;
     addr->u8[0] = tu_addr->sExt.u32H >> (uint32_t)24;
-#elif(RIMEADDR_SIZE==2)
+#elif(LINKADDR_SIZE==2)
     addr->u8[1] = tu_addr->u16Short;
     addr->u8[0] = tu_addr->u16Short >> (uint16_t) 8;
 #endif
@@ -785,11 +801,15 @@ PROCESS_THREAD(micromac_radio_process, ev, data)
       /* Put packet into packetbuf for input callback */
       packetbuf_clear();
       /* TODO PACKETBUF_ATTR_TIMESTAMP is 16bits while last_packet_timestamp is 32bits*/
+#ifndef WITHOUT_ATTR_TIMESTAMP
       packetbuf_set_attr(PACKETBUF_ATTR_TIMESTAMP, last_packet_timestamp >> 16);
+#endif /* WITHOUT_ATTR_TIMESTAMP */
       int len = micromac_radio_read(packetbuf_dataptr(), PACKETBUF_SIZE);
       /* XXX Another packet could have come; thus, the rssi value is wrongly matched to an older packet */
       packetbuf_set_attr(PACKETBUF_ATTR_RSSI, radio_last_rssi);
+#ifndef WITHOUT_ATTR_LINK_QUALITY
       packetbuf_set_attr(PACKETBUF_ATTR_LINK_QUALITY, radio_last_correlation);
+#endif /* WITHOUT_ATTR_LINK_QUALITY */
       /* is packet valid? */
       if(len >0) {
         packetbuf_set_datalen(len);
@@ -862,7 +882,103 @@ micromac_radio_set_always_on(uint8_t e)
   always_on = e;
   RELEASE_LOCK();
 }
+static radio_result_t
+get_value(radio_param_t param, radio_value_t *value)
+{
+  int i, v;
 
+  if(!value) {
+    return RADIO_RESULT_INVALID_VALUE;
+  }
+  switch(param) {
+  case RADIO_PARAM_POWER_MODE:
+    *value = rx_in_progress || tx_in_progress ? RADIO_POWER_MODE_ON : RADIO_POWER_MODE_OFF;
+    return RADIO_RESULT_OK;
+  case RADIO_PARAM_CHANNEL:
+    *value = micromac_radio_get_channel();
+    return RADIO_RESULT_OK;
+  case RADIO_PARAM_TXPOWER:
+    v = micromac_radio_get_txpower();
+    *value = OUTPUT_POWER_MIN;
+    /* Find the actual estimated output power in conversion table */
+    for(i = 0; i < OUTPUT_NUM; i++) {
+      if(v >= output_power[i].config) {
+        *value = output_power[i].power;
+        break;
+      }
+    }
+    return RADIO_RESULT_OK;
+  case RADIO_PARAM_RSSI:
+    /* Return the RSSI value in dBm */
+    *value = radio_last_rssi;
+    return RADIO_RESULT_OK;
+  case RADIO_CONST_CHANNEL_MIN:
+    *value = 11;
+    return RADIO_RESULT_OK;
+  case RADIO_CONST_CHANNEL_MAX:
+    *value = 26;
+    return RADIO_RESULT_OK;
+  case RADIO_CONST_TXPOWER_MIN:
+    *value = OUTPUT_POWER_MIN;
+    return RADIO_RESULT_OK;
+  case RADIO_CONST_TXPOWER_MAX:
+    *value = OUTPUT_POWER_MAX;
+    return RADIO_RESULT_OK;
+  default:
+    return RADIO_RESULT_NOT_SUPPORTED;
+  }
+}
+
+static radio_result_t
+set_value(radio_param_t param, radio_value_t value)
+{
+  int i;
+
+  switch(param) {
+  case RADIO_PARAM_POWER_MODE:
+    if(value == RADIO_POWER_MODE_ON) {
+      micromac_radio_on();
+      return RADIO_RESULT_OK;
+    }
+    if(value == RADIO_POWER_MODE_OFF) {
+      micromac_radio_off();
+      return RADIO_RESULT_OK;
+    }
+    return RADIO_RESULT_INVALID_VALUE;
+  case RADIO_PARAM_CHANNEL:
+    if(value < 11 || value > 26) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    micromac_radio_set_channel(value);
+    return RADIO_RESULT_OK;
+  case RADIO_PARAM_TXPOWER:
+    if(value < OUTPUT_POWER_MIN || value > OUTPUT_POWER_MAX) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    /* Find the closest higher PA_LEVEL for the desired output power */
+    for(i = 1; i < OUTPUT_NUM; i++) {
+      if(value > output_power[i].power) {
+        break;
+      }
+    }
+    micromac_radio_set_txpower(output_power[i - 1].config);
+    return RADIO_RESULT_OK;
+  default:
+    return RADIO_RESULT_NOT_SUPPORTED;
+  }
+}
+
+static radio_result_t
+get_object(radio_param_t param, void *dest, size_t size)
+{
+  return RADIO_RESULT_NOT_SUPPORTED;
+}
+
+static radio_result_t
+set_object(radio_param_t param, const void *src, size_t size)
+{
+  return RADIO_RESULT_NOT_SUPPORTED;
+}
 /*---------------------------------------------------------------------------*/
 const struct radio_driver micromac_radio_driver = {
   micromac_radio_init,
@@ -870,11 +986,13 @@ const struct radio_driver micromac_radio_driver = {
   micromac_radio_transmit,
   micromac_radio_send,
   micromac_radio_read,
-  /* micromac_set_channel, */
-  /* micromac_detected_energy, */
   micromac_radio_cca,
   micromac_radio_receiving_packet,
   micromac_radio_pending_packet,
   micromac_radio_on,
-  micromac_radio_off
+  micromac_radio_off,
+  get_value,
+  set_value,
+  get_object,
+  set_object
 };

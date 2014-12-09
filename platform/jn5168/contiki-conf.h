@@ -63,7 +63,26 @@
 #define UART_RATE_921600        10
 #define UART_RATE_1000000       11
 
-//#define JENNIC_CONF_BUTTON_PIN (IRQ_DIO9|IRQ_DIO10)
+#define PLATFORM_HAS_LEDS    1
+#define PLATFORM_HAS_BUTTON  0 /* sensor driver not implemented */
+#define PLATFORM_HAS_LIGHT   0 /* sensor driver not implemented */
+#define PLATFORM_HAS_BATTERY 0 /* sensor driver not implemented */
+#define PLATFORM_HAS_SHT11   0 /* sensor driver not implemented */
+#define PLATFORM_HAS_RADIO   1
+
+/* CPU target speed in Hz
+ * RTIMER and peripherals clock is F_CPU/2 */
+#define F_CPU 32000000UL
+
+/* LED ports */
+/*
+#define LEDS_PxDIR P5DIR
+#define LEDS_PxOUT P5OUT
+#define LEDS_CONF_RED    0x10
+#define LEDS_CONF_GREEN  0x20
+#define LEDS_CONF_YELLOW 0x40
+#define JENNIC_CONF_BUTTON_PIN (IRQ_DIO9|IRQ_DIO10)
+*/
 
 #define CC_CONF_REGISTER_ARGS          1
 #define CC_CONF_FUNCTION_POINTER_ARGS  1
@@ -90,7 +109,6 @@ typedef          short  int16_t;
 typedef          long   int32_t;
 typedef unsigned long long uint64_t;
 typedef long long          int64_t;
-
 #endif
 #endif /* !HAVE_STDINT_H */
 
@@ -107,8 +125,9 @@ typedef  int64_t s64_t;
 #define false (0)
 #endif
 
+/* Types for clocks and uip_stats */
+typedef uint16_t uip_stats_t;
 typedef uint32_t clock_time_t;
-typedef unsigned short uip_stats_t;
 
 /* Core rtimer.h defaults to 16 bit timer unless RTIMER_CLOCK_LT is defined */
 typedef uint32_t rtimer_clock_t;
@@ -221,7 +240,7 @@ typedef uint32_t rtimer_clock_t;
 #define PROCESS_CONF_STATS 1
 /*#define PROCESS_CONF_FASTPOLL    4*/
 
-#ifdef WITH_UIP6
+#ifdef NETSTACK_CONF_WITH_IPV6
 #define UIP_CONF_BROADCAST 1
 /* Network setup for IPv6 */
 #define NETSTACK_CONF_NETWORK sicslowpan_driver
@@ -240,7 +259,7 @@ typedef uint32_t rtimer_clock_t;
 #define QUEUEBUF_CONF_NUM                8
 #endif
 
-#define RIMEADDR_CONF_SIZE              8
+#define LINKADDR_CONF_SIZE              8
 
 #define UIP_CONF_LL_802154              1
 #define UIP_CONF_LLH_LEN                0
@@ -318,7 +337,7 @@ typedef uint32_t rtimer_clock_t;
 #define UIP_CONF_BYTE_ORDER      UIP_BIG_ENDIAN
 #define UIP_CONF_TCP       			 0
 #define UIP_CONF_LOGGING         0
-#else /* WITH_UIP6 */
+#else /* NETSTACK_CONF_WITH_IPV6 */
 
 /* Network setup for non-IPv6 (rime). */
 
@@ -343,8 +362,12 @@ typedef uint32_t rtimer_clock_t;
 
 #define UIP_CONF_IP_FORWARD      1
 #define UIP_CONF_BUFFER_SIZE     108
-#define RIMEADDR_CONF_SIZE       2
-#endif /* WITH_UIP6 */
+#define LINKADDR_CONF_SIZE       2
+#endif /* NETSTACK_CONF_WITH_IPV6 */
+
+#ifndef AES_128_CONF
+/* TODO #define AES_128_CONF .... */
+#endif /* AES_128_CONF */
 
 /* include the project config */
 /* PROJECT_CONF_H might be defined in the project Makefile */

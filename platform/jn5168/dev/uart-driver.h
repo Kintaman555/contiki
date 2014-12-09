@@ -72,9 +72,10 @@ int8_t uart_driver_interrupt_is_enabled(uint8_t uart_dev);
 void uart_driver_store_interrupts(uint8_t uart_dev);
 void uart_driver_restore_interrupts(uint8_t uart_dev);
 
+uint8_t uart_driver_tx_in_progress(uint8_t uart_dev);
+
 #ifdef UART_EXTRAS
 void uart_driver_flush(uint8_t uart_dev);
-uint8_t uart_driver_tx_in_progress(uint8_t uart_dev);
 #endif
 
 

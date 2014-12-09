@@ -684,7 +684,6 @@ uart_driver_isr(uint32_t device_id, uint32_t item_bitmap)
   }
 }
 
-#ifdef UART_EXTRAS
 /****************************************************************************
  *
  * NAME:       uart_driver_tx_in_progress
@@ -711,6 +710,8 @@ uart_driver_tx_in_progress(uint8_t uart_dev)
   }
   return TRUE;
 }
+
+#ifdef UART_EXTRAS
 
 /****************************************************************************
  *

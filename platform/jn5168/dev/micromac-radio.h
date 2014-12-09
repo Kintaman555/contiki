@@ -42,7 +42,7 @@
 
 #include "contiki.h"
 #include "dev/radio.h"
-#include "rimeaddr.h"
+#include "linkaddr.h"
 #include "net/mac/frame802154.h"
 #include <MMAC.h>
 
@@ -71,8 +71,8 @@
     while(!(cond) && RTIMER_CLOCK_LT(RTIMER_NOW(), t0 + (max_time)));   \
   } while(0)
 
-void copy_from_rimeaddress(tuAddr*, rimeaddr_t* );
-void copy_to_rimeaddress(rimeaddr_t* addr, tuAddr* tu_addr);
+void copy_from_linkaddress(tuAddr*, linkaddr_t* );
+void copy_to_linkaddress(linkaddr_t* addr, tuAddr* tu_addr);
 
 int micromac_radio_init(void);
 

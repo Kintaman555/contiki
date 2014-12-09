@@ -46,7 +46,7 @@
 #define RTIMER_ARCH_SECOND RTIMER_CONF_SECOND
 #else
 //32MHz CPU clock => 16MHz timer
-#define RTIMER_ARCH_SECOND (16000000UL)
+#define RTIMER_ARCH_SECOND (F_CPU/2)
 
 //32MHz CPU clock => 16MHz timer / 2^9 ==> 31.25 KHz/*
 //32MHz CPU clock => 16MHz timer / 2^6 ==> 250 KHz ==> 1s = 250000*
@@ -56,5 +56,7 @@
 #endif
 
 rtimer_clock_t rtimer_arch_now(void);
+
+rtimer_clock_t rtimer_arch_get_time_until_next_wakeup(void);
 
 #endif /* RTIMER_ARCH_H_ */
