@@ -38,29 +38,11 @@
 #include "contiki-conf.h"
 #include "deployment.h"
 
-#if CONTIKI_TARGET_JN5168
-#include <MMAC.h>
-unsigned char node_mac[8];
-#endif /* CONTIKI_TARGET_JN5168 */
-
 unsigned short node_id = 0;
 /*---------------------------------------------------------------------------*/
 void
 node_id_restore(void)
 {
-#if CONTIKI_TARGET_JN5168
-  tuAddr psExtAddress;
-  vMMAC_GetMacAddress(&psExtAddress.sExt);
-  node_mac[7] = psExtAddress.sExt.u32L;
-  node_mac[6] = psExtAddress.sExt.u32L >> (uint32_t)8;
-  node_mac[5] = psExtAddress.sExt.u32L >> (uint32_t)16;
-  node_mac[4] = psExtAddress.sExt.u32L >> (uint32_t)24;
-  node_mac[3] = psExtAddress.sExt.u32H;
-  node_mac[2] = psExtAddress.sExt.u32H >> (uint32_t)8;
-  node_mac[1] = psExtAddress.sExt.u32H >> (uint32_t)16;
-  node_mac[0] = psExtAddress.sExt.u32H >> (uint32_t)24;
-#endif /* CONTIKI_TARGET_JN5168 */
-
   node_id = get_node_id();
 }
 /*---------------------------------------------------------------------------*/

@@ -57,31 +57,27 @@
 #include "dev/leds.h"
 
 #include "dev/button-sensor.h"
-#include "dev/micromac-radio.h"
-
-#include "lib/random.h"
-
-#include "Recal/Include/recal.h"
-
-#include "sys/node-id.h"
-
-#include "rtimer-arch.h"
-
-extern unsigned char node_mac[8];
-
 //#include "dev/pir-sensor.h"
 //#include "dev/vib-sensor.h"
 
-/* Symbol defined by the linker script
- * marks the end of the stack taking into account the used heap  */
-extern uint32_t heap_location;
+#include "lib/random.h"
+#include "sys/node-id.h"
+#include "rtimer-arch.h"
 
 #if NETSTACK_CONF_WITH_IPV6
 #include "net/ipv6/uip-ds6.h"
 #endif /* NETSTACK_CONF_WITH_IPV6 */
 
 #include "net/rime/rime.h"
+#include "Recal/Include/recal.h"
+
+#include "dev/micromac-radio.h"
 #include "MMAC.h"
+unsigned char node_mac[8];
+
+/* Symbol defined by the linker script
+ * marks the end of the stack taking into account the used heap  */
+extern uint32_t heap_location;
 
 /*&pir_sensor, &vib_sensor*/
 SENSORS(&button_sensor);
@@ -115,6 +111,24 @@ static uint8_t is_gateway;
 #else
 #define PRINTF(...) do {} while (0)
 #endif
+/*---------------------------------------------------------------------------*/
+/* Reads MAC from SoC
+ * Must be called before node_id_restore()
+ * and network addresses initialization */
+static void
+init_node_mac(void)
+{
+  tuAddr psExtAddress;
+  vMMAC_GetMacAddress(&psExtAddress.sExt);
+  node_mac[7] = psExtAddress.sExt.u32L;
+  node_mac[6] = psExtAddress.sExt.u32L >> (uint32_t)8;
+  node_mac[5] = psExtAddress.sExt.u32L >> (uint32_t)16;
+  node_mac[4] = psExtAddress.sExt.u32L >> (uint32_t)24;
+  node_mac[3] = psExtAddress.sExt.u32H;
+  node_mac[2] = psExtAddress.sExt.u32H >> (uint32_t)8;
+  node_mac[1] = psExtAddress.sExt.u32H >> (uint32_t)16;
+  node_mac[0] = psExtAddress.sExt.u32H >> (uint32_t)24;
+}
 /*---------------------------------------------------------------------------*/
 #if !PROCESS_CONF_NO_PROCESS_NAMES
 static void
@@ -250,13 +264,14 @@ uint16_t TOS_LOCAL_ADDRESS = 0x1234; /* non-zero */
 int
 main(void)
 {
-  /* Set stack overflow address */
+  /* Set stack overflow address for detecting overflow in runtime */
   vAHI_SetStackOverflow(TRUE, ((uint32_t *)&heap_location)[0]);
 
   clock_init();
   watchdog_init();
   leds_init();
   leds_on(LEDS_ALL);
+  init_node_mac();
   node_id_restore();
 #if WITH_TINYOS_AUTO_IDS
   node_id = TOS_NODE_ID;
