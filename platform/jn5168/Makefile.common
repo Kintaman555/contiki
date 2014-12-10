@@ -589,8 +589,42 @@ symbols.c symbols.h:
 %.hex: %.$(TARGET)
 	$(OBJCOPY) $^ -O binary $@
 
+##
+#Usage: FlashCLI.exe [options] -f FLASHFILE
+#
+#NXP JN51xx Flash Programmer 1.8.9
+#
+#
+#Options:
+#  --version             show program's version number and exit
+#  -h, --help            show this help message and exit
+#  -c COMPORT, --ComPort=COMPORT
+#                        Select serial device to use (e.g. COM1, /dev/ttyUSB0)
+#                        - default COM1
+#  -f FLASHFILE, --FlashFile=FLASHFILE
+#                        Program FLASHFILE to the flash or RAM if --RAM
+#                        specified
+#  -l LISTFILE, --ListFile=LISTFILE
+#                        Program MAC address from LISTFILE
+#  -R, --RAM             Load binary into RAM and execute
+#  -w, --NoWait          Do not prompt user to put device into programming mode
+#  -m MACADDR, --MACAddress=MACADDR
+#                        Specify MAC address to program into the flash, hex
+#                        format XX:XX:XX:XX:XX:XX:XX:XX
+#  -B BAUDRATE, --BaudRate=BAUDRATE
+#                        Set the Baud Rate do not exceed 1000000 - defaults to
+#                        38400
+#  -p, --Preserve sector 3
+#                        Preserve sector 3
+#  -s, --SkipVerification
+#                        Skip verification of flash contents after programming
+#                        of the flash memory
+#  -a, --AutomaticPandR  Automatically generate PROGRAM and RESET signals
+#  -k PASSKEY, --Passkey=PASSKEY
+#                        Specify device security pass key
+##
 %.upload: %.$(TARGET).bin
-	${SDK_BASE_DIR}/Tools/flashprogrammer/FlashCLI.exe -c COM${COM} -B 1000000 -s -w -f $<
+	${SDK_BASE_DIR}/Tools/flashprogrammer/FlashCLI.exe -a -c COM${COM} -B 1000000 -s -w -f $<
 
 ########### login: read serial line ##############
 ### USAGE: make TARGET=jn5168 login UART_BAUDRATE={baudrate} {serial device}
