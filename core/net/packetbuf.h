@@ -337,6 +337,7 @@ enum {
   PACKETBUF_ATTR_NONE,
 
   /* Scope 0 attributes: used only on the local node. */
+  PACKETBUF_ATTR_PROTO,
 #ifndef WITHOUT_6LOWPAN_ATTR
   PACKETBUF_ATTR_CHANNEL,
   PACKETBUF_ATTR_NETWORK_ID,

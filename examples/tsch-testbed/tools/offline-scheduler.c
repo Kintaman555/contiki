@@ -102,6 +102,11 @@ offline_scheduler_delete_old_links(void)
 static void
 offline_scheduler_packet_received(void)
 {
+  if(packetbuf_attr(PACKETBUF_ATTR_PROTO) == UIP_PROTO_ICMP6) {
+    /* Filter out ICMP */
+    return;
+  }
+
   int i;
   uint16_t dest_id = node_id_from_linkaddr(packetbuf_addr(PACKETBUF_ADDR_RECEIVER));
   if(dest_id != 0) { /* Not a broadcast */
@@ -130,6 +135,11 @@ offline_scheduler_packet_received(void)
 static void
 offline_scheduler_packet_sent(int mac_status)
 {
+  if(packetbuf_attr(PACKETBUF_ATTR_PROTO) == UIP_PROTO_ICMP6) {
+    /* Filter out ICMP */
+    return;
+  }
+
   int i;
   uint16_t dest_id = node_id_from_linkaddr(packetbuf_addr(PACKETBUF_ADDR_RECEIVER));
   uint16_t dest_index = get_node_index_from_id(dest_id);

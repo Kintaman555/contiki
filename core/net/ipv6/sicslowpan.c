@@ -1419,7 +1419,8 @@ output(const uip_lladdr_t *localdest)
                        PACKETBUF_ATTR_PACKET_TYPE_STREAM_END);
   }
 #endif /* UIP_CONF_TCP */
-
+  packetbuf_set_attr(PACKETBUF_ATTR_PROTO,
+      UIP_IP_BUF->proto);
   /*
    * The destination address will be tagged to each outbound
    * packet. If the argument localdest is NULL, we are sending a
@@ -1871,6 +1872,8 @@ input(void)
     /* if callback is set then set attributes and call */
     if(callback) {
       set_packet_attrs();
+      packetbuf_set_attr(PACKETBUF_ATTR_PROTO,
+            UIP_IP_BUF->proto);
       callback->input_callback();
     }
 
