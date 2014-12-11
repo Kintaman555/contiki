@@ -85,10 +85,6 @@
 #define MAC_MAX_FRAME_RETRIES 8
 #define MAC_MAX_BE 4
 
-/* Convert rtimer ticks to clock and vice versa */
-#define TSCH_CLOCK_TO_TICKS(c) (((c)*RTIMER_SECOND)/CLOCK_SECOND)
-#define TSCH_CLOCK_TO_SLOTS(c) (TSCH_CLOCK_TO_TICKS(c)/TsSlotDuration)
-
 /* TSCH packet len */
 #define TSCH_MAX_PACKET_LEN 127
 #define TSCH_BASE_ACK_LEN 3
@@ -221,6 +217,10 @@ void tsch_set_eb_period(uint32_t period);
 #define delayTx           ((unsigned)US_TO_RTIMERTICKS(250)) /* measured ~250us: 100uSec + between GO signal and SFD: radio fixed delay + 4Bytes preamble + 1B SFD -- 1Byte time is 31.25us */
 #define delayRx           ((unsigned)US_TO_RTIMERTICKS(248)) /* measured 248us: between GO signal and start listening */
 
+/* Convert rtimer ticks to clock and vice versa */
+#define TSCH_CLOCK_TO_TICKS(c) ((c)*(RTIMER_SECOND/CLOCK_SECOND)) /* beware of computation overflow! */
+#define TSCH_CLOCK_TO_SLOTS(c) (TSCH_CLOCK_TO_TICKS(c)/TsSlotDuration)
+
 #else /* CONTIKI_TARGET_JN5168 */
 
 /* For target Sky and Z1 */
@@ -252,6 +252,10 @@ void tsch_set_eb_period(uint32_t period);
   /* ~50us delay + 129preample + ?? */
 #define delayRx 6         /* between GO signal and start listening */
   /* radio watchdog */
+
+/* Convert rtimer ticks to clock and vice versa */
+#define TSCH_CLOCK_TO_TICKS(c) (((c)*RTIMER_SECOND)/CLOCK_SECOND)
+#define TSCH_CLOCK_TO_SLOTS(c) (TSCH_CLOCK_TO_TICKS(c)/TsSlotDuration)
 
 #endif /* CONTIKI_TARGET_JN5168 */
 
