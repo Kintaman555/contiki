@@ -229,6 +229,9 @@ struct rpl_instance {
 #endif /* RPL_CONF_STATS */
   clock_time_t dio_next_delay; /* delay for completion of dio interval */
   struct ctimer dio_timer;
+#if RPL_CONF_PROBING
+  struct ctimer probing_timer;
+#endif /* RPL_CONF_PROBING */
 #if RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES
   struct ctimer dao_timer;
   struct ctimer dao_lifetime_timer;

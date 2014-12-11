@@ -47,6 +47,8 @@
 #define TSCH_CONF_USE_SFD_FOR_SYNC !IN_COOJA
 
 #define TSCH_CONF_CHECK_TIME_AT_ASSOCIATION 20
+#define RPL_CONF_PROBING 1
+#define RPL_CONF_PROBING_TX_THRESHOLD 4 /* Stop probing after 4 tx to a neighbor */
 
 #define ANNOTATE_DEFAULT_ROUTE IN_COOJA
 
