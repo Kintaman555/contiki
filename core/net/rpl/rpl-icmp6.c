@@ -247,6 +247,9 @@ dio_input(void)
   PRINT6ADDR(&from);
   PRINTF("\n");
 
+  LOG("RPL: DIO input from %d\n",
+      LOG_NODEID_FROM_IPADDR(&from));
+
   if((nbr = uip_ds6_nbr_lookup(&from)) == NULL) {
     if((nbr = uip_ds6_nbr_add(&from, (uip_lladdr_t *)
                               packetbuf_addr(PACKETBUF_ADDR_SENDER),
@@ -553,7 +556,7 @@ dio_output(rpl_instance_t *instance, uip_ipaddr_t *uc_addr)
            dag->prefix_info.length);
   }
 
-  LOG("RPL: DIO ouptut to %d, rank %u\n", LOG_NODEID_FROM_IPADDR(uc_addr), (unsigned)instance->current_dag->rank);
+  LOG("RPL: DIO output to %d, rank %u\n", LOG_NODEID_FROM_IPADDR(uc_addr), (unsigned)instance->current_dag->rank);
 
 #if RPL_LEAF_ONLY
 #if (DEBUG) & DEBUG_PRINT
