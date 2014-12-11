@@ -609,9 +609,9 @@ rpl_init_link_metric(rpl_parent_t *p, rpl_dio_t *dio) {
     if(etx > MAX_INIT_ETX) {
       etx = MAX_INIT_ETX;
     }
-    LOG("RPL: calc init ETX to %u, RSSI: %d -> %u\n",
-        LOG_NODEID_FROM_LINKADDR(nbr_table_get_lladdr(rpl_parents, p)),
-        dio->rssi, etx);
+    //LOG("RPL: calc init ETX to %u, RSSI: %d -> %u\n",
+      //  LOG_NODEID_FROM_LINKADDR(nbr_table_get_lladdr(rpl_parents, p)),
+        //dio->rssi, etx);
     return etx;
   }
 }
