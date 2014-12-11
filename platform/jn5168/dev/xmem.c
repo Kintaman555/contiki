@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Swedish Institute of Computer Science.
+ * Copyright (c) 2004, Swedish Institute of Computer Science.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,62 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- */
-/**
- * \file
- *         Override node_id_restore to node-id based on ds2411 ID
- *         in a testbed-specific manner
+ * This file is part of the Contiki operating system.
  *
- * \author Simon Duquennoy <simonduq@sics.se>
+ * Author: Adam Dunkels <adam@sics.se>
+ *
  */
 
 #include "contiki-conf.h"
-#include "deployment.h"
+#include "dev/xmem.h"
 
-unsigned short node_id = 0;
+#include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
+
+#define XMEM_SIZE 1024 * 1024
+
+static unsigned char xmem[XMEM_SIZE];
 /*---------------------------------------------------------------------------*/
-void
-node_id_restore(void)
+int
+xmem_pwrite(const void *buf, int size, unsigned long offset)
 {
-  node_id = get_node_id();
+  /*  int f;
+  char name[400];
+
+  snprintf(name, sizeof(name), "xmem.%d.%d", node_x(), node_y());
+  f = open(name, O_WRONLY | O_APPEND | O_CREAT, 0644);
+  lseek(f, addr, SEEK_SET);
+  write(f, buf, size);
+  close(f);*/
+
+  /*  printf("xmem_write(offset 0x%02x, buf %p, size %l);\n", offset, buf, size);*/
+
+  memcpy(&xmem[offset], buf, size);
+  return size;
+}
+/*---------------------------------------------------------------------------*/
+int
+xmem_pread(void *buf, int size, unsigned long offset)
+{
+  /*  printf("xmem_read(addr 0x%02x, buf %p, size %d);\n", addr, buf, size);*/
+  memcpy(buf, &xmem[offset], size);
+  return size;
+}
+/*---------------------------------------------------------------------------*/
+int
+xmem_erase(long nbytes, unsigned long offset)
+{
+  /*  printf("xmem_read(addr 0x%02x, buf %p, size %d);\n", addr, buf, size);*/
+  memset(&xmem[offset], 0, nbytes);
+  return nbytes;
 }
 /*---------------------------------------------------------------------------*/
 void
-node_id_burn(unsigned short id)
+xmem_init(void)
 {
+
 }
 /*---------------------------------------------------------------------------*/

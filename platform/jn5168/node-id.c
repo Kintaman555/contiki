@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Swedish Institute of Computer Science.
+ * Copyright (c) 2014, Swedish Institute of Computer Science
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,34 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
+ * This file is part of the Contiki operating system.
+ *
  */
+
 /**
  * \file
- *         Override node_id_restore to node-id based on ds2411 ID
- *         in a testbed-specific manner
+ * For compatibility with Contiki node-id interface
  *
- * \author Simon Duquennoy <simonduq@sics.se>
+ * \author
+ *         Beshr Al Nahas <beshr@sics.se>
  */
 
+#include "contiki.h"
+#include "sys/node-id.h"
 #include "contiki-conf.h"
-#include "deployment.h"
 
+/*---------------------------------------------------------------------------*/
 unsigned short node_id = 0;
 /*---------------------------------------------------------------------------*/
 void
 node_id_restore(void)
 {
-  node_id = get_node_id();
+  node_id = (node_mac[6] << 8) | node_mac[7];
 }
 /*---------------------------------------------------------------------------*/
 void
 node_id_burn(unsigned short id)
 {
+  /* does not burn anything */
+  node_id = id;
 }
-/*---------------------------------------------------------------------------*/

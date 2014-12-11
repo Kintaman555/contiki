@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Swedish Institute of Computer Science.
+ * Copyright (c) 2005, Swedish Institute of Computer Science.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,27 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- */
-/**
- * \file
- *         Override node_id_restore to node-id based on ds2411 ID
- *         in a testbed-specific manner
+ * This file is part of the Configurable Sensor Network Application
+ * Architecture for sensor nodes running the Contiki operating system.
  *
- * \author Simon Duquennoy <simonduq@sics.se>
+ *
+ * -----------------------------------------------------------------
+ *
+ * Author  : Adam Dunkels, Joakim Eriksson, Niclas Finne
+ * Created : 2005-11-01
+ * Updated : $Date: 2006/06/17 22:41:31 $
+ *           $Revision: 1.1 $
  */
 
-#include "contiki-conf.h"
-#include "deployment.h"
+#ifndef VIB_SENSOR_H_
+#define VIB_SENSOR_H_
 
-unsigned short node_id = 0;
-/*---------------------------------------------------------------------------*/
-void
-node_id_restore(void)
-{
-  node_id = get_node_id();
-}
-/*---------------------------------------------------------------------------*/
-void
-node_id_burn(unsigned short id)
-{
-}
-/*---------------------------------------------------------------------------*/
+#include "lib/sensors.h"
+
+extern const struct sensors_sensor vib_sensor;
+
+#define VIB_SENSOR "Vibration"
+
+void vib_sensor_changed(void);
+
+#endif /* VIB_SENSOR_H_ */

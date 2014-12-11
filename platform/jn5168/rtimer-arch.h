@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Swedish Institute of Computer Science.
+ * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,37 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
+ * This file is part of the Contiki operating system.
+ *
  */
+
 /**
  * \file
- *         Override node_id_restore to node-id based on ds2411 ID
- *         in a testbed-specific manner
- *
- * \author Simon Duquennoy <simonduq@sics.se>
+ *         Header file for NXP jn5168-specific rtimer code
+ * \author
+ *         Beshr Al Nahas <beshr@sics.se>
  */
 
-#include "contiki-conf.h"
-#include "deployment.h"
+#ifndef RTIMER_ARCH_H_
+#define RTIMER_ARCH_H_
 
-unsigned short node_id = 0;
-/*---------------------------------------------------------------------------*/
-void
-node_id_restore(void)
-{
-  node_id = get_node_id();
-}
-/*---------------------------------------------------------------------------*/
-void
-node_id_burn(unsigned short id)
-{
-}
-/*---------------------------------------------------------------------------*/
+#include "sys/rtimer.h"
+
+#ifdef RTIMER_CONF_SECOND
+#define RTIMER_ARCH_SECOND RTIMER_CONF_SECOND
+#else
+//32MHz CPU clock => 16MHz timer
+#define RTIMER_ARCH_SECOND (F_CPU/2)
+
+//32MHz CPU clock => 16MHz timer / 2^9 ==> 31.25 KHz/*
+//32MHz CPU clock => 16MHz timer / 2^6 ==> 250 KHz ==> 1s = 250000*
+//32MHz CPU clock => 16MHz timer / 2^2 ==> 4 MHz ==> 1s = 4000000*
+//#define RTIMER_PRESCALE     2
+//#define RTIMER_ARCH_SECOND (4000000)
+#endif
+
+rtimer_clock_t rtimer_arch_now(void);
+
+rtimer_clock_t rtimer_arch_get_time_until_next_wakeup(void);
+
+#endif /* RTIMER_ARCH_H_ */

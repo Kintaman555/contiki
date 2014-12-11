@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Swedish Institute of Computer Science.
+ * Copyright (c) 2014, Swedish Institute of Computer Science
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,27 +27,40 @@
  * SUCH DAMAGE.
  *
  */
-/**
- * \file
- *         Override node_id_restore to node-id based on ds2411 ID
- *         in a testbed-specific manner
- *
- * \author Simon Duquennoy <simonduq@sics.se>
+
+/*
+ * Machine dependent jn516x SLIP routines for UART0.
  */
 
 #include "contiki-conf.h"
-#include "deployment.h"
-
-unsigned short node_id = 0;
+#include "dev/slip.h"
+#if USE_SLIP_UART1
+#include "dev/uart1.h"
+#else
+#include "dev/uart0.h"
+#endif /* USE_SLIP_UART1 */
 /*---------------------------------------------------------------------------*/
 void
-node_id_restore(void)
+slip_arch_writeb(unsigned char c)
 {
-  node_id = get_node_id();
+#if USE_SLIP_UART1
+  uart1_writeb(c);
+#else
+  uart0_writeb(c);
+#endif /* USE_SLIP_UART1 */
 }
 /*---------------------------------------------------------------------------*/
+/**
+ * Initalize the RS232 port and the SLIP driver.
+ *
+ */
 void
-node_id_burn(unsigned short id)
+slip_arch_init(unsigned long ubr)
 {
+#if USE_SLIP_UART1
+  uart1_set_input(slip_input_byte);
+#else
+  uart0_set_input(slip_input_byte);
+#endif /* USE_SLIP_UART1 */
 }
 /*---------------------------------------------------------------------------*/

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Swedish Institute of Computer Science.
+ * Copyright (c) 2005, Swedish Institute of Computer Science.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,38 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- */
-/**
- * \file
- *         Override node_id_restore to node-id based on ds2411 ID
- *         in a testbed-specific manner
+ * This file is part of the Configurable Sensor Network Application
+ * Architecture for sensor nodes running the Contiki operating system.
  *
- * \author Simon Duquennoy <simonduq@sics.se>
+ *
+ * -----------------------------------------------------------------
+ *
+ * Author  : Adam Dunkels, Joakim Eriksson, Niclas Finne
+ * Created : 2005-11-01
+ * Updated : $Date: 2010/01/14 20:15:55 $
+ *           $Revision: 1.2 $
  */
 
-#include "contiki-conf.h"
-#include "deployment.h"
+#include "dev/temperature-sensor.h"
 
-unsigned short node_id = 0;
 /*---------------------------------------------------------------------------*/
-void
-node_id_restore(void)
+static int
+value(int type)
 {
-  node_id = get_node_id();
+  return 0;
 }
 /*---------------------------------------------------------------------------*/
-void
-node_id_burn(unsigned short id)
+static int
+configure(int type, int c)
 {
+  return 0;
 }
 /*---------------------------------------------------------------------------*/
+static int
+status(int type)
+{
+  return 0;
+}
+/*---------------------------------------------------------------------------*/
+SENSORS_SENSOR(temperature_sensor, TEMPERATURE_SENSOR,
+	       value, configure, status);
