@@ -106,8 +106,13 @@ def main():
    	flashProgram=sys.argv[1]
 
    motes=list_mote()
+   if motes:
+    motes.sort()
    print 'Found %d JN5168 motes at:' %(len(motes))
-   print motes
+   motesStr=''
+   for m in motes:
+    motesStr += "%s " %(str(m))
+   print motesStr 
    firmwareFile='#'	
 
    if len(sys.argv) > 2:   		
