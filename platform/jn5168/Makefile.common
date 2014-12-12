@@ -623,9 +623,27 @@ symbols.c symbols.h:
 #  -k PASSKEY, --Passkey=PASSKEY
 #                        Specify device security pass key
 ##
+
+### Upload target to one jn5168 mote specified by COM=portNumber
 %.upload: %.$(TARGET).bin
 	${SDK_BASE_DIR}/Tools/flashprogrammer/FlashCLI.exe -a -c COM${COM} -B 1000000 -s -w -f $<
 
+### Flash the given file
+%.flash: 
+	${SDK_BASE_DIR}/Tools/flashprogrammer/FlashCLI.exe -a -c COM${COM} -B 1000000 -s -w -f $*
+
+### List the ports with connected jn5168 motes	
+motelist:
+	python $(CONTIKI)/tools/jn5168/mote-list.py  ${SDK_BASE_DIR}/Tools/flashprogrammer/FlashCLI.exe \#
+
+### Upload target to all connected jn5168 motes	
+%.uploadall: %.$(TARGET).bin
+	python $(CONTIKI)/tools/jn5168/mote-list.py  ${SDK_BASE_DIR}/Tools/flashprogrammer/FlashCLI.exe $<
+
+### Flash the given file to all connected jn5168 motes	
+%.flashall:
+	python $(CONTIKI)/tools/jn5168/mote-list.py  ${SDK_BASE_DIR}/Tools/flashprogrammer/FlashCLI.exe $*
+	
 ########### login: read serial line ##############
 ### USAGE: make TARGET=jn5168 login UART_BAUDRATE={baudrate} {serial device}
 ### UART_BAUDRATE: i.e., 115200. default is 1000000
