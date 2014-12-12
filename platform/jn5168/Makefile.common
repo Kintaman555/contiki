@@ -636,6 +636,12 @@ symbols.c symbols.h:
 motelist:
 	python $(CONTIKI)/tools/jn5168/mote-list.py  ${SDK_BASE_DIR}/Tools/flashprogrammer/FlashCLI.exe \#
 
+motelistmac:
+	python $(CONTIKI)/tools/jn5168/mote-list.py  ${SDK_BASE_DIR}/Tools/flashprogrammer/FlashCLI.exe \!
+	
+motelistinfo:
+	python $(CONTIKI)/tools/jn5168/mote-list.py  ${SDK_BASE_DIR}/Tools/flashprogrammer/FlashCLI.exe \?	
+
 ### Upload target to all connected jn5168 motes	
 %.uploadall: %.$(TARGET).bin
 	python $(CONTIKI)/tools/jn5168/mote-list.py  ${SDK_BASE_DIR}/Tools/flashprogrammer/FlashCLI.exe $<

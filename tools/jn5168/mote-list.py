@@ -8,13 +8,14 @@ def list_mote():
   cmd=[flashProgram,'-c','COM0']
   proc = subprocess.Popen(cmd, shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,)
   stdout_value, stderr_value = proc.communicate('through stdin to stdout')
-  com_str = repr(stderr_value)
+  com_str = (stderr_value)
   #print '\tpass through:', repr(stdout_value)
   #print '\tstderr      :', com_str
   
-  ## Extract COM ports from output 
-  #res = re.compile('\[\'((COM\d+)\'.?.?).*\]').match(com_str)
-  res = re.compile('.*\[(.*)\].*').match(com_str)
+  ## Extract COM ports from output:
+  ## Example com_str: "Available ports: ['COM15', 'COM10']" 
+  res = re.compile('\[((?:\'COM\d+\'.?.?)+)\]').search(com_str)
+  #res = re.compile('.*\[(.*)\].*').match(com_str)
   
   ports = []
   if res:
@@ -28,13 +29,13 @@ def extractInformation(inputStr):
     portStr=''
     macStr=''
     info=''
+    programSuccess=''
     
-    print 'output: ', inputStr
+    #print 'output: ', inputStr
     
-    res = re.compile('(Connecting to device on COM\d+)').match(stdout_value) 
+    res = re.compile('Connecting to device on (COM\d+)').search(stdout_value) 
     if res:
       portStr=str(res.group(1))
-      print portStr
       
     ### extracting the following information    
     '''
@@ -54,50 +55,72 @@ def extractInformation(inputStr):
     Bootloader Version:    0x00080006
     '''
     
-    #res = re.compile('(Devicelabel\:.*Bootloader\sVersion\:\s+0x\w{8})').match(stdout_value) 
-    #if res:
-    #  info=str(res.group(1))
+    res = re.compile('(Devicelabel.*\sFlashLabel.*\sMemory.*\sChipPartNo.*\sChipRevNo.*\sROM Version.*\sMAC Address.*\sZB License.*\sUser Data.*\sFlashMID.*\sFlashDID.*\sMacLocation.*\sSector Length.*\sBootloader Version\:\s+0x\w{8})').search(stdout_value) 
+    if res:
+      info=str(res.group(1))
       
-    res = re.compile('(MAC Address\:\s+(?:\w{2}\:?){8})').match(stdout_value)
+    res = re.compile('MAC Address\:\s+((?:\w{2}\:?){8})').search(stdout_value)
     if res:
       macStr=str(res.group(1))
-      print macStr
     
-    res = re.compile('(Program\ssuccessfully\swritten\sto\sflash)').match(stdout_value)
+    res = re.compile('(Program\ssuccessfully\swritten\sto\sflash)').search(stdout_value)
     if res:
-      info=info + str(res.group(1))
+      programSuccess=str(res.group(1))
       
-    return [str(portStr + '\n' + info), macStr] 
+    return [portStr, macStr, info, programSuccess] 
         
 def program_motes(motes, firmwareFile):
   for m in motes:
     cmd=[flashProgram,'-c',m, '-B', '1000000', '-s', '-w', '-f', firmwareFile]
     proc = subprocess.Popen(cmd, shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,)
     stdout_value, stderr_value = proc.communicate('through stdin to stdout')   
-    info=extractInformation(stdout_value)               
-    print info, info[0], info[1]
+    [portStr, macStr, info, programSuccess]=extractInformation(stdout_value)               
+    print portStr, macStr, programSuccess
       
     errors = (stderr_value)
     if errors != '':
     	print 'Errors:', errors  
+
+def motes_info(motes, macOnly):
+  if macOnly:
+    print "Listing Mac addresses:"
+  else:
+    print "Listing motes info:" 
+  for m in motes:
+    cmd=[flashProgram,'-c',m, '-B', '1000000']
+    proc = subprocess.Popen(cmd, shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,)
+    stdout_value, stderr_value = proc.communicate('through stdin to stdout')   
+    [portStr, macStr, info, programSuccess]=extractInformation(stdout_value)  
+    errors = (stderr_value)
+    
+    if macOnly:
+      print portStr, macStr
+    else:
+      print portStr, '\n', info, '\n'    
+          
+    if errors != '':
+      print 'Errors:', errors                    
 
 def main():
    if len(sys.argv) > 2:
    	flashProgram=sys.argv[1]
 
    motes=list_mote()
-   print 'Found JN5168 motes at:'
+   print 'Found %d JN5168 motes at:' %(len(motes))
    print motes
    firmwareFile='#'	
 
    if len(sys.argv) > 2:   		
-   	firmwareFile=sys.argv[2]
+    firmwareFile=sys.argv[2]
    elif len(sys.argv) > 1:
    	firmwareFile=sys.argv[1]		   
    
-   if firmwareFile !='#' and firmwareFile !='!':    	
+   if firmwareFile !='#' and firmwareFile !='!' and firmwareFile !='?':    	
    	print '\nBatch programming all connected motes...\n'
    	program_motes(motes, firmwareFile)
+   elif firmwareFile == '?' or firmwareFile == '!':
+    displayMacList=(firmwareFile == '!')
+    motes_info(motes,displayMacList)                   
    else:
     	print '\nNo firmware file specified.\n'
          
