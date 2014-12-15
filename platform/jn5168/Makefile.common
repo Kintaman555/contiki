@@ -650,6 +650,9 @@ motelistinfo:
 %.flashall:
 	python $(CONTIKI)/tools/jn5168/mote-list.py  ${SDK_BASE_DIR}/Tools/flashprogrammer/FlashCLI.exe $*
 	
+serialdumpall:
+	python $(CONTIKI)/tools/jn5168/mote-list.py  ${SDK_BASE_DIR}/Tools/flashprogrammer/FlashCLI.exe \%
+	
 ########### login: read serial line ##############
 ### USAGE: make TARGET=jn5168 login UART_BAUDRATE={baudrate} {serial device}
 ### UART_BAUDRATE: i.e., 115200. default is 1000000

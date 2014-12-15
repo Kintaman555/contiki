@@ -1,8 +1,26 @@
 import sys
 import re
+
 import subprocess
+import multiprocessing
+from multiprocessing import Pool, Lock
 
 flashProgram = 'c:\\Jennic\\Tools\\flashprogrammer\\FlashCLI.exe'
+
+def serialdump(port):
+  cmd=['start','make','TARGET=jn5168','serialdump',port]
+  rv = subprocess.call(cmd, shell=True)
+
+def serialdumpPorts(comStr):
+  ttyPorts = []
+  for port in comStr:
+    portNum=int(port.replace('COM',''))-1
+    ttyPorts.append('ttyS'+str(portNum))
+          
+  p = Pool()
+  p.map(serialdump, ttyPorts)
+  p.close()
+
 def list_mote():
   #There is no COM0 in windows. We use this to trigger an error message that lists all valid COM ports
   cmd=[flashProgram,'-c','COM0']
@@ -120,13 +138,18 @@ def main():
    elif len(sys.argv) > 1:
    	firmwareFile=sys.argv[1]		   
    
-   if firmwareFile !='#' and firmwareFile !='!' and firmwareFile !='?':    	
+   if firmwareFile not in ['#', '!', '?', '%']:    	
    	print '\nBatch programming all connected motes...\n'
    	program_motes(motes, firmwareFile)
    elif firmwareFile == '?' or firmwareFile == '!':
     displayMacList=(firmwareFile == '!')
-    motes_info(motes,displayMacList)                   
+    motes_info(motes,displayMacList)          
+   elif firmwareFile == '%':
+    print '\nLogging from all connected motes...\n'
+    serialdumpPorts(motes)         
    else:
-    	print '\nNo firmware file specified.\n'
-         
-main()
+    print '\nNo firmware file specified.\n'
+
+if __name__ == '__main__':
+  multiprocessing.freeze_support()         
+  main()
