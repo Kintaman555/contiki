@@ -627,7 +627,11 @@ rpl_add_parent(rpl_dag_t *dag, rpl_dio_t *dio, uip_ipaddr_t *addr)
   PRINTF("RPL: rpl_add_parent lladdr %p ", lladdr);
   PRINT6ADDR(addr);
   PRINTF("\n");
-  if(lladdr != NULL) {
+  if(lladdr != NULL
+#ifdef RPL_CONF_MAX_NBRHOPINC
+        && acceptable_nbr_rank(dag, dio->rank)
+#endif
+  ) {
     /* Add parent in rpl_parents */
     p = nbr_table_add_lladdr(rpl_parents, (linkaddr_t *)lladdr);
     if(p == NULL) {
