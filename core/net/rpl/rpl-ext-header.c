@@ -142,8 +142,8 @@ rpl_verify_header(int uip_ext_opt_offset)
       if(p != NULL) {
         /* Update parent rank from ext header */
         LOGU("RPL: ext-header rank for %u hdr %u curr %u",
-            LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)), UIP_EXT_HDR_OPT_RPL_BUF->senderrank, p->rank);
-        p->rank = UIP_EXT_HDR_OPT_RPL_BUF->senderrank;
+            LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)), sender_rank, p->rank);
+        p->rank = sender_rank;
         rpl_select_dag(instance, p);
       }
       rpl_reset_dio_timer(instance, 9);
