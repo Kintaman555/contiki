@@ -154,7 +154,14 @@ rpl_set_preferred_parent(rpl_dag_t *dag, rpl_parent_t *p)
 
     /* Always keep the preferred parent locked, so it remains in the
      * neighbor table. */
+#if RPL_CONF_PROBING_LOCK_ALL
+    /* Unlock only if the neighbor is not probed */
+    if(dag->preferred_parent->tx_count < RPL_CONF_PROBING_TX_THRESHOLD) {
+      nbr_table_unlock(rpl_parents, dag->preferred_parent);
+    }
+#else /* RPL_CONF_PROBING_LOCK_ALL */
     nbr_table_unlock(rpl_parents, dag->preferred_parent);
+#endif /* RPL_CONF_PROBING_LOCK_ALL */
     nbr_table_lock(rpl_parents, p);
     dag->preferred_parent = p;
 
