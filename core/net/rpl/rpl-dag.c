@@ -829,6 +829,7 @@ handle_probing_timer(void *ptr)
    * OF's best_parent function in order to ignore OF-specific
    * policies such as mrhof rank hysteresis */
   second_best = NULL;
+  second_best_rank = INFINITE_RANK;
   p = nbr_table_head(rpl_parents);
   while(p != NULL) {
     if(p->dag != dag || p->rank == INFINITE_RANK || p == dag->preferred_parent) {
@@ -865,7 +866,7 @@ rpl_select_parent(rpl_dag_t *dag)
 #if RPL_CONF_PROBING
       if(dag->preferred_parent != NULL
           && dag->preferred_parent->tx_count >= RPL_CONF_PROBING_TX_THRESHOLD
-          && best < RPL_CONF_PROBING_TX_THRESHOLD) {
+          && best->tx_count < RPL_CONF_PROBING_TX_THRESHOLD) {
         /* There is a better candidate parent but it needs probing.
          * Do it shortly, and do not switch parent before that */
         ctimer_set(&dag->instance->probing_timer,
