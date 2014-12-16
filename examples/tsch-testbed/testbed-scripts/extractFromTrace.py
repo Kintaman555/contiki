@@ -324,8 +324,9 @@ def main():
                 {'min': 1, 'max': 100},
                 MIN_INTERVAL, verbose=False, export=False)
         
-        if parsed['maxTime']/60 > 20:
-            MIN_TIME = (parsed['maxTime']/60) / 2
+        if parsed['maxTime']/60 > 15:
+            #MIN_TIME = (parsed['maxTime']/60) / 2
+            MIN_TIME = 10
             MAX_TIME = (parsed['maxTime']/60) - 1
         else:
             MIN_TIME = 0

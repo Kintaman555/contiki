@@ -264,6 +264,11 @@ rpl_link_neighbor_callback(const linkaddr_t *addr, int status, int numtx)
         if(instance->of->neighbor_link_callback != NULL) {
           instance->of->neighbor_link_callback(parent, status, numtx);
           parent->tx_count += numtx;
+#if RPL_CONF_PROBING_LOCK_ALL
+          if(parent->tx_count >= RPL_CONF_PROBING_TX_THRESHOLD) {
+            nbr_table_lock(rpl_parents, parent);
+          }
+#endif /* RPL_CONF_PROBING_LOCK_ALL */
         }
       }
     }
