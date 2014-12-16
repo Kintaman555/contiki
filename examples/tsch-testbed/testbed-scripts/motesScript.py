@@ -23,7 +23,11 @@ def main():
             lineSplit = line.split(None, 1)
             if len(lineSplit) != 2:
                 continue
-            timeStamp = int(lineSplit[0])
+            try:    
+                timeStamp = int(lineSplit[0])
+            except:
+                continue
+                pass
             log = lineSplit[1]
             if not timeStamp in allLines:
                 allLines[timeStamp] = []    
@@ -32,7 +36,10 @@ def main():
             if nodeId == -1:
                 res = re.compile('^Duty Cycle: \[(\d+) \d+\]').match(log)
                 if res:
-                    nodeId = int(res.group(1))
+                    try:
+                        nodeId = int(res.group(1))
+                    except:
+                        pass
                     if nodeId:
                         nodeIdMap[fileName] = nodeId
                         print 'found nodeid: %d' %(nodeId)
