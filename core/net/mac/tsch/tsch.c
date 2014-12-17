@@ -788,6 +788,7 @@ PT_THREAD(tsch_tx_link(struct pt *pt, struct rtimer *t))
               ack_len = NETSTACK_RADIO.read((void *)ackbuf, TSCH_ACK_LEN);
 
               is_time_source = current_neighbor != NULL && current_neighbor->is_time_source;
+              received_drift = 0;
               ret = tsch_packet_parse_sync_ack(&received_drift, NULL,
                   ackbuf, ack_len, seqno, is_time_source);
 
