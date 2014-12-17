@@ -60,7 +60,7 @@ rpl_print_neighbor_list()
     int curr_rank = default_instance->current_dag->rank;
     rpl_parent_t *p = nbr_table_head(rpl_parents);
 
-    printf("RPL: rank %u dioint %u, %u/%u neighbor(s)\n", curr_rank, curr_dio_interval, rpl_dag_parents_num(), uip_ds6_nbr_num());
+    printf("RPL: rank %u dioint %u, %u/%u nbr\n", curr_rank, curr_dio_interval, rpl_dag_parents_num(), uip_ds6_nbr_num());
     while(p != NULL) {
       printf("RPL: nbr %3u %4u, %4u => %4u %c (%4u %d)\n",
           LOG_NODEID_FROM_LINKADDR(nbr_table_get_lladdr(rpl_parents, p)),
@@ -70,7 +70,7 @@ rpl_print_neighbor_list()
       );
       p = nbr_table_next(rpl_parents, p);
     }
-    printf("RPL: end of neighbor list\n");
+    printf("RPL: eol\n");
   }
 }
 /* Copy an appdata to another with no assumption that the addresses are aligned */

@@ -405,7 +405,7 @@ def doParse(file, sinkId):
                 packetInfo = {'id': packetId, 'hop': hop, 'src': src, 'dst': dst}
                 
             # match lines that include asn info
-            res = re.compile('^\{asn-([a-f\d]+).([a-f\d]+) link-(\d+)-(\d+)-(\d+)-(\d+) (\d+)-(\d+)-(\d+) ch-(\d+)\} (.*)').match(log)
+            res = re.compile('^\{asn-([a-f\d]+).([a-f\d]+) link-(\d+)-(\d+)-(\d+)-(\d+) [\s\d-]*ch-(\d+)\} (.*)').match(log)
             if res:
                 asn_ms = int(res.group(1), 16)
                 asn_ls = int(res.group(2), 16)
@@ -416,11 +416,8 @@ def doParse(file, sinkId):
                 slotframe_len = int(res.group(4))
                 timeslot = int(res.group(5))
                 channel_offset = int(res.group(6))
-                dest = int(res.group(7))
-                options = int(res.group(8))
-                type = int(res.group(9))
-                channel = int(res.group(10))
-                log = res.group(11)
+                channel = int(res.group(7))
+                log = res.group(8)
                 asnInfo = {'asn': asn,
                       'slotframe': slotframe, 'slotframe_len': slotframe_len, 'timeslot': timeslot, 'channel_offset': channel_offset,
                       'dest': dest, 'options': options, 'type': type,
