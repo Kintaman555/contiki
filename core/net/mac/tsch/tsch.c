@@ -68,6 +68,11 @@
 #include "dev/cc2420/cc2420.h"
 #endif
 
+/* Truncate received drift correction information to maximum half
+ * of the guard time. */
+#define TRUNCATE_SYNC_IE 1
+#define TRUNCATE_SYNC_IE_BOUND ((int)TsLongGT/2)
+
 /* inject drift to test drift correction */
 #define DEBUG_INJECT_DRIFT 0
 
@@ -794,7 +799,23 @@ PT_THREAD(tsch_tx_link(struct pt *pt, struct rtimer *t))
 
               if(ret & TSCH_ACK_OK) {
                 if(is_time_source && (ret & TSCH_ACK_HAS_SYNC_IE)) {
+#if TRUNCATE_SYNC_IE
+                  if(received_drift > TRUNCATE_SYNC_IE_BOUND) {
+                    drift_correction = TRUNCATE_SYNC_IE_BOUND;
+                  } else if(received_drift < -TRUNCATE_SYNC_IE_BOUND) {
+                    drift_correction = -TRUNCATE_SYNC_IE_BOUND;
+                  } else {
+                    drift_correction = received_drift;
+                  }
+                  if(drift_correction != received_drift) {
+                    TSCH_LOG_ADD(tsch_log_message,
+                        snprintf(log->message, sizeof(log->message),
+                            "!truncated dr %d %d", (int)received_drift, (int)drift_correction);
+                    );
+                  }
+#else /* TRUNCATE_SYNC_IE */
                   drift_correction = received_drift;
+#endif /* TRUNCATE_SYNC_IE */
                   drift_neighbor = current_neighbor;
                   /* Keep track of sync time */
                   last_sync_asn = current_asn;
