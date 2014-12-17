@@ -87,8 +87,8 @@ parse_ie_time_correction(uint8_t *buf, int buf_size,
       if(drift != NULL) {
         *drift = US_TO_RTIMERTICKS(drift_us);
       }
+      return 1;
     }
-    return 1;
   }
   return 0;
 }
