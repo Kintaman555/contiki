@@ -114,9 +114,9 @@ PROCESS_THREAD(unicast_sender_process, ev, data)
   PROCESS_BEGIN();
 
   if(deployment_init(&global_ipaddr, NULL)) {
-    printf("App: %u starting\n", node_id);
+    printf("App: %u start\n", node_id);
   } else {
-    printf("App: %u *not* starting\n", node_id);
+    printf("App: %u exit\n", node_id);
     PROCESS_EXIT();
   }
   simple_udp_register(&unicast_connection, UDP_PORT,
@@ -152,7 +152,7 @@ PROCESS_THREAD(unicast_sender_process, ev, data)
           }
         }
       } else {
-        LOG("App: not in DODAG\n");
+        LOG("App: no DODAG\n");
       }
       PROCESS_WAIT_UNTIL(etimer_expired(&periodic_timer));
       etimer_reset(&periodic_timer);

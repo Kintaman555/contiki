@@ -55,7 +55,7 @@ simple_energest_init()
 }
 /*---------------------------------------------------------------------------*/
 void
-simple_energest_step()
+simple_energest_step(int verbose)
 {
   static uint16_t cnt;
   energest_flush();
@@ -72,11 +72,13 @@ simple_energest_step()
   last_rx = curr_rx;
   last_time = curr_time;
 
-  uint32_t fraction = (1000ul * (delta_tx + delta_rx)) / delta_time;
-  LOG("Duty Cycle: [%u %u] %8lu +%8lu /%8lu (%lu permil)\n",
-               node_id,
-               cnt++,
-               delta_tx, delta_rx, delta_time,
-               fraction
-               );
+  if(verbose) {
+    uint32_t fraction = (1000ul * (delta_tx + delta_rx)) / delta_time;
+    LOG("Duty Cycle: [%u %u] %8lu +%8lu /%8lu (%lu permil)\n",
+                 node_id,
+                 cnt++,
+                 delta_tx, delta_rx, delta_time,
+                 fraction
+                 );
+  }
 }

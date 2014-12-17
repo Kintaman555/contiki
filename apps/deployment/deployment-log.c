@@ -162,8 +162,7 @@ PROCESS_THREAD(log_process, ev, data)
   while(1) {
     PROCESS_WAIT_UNTIL(etimer_expired(&periodic));
     etimer_reset(&periodic);
-    simple_energest_step();
-
+    simple_energest_step(default_instance != NULL);
     rpl_print_neighbor_list();
   }
 

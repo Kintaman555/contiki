@@ -452,7 +452,7 @@ def main():
         )
         allPlottableData.append( 
             extractData(parsed, "Duty Cycle", "%",
-                        lambda x: x['module'] == 'Duty Cycle' and x['id'] != SINK_ID,
+                        lambda x: x['module'] == 'Duty Cycle' and x['id'] != SINK_ID and x['id'] in parsed['nodeIDs'],
                         lambda x: x['info']['dutyCycle'],
                         {'min': 0, 'max': 25},
                         1),
@@ -537,6 +537,9 @@ def main():
 
         summaryFile = open(os.path.join(dir, "summary.txt"), 'w')        
         str = "\nRun duration: %d min" %(parsed['maxTime']/60)
+        print str
+        summaryFile.write("%s\n" %str)
+        str = "Nodes active: %d/%d" %(len(parsed['nodeIDs']), len(parsed['allNodeIDs']))
         print str
         summaryFile.write("%s\n" %str)
         str = "App messages in period [%d-%d]: %d/%d" %(MIN_TIME, MAX_TIME, extractedPRR['validCount'], extractedPRR['count'])

@@ -127,7 +127,7 @@ def parseRPL(line, time, id, log, packetInfo, asnInfo):
         return {'event': 'parentSwitch'}
     
 #---- RPL: state overview  -------------------------------------------------------------------------------------------------------------
-    res = re.compile('rank (\d+) dioint (\d+), (\d+)/(\d+) neighbor\(s\)').match(log)
+    res = re.compile('rank (\d+) dioint (\d+), (\d+)/(\d+) ').match(log)
     if res:             
         rank = int(res.group(1))
         dioint = int(res.group(2))
@@ -222,9 +222,6 @@ def parseTsch(line, time, id, log, packetInfo, asnInfo):
         slotframe = asnInfo['slotframe']
         timeslot = asnInfo['timeslot']
         channel_offset = asnInfo['channel_offset']
-        dest = asnInfo['dest']
-        options = asnInfo['options']
-        type = asnInfo['type']
         channel = asnInfo['channel']
                 
 #---- TSCH link: Rx -------------------------------------------------------------------------------------------------------------
@@ -339,6 +336,7 @@ def doParse(file, sinkId):
     lastPrintedTime = 0
     time = None
     nodeIDs = []
+    allNodeIDs = []
     parsingFunctions = {
                         'Duty Cycle': parseDutyCycle,
                         'App': parseApp,
@@ -420,7 +418,6 @@ def doParse(file, sinkId):
                 log = res.group(8)
                 asnInfo = {'asn': asn,
                       'slotframe': slotframe, 'slotframe_len': slotframe_len, 'timeslot': timeslot, 'channel_offset': channel_offset,
-                      'dest': dest, 'options': options, 'type': type,
                       'channel': channel }
 
             linesProcessedCount += 1
@@ -444,13 +441,16 @@ def doParse(file, sinkId):
                 #print "Could not parse: ", line
                 continue
     
-            if not id in nodeIDs:
-                nodeIDs.append(id)
+            if not id in allNodeIDs:
+                allNodeIDs.append(id)
+            if module == "RPL":
+                if not id in nodeIDs:
+                    nodeIDs.append(id)
     
             linesParsedCount += 1
             lineData = {'time': time, 'id': id, 'module': module, 'log': log, 'packet': packetInfo, 'info': moduleInfo}
             allData.append(lineData)
-            
+                
     nodeIDs.sort()
     nodeIDs = filter(lambda x: x!=sinkId, nodeIDs)
     nodeIDs.insert(0, sinkId)
@@ -472,7 +472,9 @@ def doParse(file, sinkId):
             timeline[asn][senderId]['contenderCount'] = contenderCount
     
     print "\nParsed %d/%d lines" %(linesParsedCount, linesProcessedCount)
-    
+    for id in filter(lambda x: x not in nodeIDs, allNodeIDs):
+        print "Warning: node %u was not active" %id
+        
     #dumpTxStats()
     
-    return {'file': file, 'dataset': allData, 'maxTime': time, 'nodeIDs': nodeIDs, 'appDataStats': appDataStats, 'timeline': timeline}
+    return {'file': file, 'dataset': allData, 'maxTime': time, 'nodeIDs': nodeIDs, 'allNodeIDs': allNodeIDs, 'appDataStats': appDataStats, 'timeline': timeline}
