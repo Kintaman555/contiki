@@ -36,8 +36,8 @@
 
 #include "deployment-def.h"
 
-/* #define WITH_OFFLINE_SCHEDULE_SHARED 1 */
-#define WITH_OFFLINE_SCHEDULE_DEDICATED 1
+#define WITH_OFFLINE_SCHEDULE_SHARED 1
+/* #define WITH_OFFLINE_SCHEDULE_DEDICATED 1 */
 
 /* #define WITH_OF_HOP_ETX 1 */
 /* #define WITH_OF_PDR 1 */
@@ -81,10 +81,12 @@
 #undef TSCH_CONF_QUEUE_MAX_NEIGHBOR_QUEUES
 #define TSCH_CONF_QUEUE_MAX_NEIGHBOR_QUEUES 6
 
+#if CONFIG == CONFIG_TSCH
 #define TSCH_CALLBACK_JOINING_NETWORK tsch_rpl_callback_joining_network
 #define TSCH_CALLBACK_LEAVING_NETWORK tsch_rpl_callback_leaving_network
 #define RPL_CALLBACK_PARENT_SWITCH tsch_rpl_callback_parent_switch
 #define RPL_CALLBACK_NEW_DIO_INTERVAL tsch_rpl_callback_new_dio_interval
+#endif
 
 #if !CONTIKI_TARGET_JN5168
 #undef ENABLE_COOJA_DEBUG
@@ -143,7 +145,8 @@
 #define RPL_CONF_DIO_INTERVAL_MIN 12 /* 4.096 s */
 
 #undef RPL_CONF_DIO_INTERVAL_DOUBLINGS
-#define RPL_CONF_DIO_INTERVAL_DOUBLINGS 4 /* Max factor: x16. 4.096 s * 16 = 65.536 s */
+//#define RPL_CONF_DIO_INTERVAL_DOUBLINGS 4 /* Max factor: x16. 4.096 s * 16 = 65.536 s */
+#define RPL_CONF_DIO_INTERVAL_DOUBLINGS 6 /* Max factor: x64. 4.096 s * 64 = 262.144 s */
 
 /* No channel hopping for the moment */
 #undef TSCH_CONF_N_CHANNELS
@@ -276,6 +279,12 @@
 #define CC2420_CONF_AUTOACK 1
 #define NETSTACK_CONF_MAC     csma_driver
 #define NETSTACK_CONF_RDC     contikimac_driver
+#undef CONTIKIMAC_CONF_COMPOWER
+#define CONTIKIMAC_CONF_COMPOWER 0
+#undef NETSTACK_CONF_RDC_CHANNEL_CHECK_RATE
+#define NETSTACK_CONF_RDC_CHANNEL_CHECK_RATE 8
+#undef CONTIKIMAC_CONF_WITH_PHASE_OPTIMIZATION
+#define CONTIKIMAC_CONF_WITH_PHASE_OPTIMIZATION 1
 
 #elif CONFIG == CONFIG_TSCH
 

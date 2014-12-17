@@ -36,7 +36,7 @@
 
 static int counter = 0;
 
-#define PRINT_STACK_ON_REBOOT 0
+#define PRINT_STACK_ON_REBOOT 1
 
 /*---------------------------------------------------------------------------*/
 #if PRINT_STACK_ON_REBOOT
@@ -93,6 +93,9 @@ ISR(WDT, watchdog_interrupt)
     }
   }
   printchar('\n');
+#if WITH_TSCH
+  tsch_dump_status();
+#endif
 #endif /* PRINT_STACK_ON_REBOOT */
 #endif /* CONTIKI_TARGET_SKY */
 

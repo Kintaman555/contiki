@@ -521,8 +521,8 @@ packet_input(void)
 #endif /* TSCH_802154_DUPLICATE_DETECTION */
 
     if(packetbuf_datalen() == 0) {
-    LOG("TSCH: KA received from %u\n",
-          LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)));
+//    LOG("TSCH: KA received from %u\n",
+//          LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)));
     } else {
       if(!duplicate) {
         LOGP("TSCH: received from %u with seqno %u",
@@ -538,8 +538,8 @@ static void
 keepalive_packet_sent(void *ptr, int status, int transmissions)
 {
   uip_ds6_link_neighbor_callback(status, transmissions);
-  LOG("TSCH: KA sent to %u, st %d %d\n",
-      LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_RECEIVER)), status, transmissions);
+//  LOG("TSCH: KA sent to %u, st %d %d\n",
+//      LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_RECEIVER)), status, transmissions);
   tsch_schedule_keepalive();
 }
 /* Prepare and send a keepalive message */
@@ -554,8 +554,8 @@ keepalive_send()
     packetbuf_clear();
     packetbuf_set_addr(PACKETBUF_ADDR_RECEIVER, &n->addr);
     send_packet(keepalive_packet_sent, NULL);
-    LOG("TSCH: sending KA to %u\n",
-        LOG_NODEID_FROM_LINKADDR(&n->addr));
+//    LOG("TSCH: sending KA to %u\n",
+//        LOG_NODEID_FROM_LINKADDR(&n->addr));
   }
 }
 /* Set ctimer to send a keepalive message after expiration of TSCH_KEEPALIVE_TIMEOUT */
@@ -1470,9 +1470,9 @@ PROCESS_THREAD(tsch_send_eb_process, ev, data)
           packetbuf_set_datalen(eb_len);
           /* Enqueue EB packet */
           if(!tsch_queue_add_packet(&tsch_eb_address, NULL, NULL)) {
-            LOG("TSCH:! could not enqueue EB packet\n");
+//            LOG("TSCH:! could not enqueue EB packet\n");
           } else {
-            LOG("TSCH: enqueue EB packet\n");
+//            LOG("TSCH: enqueue EB packet\n");
           }
         }
       }
@@ -1485,6 +1485,18 @@ PROCESS_THREAD(tsch_send_eb_process, ev, data)
     PROCESS_WAIT_UNTIL(etimer_expired(&eb_timer));
   }
   PROCESS_END();
+}
+/* Brief dump of the TSCH state */
+void
+tsch_dump_status()
+{
+  printf("TSCH-dump %lx %u %u %u %u\n",
+      current_asn.ls4b,
+      tsch_lock_requested, tsch_in_link_operation,
+      current_link != NULL ? current_link->slotframe_handle : 0xffff,
+          current_link != NULL ? current_link->channel_offset : 0xffff
+  );
+  tsch_log_process_pending();
 }
 /*---------------------------------------------------------------------------*/
 static void

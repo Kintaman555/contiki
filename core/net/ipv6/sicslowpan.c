@@ -1333,10 +1333,10 @@ packet_sent(void *ptr, int status, int transmissions)
 static void
 send_packet(linkaddr_t *dest)
 {
-  LOGP("6LoWPAN: %s send to %d (%u bytes)",
-      linkaddr_cmp(dest, &linkaddr_null) ? "bc" : "uc",
-          LOG_NODEID_FROM_LINKADDR(dest),
-          packetbuf_datalen());
+//  LOGP("6LoWPAN: %s send to %d (%u bytes)",
+//      linkaddr_cmp(dest, &linkaddr_null) ? "bc" : "uc",
+//          LOG_NODEID_FROM_LINKADDR(dest),
+//          packetbuf_datalen());
 
   /* Set the link layer destination address for the packet as a
    * packetbuf attribute. The MAC layer can access the destination

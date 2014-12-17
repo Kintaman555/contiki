@@ -395,9 +395,6 @@ deployment_init(uip_ipaddr_t *ipaddr, uip_ipaddr_t *br_prefix)
   if(node_id == 0) {
     NETSTACK_RDC.off(0);
     NETSTACK_MAC.off(0);
-    printf("Node id unset, my mac is ");
-    uip_debug_lladdr_print((const uip_lladdr_t *)&linkaddr_node_addr);
-    printf("\n");
     return 0;
   }
 

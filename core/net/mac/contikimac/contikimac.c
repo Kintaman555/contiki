@@ -548,7 +548,11 @@ send_packet(mac_callback_t mac_callback, void *mac_callback_ptr,
                packetbuf_addr(PACKETBUF_ADDR_RECEIVER)->u8[1]);
 #endif /* NETSTACK_CONF_WITH_IPV6 */
   }
+#ifndef WITHOUT_ATTR_RELIABLE
   is_reliable = packetbuf_attr(PACKETBUF_ATTR_RELIABLE)
+#else
+  is_reliable = 0;
+#endif
 #if NETSTACK_CONF_WITH_RIME
           || packetbuf_attr(PACKETBUF_ATTR_ERELIABLE)
 #endif /* NETSTACK_CONF_WITH_RIME */
@@ -724,6 +728,8 @@ send_packet(mac_callback_t mac_callback, void *mac_callback_ptr,
 
   off();
 
+  uint16_t strobe_duration = RTIMER_NOW() - t0;
+
   PRINTF("contikimac: send (strobes=%u, len=%u, %s, %s), done\n", strobes,
          packetbuf_totlen(),
          got_strobe_ack ? "ack" : "no ack",
@@ -772,6 +778,14 @@ send_packet(mac_callback_t mac_callback, void *mac_callback_ptr,
     }
   }
 #endif /* WITH_PHASE_OPTIMIZATION */
+
+  if(got_strobe_ack) {
+    LOGP("Cmac: acked by %u s %u c %d", LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_RECEIVER)), strobe_duration, collisions);
+  } else {
+    if(!is_broadcast) {
+      LOGP("Cmac:! noack s %u c %d", strobe_duration, collisions);
+    }
+  }
 
   return ret;
 }
@@ -924,6 +938,7 @@ input_packet(void)
 #endif /* CONTIKIMAC_CONF_COMPOWER */
 
       PRINTDEBUG("contikimac: data (%u)\n", packetbuf_datalen());
+      LOGP("Cmac: input from %d", LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)));
       NETSTACK_MAC.input();
       return;
     } else {

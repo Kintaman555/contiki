@@ -27,7 +27,10 @@ excludedNodes = []
 
 def showStats(stats, unit):
     if stats != None:
-        return "%8.2f %4s +/- %8.2f" %(stats['avg'], unit, stats['stdev'])
+        if unit == "%":
+            return "  %8.4f %4s +/- %10.2f" %(stats['avg'], unit, stats['stdev'])
+        else:
+            return "%8.2f   %4s +/- %10.2f" %(stats['avg'], unit, stats['stdev'])
     else:
         return ""
 
@@ -326,7 +329,7 @@ def main():
         
         if parsed['maxTime']/60 > 15:
             #MIN_TIME = (parsed['maxTime']/60) / 2
-            MIN_TIME = 10
+            MIN_TIME = 5
             MAX_TIME = (parsed['maxTime']/60) - 1
         else:
             MIN_TIME = 0
@@ -402,7 +405,7 @@ def main():
                         MIN_INTERVAL)
         )
         allPlottableData.append( 
-            extractData(parsed, "TSCH Unicast Count", "%",
+            extractData(parsed, "TSCH Unicast Count", "#",
                         lambda x: x['module'] == 'TSCH' and x['info']['event'] == 'Tx' and x['info']['is_unicast'],
                         lambda x: 1,
                         {'min': 1, 'max': 1},

@@ -364,7 +364,7 @@ main(int argc, char **argv)
   NETSTACK_RDC.init();
   NETSTACK_MAC.init();
 
-  printf("Contiki starting\n");
+  printf("\nContiki starting\n");
 #if DEBUG
   PRINTF("%s %s %s, channel check rate %lu Hz, radio channel %u, CCA threshold %i\n",
          NETSTACK_LLSEC.name, NETSTACK_MAC.name, NETSTACK_RDC.name,

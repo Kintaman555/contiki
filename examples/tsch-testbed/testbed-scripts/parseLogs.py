@@ -337,6 +337,7 @@ def doParse(file, sinkId):
     time = None
     nodeIDs = []
     allNodeIDs = []
+    nonExtractedModules = []
     parsingFunctions = {
                         'Duty Cycle': parseDutyCycle,
                         'App': parseApp,
@@ -367,8 +368,9 @@ def doParse(file, sinkId):
                 log = res.group(2)
 
         if module == None or log == None:
-            if log != None and len(log) > 0:
-                print "Could not extract module:", line 
+            if log != None and len(log) > 0 and not module in nonExtractedModules:
+                print "Could not extract module:", line
+                nonExtractedModules.append(module) 
         else:           
             # default for all structures
             packetInfo = None

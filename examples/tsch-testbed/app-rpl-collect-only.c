@@ -114,20 +114,27 @@ PROCESS_THREAD(unicast_sender_process, ev, data)
   PROCESS_BEGIN();
 
   if(deployment_init(&global_ipaddr, NULL)) {
-    printf("App: %u start\n", node_id);
+    LOG("App: %u start\n", node_id);
   } else {
-    printf("App: %u exit\n", node_id);
+    etimer_set(&periodic_timer, 5*60*CLOCK_SECOND);
+    while(1) {
+      LOG("App: %u out\n", node_id);
+      PROCESS_WAIT_UNTIL(etimer_expired(&periodic_timer));
+      etimer_reset(&periodic_timer);
+    }
     PROCESS_EXIT();
   }
   simple_udp_register(&unicast_connection, UDP_PORT,
                       NULL, UDP_PORT, receiver);
 
+#if WITH_TSCH
 #if WITH_OFFLINE_SCHEDULE_SHARED
   offline_scheduler_init_shared();
 #elif WITH_OFFLINE_SCHEDULE_DEDICATED
   offline_scheduler_init_dedicated();
 #else
   tsch_schedule_create_minimal();
+#endif
 #endif
 
   if(node_id != ROOT_ID) {

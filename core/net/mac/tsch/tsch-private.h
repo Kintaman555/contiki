@@ -186,6 +186,8 @@ void tsch_release_lock();
 uint8_t tsch_calculate_channel(struct asn_t *asn, uint8_t channel_offset);
 /* The the period at which EBs are sent */
 void tsch_set_eb_period(uint32_t period);
+/* Brief dump of the TSCH state */
+void tsch_dump_status();
 
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
