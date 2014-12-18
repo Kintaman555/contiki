@@ -1490,9 +1490,9 @@ PROCESS_THREAD(tsch_send_eb_process, ev, data)
 void
 tsch_dump_status()
 {
-  printf("TSCH-dump %lx %u %u %u %u\n",
+  printf("TSCH-dump %lx %u %u %u %u %u\n",
       current_asn.ls4b,
-      tsch_lock_requested, tsch_in_link_operation,
+      tsch_locked, tsch_lock_requested, tsch_in_link_operation,
       current_link != NULL ? current_link->slotframe_handle : 0xffff,
           current_link != NULL ? current_link->channel_offset : 0xffff
   );
