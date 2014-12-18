@@ -41,16 +41,18 @@ static int counter = 0;
 /*---------------------------------------------------------------------------*/
 #if PRINT_STACK_ON_REBOOT
 #ifdef CONTIKI_TARGET_SKY
-static void
-printchar(char c)
-{
-  /* Transmit the data. */
-  TXBUF1 = c;
-
-  /* Loop until the transmission buffer is available. */
-  while((IFG2 & UTXIFG1) == 0);
-
-}
+int putchar(int c);
+#define printchar(X) putchar(X)
+//static void
+//printchar(char c)
+//{
+//  /* Transmit the data. */
+//  TXBUF1 = c;
+//
+//  /* Loop until the transmission buffer is available. */
+//  while((IFG2 & UTXIFG1) == 0);
+//
+//}
 /*---------------------------------------------------------------------------*/
 static void
 hexprint(uint8_t v)
