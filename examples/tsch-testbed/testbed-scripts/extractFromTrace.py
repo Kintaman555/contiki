@@ -327,9 +327,9 @@ def main():
                 {'min': 1, 'max': 100},
                 MIN_INTERVAL, verbose=False, export=False)
         
-        if parsed['maxTime']/60 > 15:
+        if parsed['maxTime']/60 > 20:
             #MIN_TIME = (parsed['maxTime']/60) / 2
-            MIN_TIME = 5
+            MIN_TIME = 12
             MAX_TIME = (parsed['maxTime']/60) - 1
         else:
             MIN_TIME = 0
@@ -384,7 +384,7 @@ def main():
                         MIN_INTERVAL)
         )
         allPlottableData.append( 
-            extractData(parsed, "Rank", "#",
+            extractData(parsed, "Rank", "etx",
                         lambda x: x['module'] == 'RPL' and x['info']['event']=='status',
                         lambda x: x['info']['rank'],
                         {'min': 0, 'max': 0xffff},
@@ -439,13 +439,13 @@ def main():
                         {'min': 0, 'max': 100},
                         MIN_INTERVAL)
         )
-        allPlottableData.append( 
-            extractData(parsed, "TSCH Unicast Mean TxCount", "s",
-                        lambda x: x['module'] == '6LoWPAN' and x['info']['event'] == 'sent'  and x['info']['is_unicast'],
-                        lambda x: x['info']['txCount'],
-                        {'min': 0, 'max': 9},
-                        MIN_INTERVAL)
-        )
+#        allPlottableData.append( 
+#            extractData(parsed, "TSCH Unicast Mean TxCount", "#",
+#                        lambda x: x['module'] == '6LoWPAN' and x['info']['event'] == 'sent'  and x['info']['is_unicast'],
+#                        lambda x: x['info']['txCount'],
+#                        {'min': 0, 'max': 9},
+#                        MIN_INTERVAL)
+#        )
         allPlottableData.append( 
             extractData(parsed, "6LoWPAN Unicast Success", "%",
                         lambda x: x['module'] == '6LoWPAN' and x['info']['event'] == 'sent',
@@ -481,20 +481,20 @@ def main():
                         {'min': 0, 'max': 1},
                         1, doSum=True),
         )
-        allPlottableData.append( 
-            extractData(parsed, "TSCH links used for Tx", "%",
-                        lambda x: x['module'] == 'Duty Cycle' and 'txLinksPercent' in x['info'],
-                        lambda x: x['info']['txLinksPercent'],
-                        {'min': 0, 'max': 100},
-                        1),
-        )
-        allPlottableData.append( 
-            extractData(parsed, "TSCH links used for Rx", "%",
-                        lambda x: x['module'] == 'Duty Cycle' and 'rxLinksPercent' in x['info'],
-                        lambda x: x['info']['rxLinksPercent'],
-                        {'min': 0, 'max': 100},
-                        1),
-        )
+#        allPlottableData.append( 
+#            extractData(parsed, "TSCH links used for Tx", "%",
+#                        lambda x: x['module'] == 'Duty Cycle' and 'txLinksPercent' in x['info'],
+#                        lambda x: x['info']['txLinksPercent'],
+#                        {'min': 0, 'max': 100},
+#                        1),
+#        )
+#       allPlottableData.append( 
+#            extractData(parsed, "TSCH links used for Rx", "%",
+#                        lambda x: x['module'] == 'Duty Cycle' and 'rxLinksPercent' in x['info'],
+#                        lambda x: x['info']['rxLinksPercent'],
+#                        {'min': 0, 'max': 100},
+#                        1),
+#        )
         allPlottableData.append( 
             extractData(parsed, "TSCH EB sent", "#",
                         lambda x: x['module'] == 'TSCH' and x['info']['event'] == 'Tx'
@@ -518,13 +518,13 @@ def main():
                         {'min': 0, 'max': 160},
                         1),
         )
-        allPlottableData.append( 
-            extractData(parsed, "TSCH max drift rate", "PPM",
-                        lambda x: x['module'] == 'TSCH' and 'drift' in x['info'],
-                        lambda x: ((abs(x['info']['drift']) / float(x['info']['drift_dt'])) / TICK_PER_LINK) * 1000000,
-                        {'min': 0, 'max': 160},
-                        1, doMax=True),
-        )
+#        allPlottableData.append( 
+#            extractData(parsed, "TSCH max drift rate", "PPM",
+#                        lambda x: x['module'] == 'TSCH' and 'drift' in x['info'],
+#                        lambda x: ((abs(x['info']['drift']) / float(x['info']['drift_dt'])) / TICK_PER_LINK) * 1000000,
+#                        {'min': 0, 'max': 160},
+#                        1, doMax=True),
+#        )
         allPlottableData.append( 
             extractData(parsed, "TSCH max abs drift", "us",
                         lambda x: x['module'] == 'TSCH' and 'drift' in x['info'],
@@ -532,13 +532,13 @@ def main():
                         {'min': 0, 'max': 1000},
                         1, doMax=True),
         )
-        allPlottableData.append( 
-            extractData(parsed, "TSCH mean drift correction interval", "s",
-                        lambda x: x['module'] == 'TSCH' and 'drift' in x['info'],
-                        lambda x: x['info']['drift_dt'] * LINK_DURATION,
-                        {'min': 0, 'max': 100},
-                        1),
-        )
+#        allPlottableData.append( 
+#            extractData(parsed, "TSCH mean drift correction interval", "s",
+#                        lambda x: x['module'] == 'TSCH' and 'drift' in x['info'],
+#                        lambda x: x['info']['drift_dt'] * LINK_DURATION,
+#                        {'min': 0, 'max': 100},
+#                        1),
+#        )
 
         summaryFile = open(os.path.join(dir, "summary.txt"), 'w')        
         str = "\nRun duration: %d min" %(parsed['maxTime']/60)
