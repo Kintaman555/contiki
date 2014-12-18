@@ -779,13 +779,12 @@ send_packet(mac_callback_t mac_callback, void *mac_callback_ptr,
   }
 #endif /* WITH_PHASE_OPTIMIZATION */
 
-  if(got_strobe_ack) {
-    LOGP("Cmac: acked by %u s %u c %d", LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_RECEIVER)), strobe_duration, collisions);
-  } else {
-    if(!is_broadcast) {
-      LOGP("Cmac:! noack s %u c %d", strobe_duration, collisions);
-    }
-  }
+  LOGP("Cmac: %s %u tx %d, s %u st %d",
+      is_broadcast ? "bc" : "uc",
+          packetbuf_datalen(),
+          LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_RECEIVER)),
+          strobe_duration,
+          ret);
 
   return ret;
 }
@@ -938,7 +937,7 @@ input_packet(void)
 #endif /* CONTIKIMAC_CONF_COMPOWER */
 
       PRINTDEBUG("contikimac: data (%u)\n", packetbuf_datalen());
-      LOGP("Cmac: input from %d", LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)));
+      //LOGP("Cmac: input from %d", LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)));
       NETSTACK_MAC.input();
       return;
     } else {
