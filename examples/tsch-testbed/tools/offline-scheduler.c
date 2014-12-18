@@ -65,7 +65,8 @@ static struct tsch_slotframe *sf_unicast;
 #define N_UNICAST_SF 2
 static struct tsch_slotframe *sf_default;
 static struct tsch_slotframe *sf_unicast[N_UNICAST_SF];
-static int sf_unicast_len[N_UNICAST_SF] = {103,107};
+static int sf_unicast_len[N_UNICAST_SF] = {89,97};
+//static int sf_unicast_len[N_UNICAST_SF] = {89,97,101,103};
 #define EB_SF_PERIOD 397
 #define DEFAULT_SF_PERIOD 61
 
