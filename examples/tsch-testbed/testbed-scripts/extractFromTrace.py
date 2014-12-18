@@ -497,14 +497,16 @@ def main():
         )
         allPlottableData.append( 
             extractData(parsed, "TSCH EB sent", "#",
-                        lambda x: x['module'] == 'TSCH' and x['info']['event'] == 'sendingEB',
+                        lambda x: x['module'] == 'TSCH' and x['info']['event'] == 'Tx'
+                            and not x['info']['is_unicast'] and not x['info']['is_data'],
                         lambda x: 1,
                         {'min': 0, 'max': 1},
                         1, doSum=True),
         )
         allPlottableData.append( 
             extractData(parsed, "TSCH Keek-alive sent", "#",
-                        lambda x: x['module'] == 'TSCH' and x['info']['event'] == 'sendingKA',
+                        lambda x: x['module'] == 'TSCH' and x['info']['event'] == 'Tx'
+                            and x['info']['is_unicast'] and not x['info']['is_data'],
                         lambda x: 1,
                         {'min': 0, 'max': 1},
                         1, doSum=True),
