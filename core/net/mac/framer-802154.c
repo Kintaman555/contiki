@@ -102,7 +102,11 @@ create_frame(int type, int do_create)
   }
 
   /* Build the FCF. */
+#ifndef WITHOUT_ATTR_FRAME_TYPE
   params.fcf.frame_type = packetbuf_attr(PACKETBUF_ATTR_FRAME_TYPE);
+#else
+  params.fcf.frame_type = FRAME802154_DATAFRAME;
+#endif /* WITHOUT_ATTR_FRAME_TYPE */
 #ifndef WITHOUT_CONTIKIMAC
   params.fcf.frame_pending = packetbuf_attr(PACKETBUF_ATTR_PENDING);
 #endif /* WITHOUT_CONTIKIMAC */
@@ -229,7 +233,9 @@ parse(void)
   hdr_len = frame802154_parse(packetbuf_dataptr(), packetbuf_datalen(), &frame);
   
   if(hdr_len && packetbuf_hdrreduce(hdr_len)) {
+#ifndef WITHOUT_ATTR_FRAME_TYPE
     packetbuf_set_attr(PACKETBUF_ATTR_FRAME_TYPE, frame.fcf.frame_type);
+#endif /* WITHOUT_ATTR_FRAME_TYPE */
     
     if(frame.fcf.dest_addr_mode) {
       if(frame.dest_pid != mac_src_pan_id &&

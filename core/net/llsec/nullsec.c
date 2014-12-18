@@ -57,7 +57,9 @@ bootstrap(llsec_on_bootstrapped_t on_bootstrapped)
 static void
 send(mac_callback_t sent, void *ptr)
 {
+#ifndef WITHOUT_ATTR_FRAME_TYPE
   packetbuf_set_attr(PACKETBUF_ATTR_FRAME_TYPE, FRAME802154_DATAFRAME);
+#endif /* WITHOUT_ATTR_FRAME_TYPE */
   NETSTACK_MAC.send(sent, ptr);
 }
 /*---------------------------------------------------------------------------*/
