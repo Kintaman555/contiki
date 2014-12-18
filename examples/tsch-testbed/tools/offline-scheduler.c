@@ -260,7 +260,7 @@ offline_scheduler_init_shared()
 
   /* Default slotframe: for broadcast or unicast to neighbors we
    * do not have a link to */
-  sf_default = tsch_schedule_add_slotframe(1, DEFAULT_SF_PERIOD);
+  sf_default = tsch_schedule_add_slotframe(2, DEFAULT_SF_PERIOD);
   tsch_schedule_add_link(sf_default,
       LINK_OPTION_RX | LINK_OPTION_TX | LINK_OPTION_SHARED,
       LINK_TYPE_NORMAL, &tsch_broadcast_address,
@@ -268,7 +268,7 @@ offline_scheduler_init_shared()
 
 #if UNICAST_SF_PERIOD > 0
   /* Slotframe for unicast rx */
-  sf_unicast = tsch_schedule_add_slotframe(2, UNICAST_SF_PERIOD);
+  sf_unicast = tsch_schedule_add_slotframe(1, UNICAST_SF_PERIOD);
   /* Rx link, dedicated to us */
   /* Tx links are added from tsch_callback_new_time_source */
   tsch_schedule_add_link(sf_unicast,
