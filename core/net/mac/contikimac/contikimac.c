@@ -57,6 +57,8 @@
 
 #include <string.h>
 
+#define GUARD_TIME_MULTIPLICATOR 1
+
 /* TX/RX cycles are synchronized with neighbor wake periods */
 #ifdef CONTIKIMAC_CONF_WITH_PHASE_OPTIMIZATION
 #define WITH_PHASE_OPTIMIZATION      CONTIKIMAC_CONF_WITH_PHASE_OPTIMIZATION
@@ -175,7 +177,8 @@ static int we_are_receiving_burst = 0;
 
 /* GUARD_TIME is the time before the expected phase of a neighbor that
    a transmitted should begin transmitting packets. */
-#define GUARD_TIME                         10 * CHECK_TIME + CHECK_TIME_TX
+//#define GUARD_TIME                         10 * CHECK_TIME + CHECK_TIME_TX
+#define GUARD_TIME                         GUARD_TIME_MULTIPLICATOR * (10 * CHECK_TIME + CHECK_TIME_TX)
 
 /* INTER_PACKET_INTERVAL is the interval between two successive packet transmissions */
 #ifdef CONTIKIMAC_CONF_INTER_PACKET_INTERVAL
@@ -195,7 +198,8 @@ static int we_are_receiving_burst = 0;
 
 /* MAX_PHASE_STROBE_TIME is the time that we transmit repeated packets
    to a neighbor for which we have a phase lock. */
-#define MAX_PHASE_STROBE_TIME              RTIMER_ARCH_SECOND / 60
+//#define MAX_PHASE_STROBE_TIME              RTIMER_ARCH_SECOND / 60
+#define MAX_PHASE_STROBE_TIME              GUARD_TIME_MULTIPLICATOR * (RTIMER_ARCH_SECOND / 60)
 
 #define ACK_LEN 3
 
