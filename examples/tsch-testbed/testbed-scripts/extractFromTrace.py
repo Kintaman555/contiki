@@ -401,11 +401,11 @@ def analyzeTimeline(dir, parsed):
                             #print "%x, %u->%u, %u %u" %(asn, node, r, contenderCount, success)
     totalRxAttemptsNonContended = totalRxAttempts - totalRxAttemptsContended
     totalRxSuccessNonContended = totalRxSuccess - totalRxSuccessContended
-    print "Overall Rx stastistics: %u/%u (%.4f%%)" %(totalRxSuccess, totalRxAttempts, 100.*totalRxSuccess/totalRxAttempts)
-    print "Overall Non-Contended Rx stastistics: %u/%u (%.4f%%)" %(totalRxSuccessNonContended, totalRxAttemptsNonContended, 100.*totalRxSuccessNonContended/totalRxAttemptsNonContended)
-    print "Overall Contended Rx stastistics: %u/%u (%.4f%%)" %(totalRxSuccessContended, totalRxAttemptsContended, 100.*totalRxSuccessContended/totalRxAttemptsContended)
+    print "Overall Rx statistics: %u/%u (%.4f%%)" %(totalRxSuccess, totalRxAttempts, 100.*totalRxSuccess/totalRxAttempts)
+    print "Overall Non-Contended Rx statistics: %u/%u (%.4f%%)" %(totalRxSuccessNonContended, totalRxAttemptsNonContended, 100.*totalRxSuccessNonContended/totalRxAttemptsNonContended)
+    print "Overall Contended Rx statistics: %u/%u (%.4f%%)" %(totalRxSuccessContended, totalRxAttemptsContended, 100.*totalRxSuccessContended/totalRxAttemptsContended)
     for contenderCount in totalRxAttemptsContendedSet:
-        print "%u Contenders Rx stastistics: %u/%u (%.4f%%)" %(contenderCount+1,
+        print "%u Contenders Rx statistics: %u/%u (%.4f%%)" %(contenderCount+1,
                     totalRxSuccessContendedSet[contenderCount], totalRxAttemptsContendedSet[contenderCount],
                     100.*totalRxSuccessContendedSet[contenderCount]/totalRxAttemptsContendedSet[contenderCount])
     print "Portion of successful Rx having contenders: %u/%u (%.4f%%)" %(totalRxSuccessContended, totalRxSuccess, 100.*totalRxSuccessContended/totalRxSuccess)
