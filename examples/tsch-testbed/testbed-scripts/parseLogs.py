@@ -208,6 +208,28 @@ def parse6lowpan(line, time, id, log, packetInfo, asnInfo):
 
     return None
 
+def parseCmac(line, time, id, log, packetInfo, asnInfo):
+    global appDataStats, receivedList, nodeState, timeline
+    
+    if packetInfo != None:
+        packetId = packetInfo['id']
+        hop = packetInfo['hop']
+        src = packetInfo['src']
+        dst = packetInfo['dst']
+
+#---- Cmac Tx -------------------------------------------------------------------------------------------------------------                
+        res = re.compile('([ub]c) (\d+) tx (\d+), s (\d+) st (\d+)$').match(log)
+        if res:
+            is_unicast = res.group(1) == "uc"
+            datalen = int(res.group(2))
+            nextHop = int(res.group(3))
+            strobeLen = int(res.group(4))
+            status = int(res.group(5))
+        
+            return {'event': 'Tx', 'is_unicast': is_unicast, 'strobeLen': strobeLen,
+                                 'datalen': datalen, 'nextHop': nextHop, 'packet': packetInfo,
+                                 'status': status }
+                  
 def parseTsch(line, time, id, log, packetInfo, asnInfo):
     global appDataStats, receivedList, nodeState, timeline
     
@@ -345,6 +367,7 @@ def doParse(file, sinkId):
                         'Tcpip': parseTcpip,
                         '6LoWPAN': parse6lowpan,
                         'TSCH': parseTsch,
+                        'Cmac': parseCmac,
                         'Scheduler': None,
                         }
     

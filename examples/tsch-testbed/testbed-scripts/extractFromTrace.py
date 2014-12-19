@@ -233,8 +233,13 @@ def extractData(parsed, name, unit, condition, extractField, expectedRange, peri
             'count': len(globalDataList), 'validCount': validCount}
 
 def generateTimelineFile(dir, parsed, txOnly=False):
+        
     nodeIDs = parsed['nodeIDs']
     timeline = parsed['timeline']
+    
+    if len(timeline) == 0:
+        return
+    
     if txOnly:
         trafficFile = open(os.path.join(dir, "timeline-txonly.txt"), 'w')
     else:
@@ -349,14 +354,14 @@ def main():
 #            extractData(parsed, "Not received, not dropped", "%", lambda x: x['module'] == 'App' and 'sending' in x['info'], lambda x: 100 if not x['info']['csmaDropped'] and not x['info']['duplicateDropped'] and not x['info']['tcpipDropped'] and not x['info']['received'] else 0, {'min': 0, 'max': 0}, MIN_INTERVAL)
 #        )
         allPlottableData.append( 
-            extractData(parsed, "TSCH drop", "%",
+            extractData(parsed, "MAC drop", "%",
                         lambda x: x['module'] == 'App' and 'sending' in x['info'],
                         lambda x: 100 if not x['info']['received'] and "macDrop" in x['info'] else 0,
                         {'min': 0, 'max': 0},
                         MIN_INTERVAL, verbose=True)
         )
         allPlottableData.append( 
-            extractData(parsed, "TSCH error", "%",
+            extractData(parsed, "MAC error", "%",
                         lambda x: x['module'] == 'App' and 'sending' in x['info'],
                         lambda x: 100 if not x['info']['received'] and "macError" in x['info'] else 0,
                         {'min': 0, 'max': 0},
@@ -405,15 +410,17 @@ def main():
                         MIN_INTERVAL)
         )
         allPlottableData.append( 
-            extractData(parsed, "TSCH Unicast Count", "#",
-                        lambda x: x['module'] == 'TSCH' and x['info']['event'] == 'Tx' and x['info']['is_unicast'],
+            extractData(parsed, "MAC Unicast Count", "#",
+                        lambda x: (x['module'] == 'TSCH' or x['module'] == 'Cmac')
+                            and x['info']['event'] == 'Tx' and x['info']['is_unicast'],
                         lambda x: 1,
                         {'min': 1, 'max': 1},
                         MIN_INTERVAL, doSum=True)
         )
         allPlottableData.append( 
-            extractData(parsed, "TSCH Unicast Success", "%",
-                        lambda x: x['module'] == 'TSCH' and x['info']['event'] == 'Tx' and x['info']['is_unicast'],
+            extractData(parsed, "MAC Unicast Success", "%",
+                        lambda x: (x['module'] == 'TSCH' or x['module'] == 'Cmac')
+                            and x['info']['event'] == 'Tx' and x['info']['is_unicast'],
                         lambda x: 100 if x['info']['status'] == 0 else 0,
                         {'min': 0, 'max': 100},
                         MIN_INTERVAL)
