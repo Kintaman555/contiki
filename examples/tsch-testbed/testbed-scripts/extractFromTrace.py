@@ -295,29 +295,128 @@ def generateTimelineFile(dir, parsed, txOnly=False):
                     trafficFile.write("  |")
                 trafficFile.write("\n")
             
-def main():
-    global MIN_TIME
-    global MAX_TIME
-
-    if len(sys.argv) < 2:
-        dir = '.'
-    else:
-        dir = sys.argv[1].rstrip('/')
-
-    file = os.path.join(dir, "log.txt")
-    parsed = parseLogs.doParse(file, SINK_ID)
-
-    allDataSets = []
-    allDataSets.append({'file': file, 'parsed': parsed})
+def connected(txGraph, s, r, channel):
+    return (s in txGraph and r in txGraph[s]
+                                and channel in txGraph[s][r]
+                                and txGraph[s][r][channel] > 0)
+            
+def analyzeTimeline(dir, parsed):
+        
+    txGraph = {}
+    channelSet = []
+        
+    nodeIDs = parsed['nodeIDs']
+    timeline = parsed['timeline']
     
-    for entries in allDataSets:
-        parsed = entries['parsed']
+    if len(timeline) == 0:
+        return
+    
+    firstAsn = timeline.keys()[0]
+    lastAsn = timeline.keys()[-1]
+
+    for asn in range(firstAsn, lastAsn, 1):        
+        if asn in timeline:
+            # First count how many tx occured at this asn
+            txCount = 0
+            asnEvents = timeline[asn]
+            for node in asnEvents:
+                event = asnEvents[node]['event']
+                if event == 'Tx':
+                    if not node in txGraph:
+                        txGraph[node] = {}
+                    txCount += 1
+                    #if not node in txGraph:
+                        #txGraph[node] = {}
+                    #print asnEvents[node]
+            # Now look only at asn with a single tx
+            if txCount == 1:
+                for node in asnEvents:
+                    event = asnEvents[node]['event']
+                    if event == 'Rx':    
+                        sender = asnEvents[node]['prevHop']
+                        channel = asnEvents[node]['asnInfo']['channel']
+                        if not channel in channelSet:
+                            channelSet.append(channel)
+                        if not sender in txGraph:
+                            txGraph[sender] = {}
+                        if not node in txGraph[sender]:
+                            txGraph[sender][node] = {}
+                        if not channel in txGraph[sender][node]:
+                            txGraph[sender][node][channel] = 0
+                        txGraph[sender][node][channel] += 1
+                        
+    # print out connectivity graph
+    nChannels = len(channelSet)
+    for sender in txGraph:
+        for receiver in txGraph[sender]:
+            print "%u -> %u: %u"%(sender, receiver, len(txGraph[sender][receiver])), txGraph[sender][receiver],
+            print ""
+            
+    totalRxAttempts = 0
+    totalRxSuccess = 0
+    totalRxAttemptsContended = 0
+    totalRxSuccessContended = 0
+    totalRxAttemptsContendedSet = {}
+    totalRxSuccessContendedSet = {}
+    # Now dissect every tx: contention or not, capture or not
+    for asn in range(firstAsn, lastAsn, 1):        
+        if asn in timeline:
+            asnEvents = timeline[asn]
+            for node in asnEvents:
+                event = asnEvents[node]['event']
+                if event == 'Tx':
+                    receiver = asnEvents[node]['nextHop']
+                    channel = asnEvents[node]['asnInfo']['channel']
+                    expectedReceiverSet = []
+                    # compute set of nodes expected to receive this
+                    if receiver == 0:
+                        for r in txGraph[node]:
+                            if connected(txGraph, node, r, channel):
+                                expectedReceiverSet.append(r)
+                    else:
+                        if connected(txGraph, node, receiver, channel):
+                            expectedReceiverSet = [receiver]
+                    totalRxAttempts += len(expectedReceiverSet)
+                    # loop over all expected receivers 
+                    for r in expectedReceiverSet:
+                        success = r in asnEvents and asnEvents[r]['event'] == 'Rx' and asnEvents[r]['prevHop'] == node
+                        if success:
+                            totalRxSuccess += 1
+                        # check other transmissions that are going on on this channel
+                        contenderCount = 0
+                        for contender in asnEvents:
+                            if(contender != node and asnEvents[contender]['event'] == 'Tx'
+                               and asnEvents[contender]['asnInfo']['channel'] == channel
+                               and connected(txGraph, contender, r, channel)):
+                                contenderCount += 1
+                        if contenderCount > 0:
+                            if not contenderCount in totalRxAttemptsContendedSet:
+                                totalRxAttemptsContendedSet[contenderCount] = 0
+                                totalRxSuccessContendedSet[contenderCount] = 0
+                            totalRxAttemptsContended += 1
+                            totalRxAttemptsContendedSet[contenderCount] += 1
+                            if success:
+                                totalRxSuccessContended += 1
+                                totalRxSuccessContendedSet[contenderCount] += 1
+                            #print "%x, %u->%u, %u %u" %(asn, node, r, contenderCount, success)
+    totalRxAttemptsNonContended = totalRxAttempts - totalRxAttemptsContended
+    totalRxSuccessNonContended = totalRxSuccess - totalRxSuccessContended
+    print "Overall Rx stastistics: %u/%u (%.4f%%)" %(totalRxSuccess, totalRxAttempts, 100.*totalRxSuccess/totalRxAttempts)
+    print "Overall Non-Contended Rx stastistics: %u/%u (%.4f%%)" %(totalRxSuccessNonContended, totalRxAttemptsNonContended, 100.*totalRxSuccessNonContended/totalRxAttemptsNonContended)
+    print "Overall Contended Rx stastistics: %u/%u (%.4f%%)" %(totalRxSuccessContended, totalRxAttemptsContended, 100.*totalRxSuccessContended/totalRxAttemptsContended)
+    for contenderCount in totalRxAttemptsContendedSet:
+        print "%u Contenders Rx stastistics: %u/%u (%.4f%%)" %(contenderCount+1,
+                    totalRxSuccessContendedSet[contenderCount], totalRxAttemptsContendedSet[contenderCount],
+                    100.*totalRxSuccessContendedSet[contenderCount]/totalRxAttemptsContendedSet[contenderCount])
+    print "Portion of successful Rx having contenders: %u/%u (%.4f%%)" %(totalRxSuccessContended, totalRxSuccess, 100.*totalRxSuccessContended/totalRxSuccess)
+    print "Portion of attempted Rx having contenders: %u/%u (%.4f%%)" %(totalRxAttemptsContended, totalRxAttempts, 100.*totalRxAttemptsContended/totalRxAttempts)
+                                
+def process(parsed):      
+        global MIN_TIME, MAX_TIME
         dataset = parsed['dataset']
         appDataStats = parsed['appDataStats']
-        parsed['dir'] = dir
-        file = entries['file']
-        print "\nProcessing %s" %(file)
-        
+        dir = parsed['dir']
+    
         destDir = os.path.join(dir, "data")
         if os.path.exists(destDir):
             for toRemove in os.listdir(destDir):
@@ -585,12 +684,36 @@ def main():
             print str
             summaryFile.write("%s\n" %str) 
         print ""
+            
+            
+def main():
+    global MIN_TIME
+    global MAX_TIME
+
+    if len(sys.argv) < 2:
+        dir = '.'
+    else:
+        dir = sys.argv[1].rstrip('/')
+
+    file = os.path.join(dir, "log.txt")
+    parsed = parseLogs.doParse(file, SINK_ID)
+
+    allDataSets = []
+    allDataSets.append({'file': file, 'parsed': parsed})
+    
+    for entries in allDataSets:
+        parsed = entries['parsed']
+        parsed['dir'] = dir
+    
+        file = entries['file']
         
-        print "\nGenerating timeline txOnly=False"
-        generateTimelineFile(dir, parsed, txOnly=False)
+#        print "\nProcessing %s" %(file)
+#        process(parsed)
         
-#        printFiltersHaving(parsed, 42)
-#        printFilterOf(parsed, 96)
+#        print "\nGenerating timeline txOnly=False"
+#        generateTimelineFile(dir, parsed, txOnly=False)
         
-        
+        print "\nAnalyzing timeline"
+        analyzeTimeline(dir, parsed)
+                
 main()
