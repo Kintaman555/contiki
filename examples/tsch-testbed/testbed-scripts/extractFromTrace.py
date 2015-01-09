@@ -433,7 +433,7 @@ def process(parsed):
         
         if parsed['maxTime']/60 > 20:
             #MIN_TIME = (parsed['maxTime']/60) / 2
-            MIN_TIME = 12
+            MIN_TIME = 20
             MAX_TIME = (parsed['maxTime']/60) - 1
         else:
             MIN_TIME = 0
@@ -707,13 +707,13 @@ def main():
     
         file = entries['file']
         
-#        print "\nProcessing %s" %(file)
-#        process(parsed)
+        print "\nProcessing %s" %(file)
+        process(parsed)
         
-#        print "\nGenerating timeline txOnly=False"
-#        generateTimelineFile(dir, parsed, txOnly=False)
+        print "\nGenerating timeline txOnly=False"
+        generateTimelineFile(dir, parsed, txOnly=False)
         
-        print "\nAnalyzing timeline"
-        analyzeTimeline(dir, parsed)
+#        print "\nAnalyzing timeline"
+ #       analyzeTimeline(dir, parsed)
                 
 main()
