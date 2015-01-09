@@ -663,11 +663,11 @@ $(SERIALDUMP):
 	(cd $(CONTIKI)/tools/sky; ${MAKE} $(SERIALDUMP))
 
 login: $(SERIALDUMP)	
-	$(CONTIKI)/tools/sky/$(SERIALDUMP) -b${UART_BAUDRATE} /dev/$(filter-out $@,$(MAKECMDGOALS))
+	$(CONTIKI)/tools/sky/$(SERIALDUMP) -b${UART_BAUDRATE} $(PORT)
 
 serialview: $(SERIALDUMP)	
-	$(CONTIKI)/tools/sky/$(SERIALDUMP) -b${UART_BAUDRATE} /dev/$(filter-out $@,$(MAKECMDGOALS)) | $(CONTIKI)/tools/timestamp
+	$(CONTIKI)/tools/sky/$(SERIALDUMP) -b${UART_BAUDRATE} $(PORT) | $(CONTIKI)/tools/timestamp
 		
 serialdump: $(SERIALDUMP)	
-	$(CONTIKI)/tools/sky/$(SERIALDUMP) -b${UART_BAUDRATE} /dev/$(filter-out $@,$(MAKECMDGOALS)) | $(CONTIKI)/tools/timestamp | tee serialdump-$(filter-out $@,$(MAKECMDGOALS))-`date +%Y%m%d-%H%M`
+	$(CONTIKI)/tools/sky/$(SERIALDUMP) -b${UART_BAUDRATE} $(PORT) | $(CONTIKI)/tools/timestamp | tee serialdump-$(notdir $(PORT))-`date +%Y%m%d-%H%M`
 	
