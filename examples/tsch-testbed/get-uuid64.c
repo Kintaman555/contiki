@@ -19,7 +19,7 @@ PROCESS_THREAD(test_testbed_process, ev, data)
   PROCESS_BEGIN();
 
   node_id_restore();
-  etimer_set(&et, CLOCK_SECOND * 4);
+  etimer_set(&et, CLOCK_SECOND * 1);
   PROCESS_WAIT_UNTIL(etimer_expired(&et));
   printf("Starting process\n");
   
@@ -30,7 +30,7 @@ PROCESS_THREAD(test_testbed_process, ev, data)
     for(i=0; i<7; i++) {
       printf("%02x:", linkaddr_node_addr.u8[i]);
     }
-    printf("%02x (%u)\n", linkaddr_node_addr.u8[7], cnt++);
+    printf("%02x (cnt %u)\n", linkaddr_node_addr.u8[7], cnt++);
 
     etimer_reset(&et);
     PROCESS_WAIT_UNTIL(etimer_expired(&et));
