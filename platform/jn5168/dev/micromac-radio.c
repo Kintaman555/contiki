@@ -20,9 +20,9 @@
 #include "lib/crc16.h"
 #include "lib/ringbufindex.h"
 
-#include <HardwareApi/include/AppHardwareApi.h>
-#include <AppApi/include/AppApi.h>
-#include <MMAC/include/MMAC.h>
+#include "HardwareApi/Include/AppHardwareApi.h"
+#include "AppApi/Include/AppApi.h"
+#include "MMAC/Include/MMAC.h"
 #include "micromac-radio.h"
 
 /* Perform CRC check for received packets in SW,
@@ -46,7 +46,7 @@
 #endif /* ENABLE_JPT */
 
 #if ENABLE_JPT
-#include "Utilities/include/JPT.h"
+#include "Utilities/Include/JPT.h"
 #endif /* ENABLE_JPT */
 
 /* STRESS_TEST:
@@ -304,7 +304,7 @@ micromac_radio_init(void)
       channel);
 
 #if RADIO_TEST_MODE == RADIO_TEST_MODE_HIGH_PWR
-#include "HardwareApi/include/PeripheralRegs.h"
+#include "HardwareApi/Include/PeripheralRegs.h"
   /* Enable high power mode.
    * In this mode DIO2 goes high during RX
    * and DIO3 goes high during TX
@@ -314,7 +314,7 @@ micromac_radio_init(void)
       | REG_SYSCTRL_PWRCTRL_RFRXEN_MASK
       | REG_SYSCTRL_PWRCTRL_RFTXEN_MASK);
 #elif RADIO_TEST_MODE == RADIO_TEST_MODE_ADVANCED
-#include "HardwareApi/include/PeripheralRegs.h"
+#include "HardwareApi/Include/PeripheralRegs.h"
   /* output internal radio status on IO pins.
    * See Chris@NXP email */
   vREG_SysWrite(REG_SYS_PWR_CTRL,

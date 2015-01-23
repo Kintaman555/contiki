@@ -4,17 +4,10 @@ endif
 
 ## Show a warning for potentially unaligned pointer cast
 #CFLAGS += -Wcast-align
-          
-ifeq ($(UIP_CONF_IPV6),1)
-CFLAGS += -DNETSTACK_CONF_WITH_IPV6=1
-endif
 
 ARCH=clock.c rtimer-arch.c slip_uart0.c uart0.c uart1.c uart-driver.c watchdog.c \
  leds.c leds-arch.c \
- button-sensor.c sensors.c micromac-radio.c node-id.c exceptions.c
-# pir-sensor.c vib-sensor.c xmem.c irq.c 
-
-UIPDRIVERS += slip.c nullrdc.c chameleon-bitopt.c ringbuf32.c sprintf.c
+ button-sensor.c sensors.c micromac-radio.c node-id.c exceptions.c sprintf.c
 
 APPLIBS += MMAC 
 STACKLIBS += JPT
@@ -26,7 +19,7 @@ ifdef nodemac
 CFLAGS += -DMACID=$(nodemac)
 endif
 
-CONTIKI_TARGET_SOURCEFILES += $(UIPDRIVERS) $(ARCH)
+CONTIKI_TARGET_SOURCEFILES += $(ARCH)
 CONTIKI_SOURCEFILES        += $(CONTIKI_TARGET_SOURCEFILES)
 
 PROJECT_OBJECTFILES += ${addprefix $(OBJECTDIR)/,$(CONTIKI_TARGET_MAIN:.c=.o)}
@@ -48,15 +41,12 @@ VERSION ?= 0
 .SUFFIXES:
 
 ifndef SDK_BASE_DIR
-  $(warning SDK_BASE_DIR not defined! You must specify where NXP SDK resides!)   
+  $(warning SDK_BASE_DIR not defined! You must specify where NXP SDK resides!)     
   SDK_BASE_DIR = /cygdrive/c/Jennic
-  #SDK_BASE_DIR ?= $(abspath $(CONTIKI)/platform/jn5168/Jennic)  
   $(warning Defaulting to $(SDK_BASE_DIR))
 endif
 
 CONTIKI_PLATFORM_BASE_DIR = ${CONTIKI}/platform/jn5168
-TOOL_BASE_DIR = $(SDK_BASE_DIR)/Tools
-SUBWCREV = $(TOOL_BASE_DIR)/TortoiseSVN/bin/subwcrev.exe
 COMPONENTS_BASE_DIR = $(SDK_BASE_DIR)/Components
 CONTIKIDIRS += $(COMPONENTS_BASE_DIR)
 CONTIKI_CPU_DIRS = . 
@@ -83,22 +73,25 @@ OBJCOPY = objcopy
 OBJDUMP = objdump
 RANLIB	= ranlib
 
-# Set toolchain path to use ba2 version of compiler
-TOOLCHAIN_PATH = ba-elf-ba2
-CROSS_COMPILE  = ba-elf
-
-
-ifdef CROSS_COMPILE
-CC:=$(TOOL_BASE_DIR)/$(TOOLCHAIN_PATH)/bin/$(CROSS_COMPILE)-$(CC)
-AS:=$(TOOL_BASE_DIR)/$(TOOLCHAIN_PATH)/bin/$(CROSS_COMPILE)-$(AS)
-LD:=$(TOOL_BASE_DIR)/$(TOOLCHAIN_PATH)/bin/$(CROSS_COMPILE)-$(LD)
-AR:=$(TOOL_BASE_DIR)/$(TOOLCHAIN_PATH)/bin/$(CROSS_COMPILE)-$(AR)
-NM:=$(TOOL_BASE_DIR)/$(TOOLCHAIN_PATH)/bin/$(CROSS_COMPILE)-$(NM)
-STRIP:=$(TOOL_BASE_DIR)/$(TOOLCHAIN_PATH)/bin/$(CROSS_COMPILE)-$(STRIP)
-SIZE:=$(TOOL_BASE_DIR)/$(TOOLCHAIN_PATH)/bin/$(CROSS_COMPILE)-$(SIZE)
-OBJCOPY:=$(TOOL_BASE_DIR)/$(TOOLCHAIN_PATH)/bin/$(CROSS_COMPILE)-$(OBJCOPY)
-OBJDUMP:=$(TOOL_BASE_DIR)/$(TOOLCHAIN_PATH)/bin/$(CROSS_COMPILE)-$(OBJDUMP)
+ifeq ($(HOST_OS),Windows)
+TOOLCHAIN_PATH = $(SDK_BASE_DIR)/Tools/ba-elf-ba2/bin
+TOOLCHAIN_PREFIX = ba-elf-
+else
+TOOLCHAIN_PATH = $(SDK_BASE_DIR)/../bin
+TOOLCHAIN_PREFIX = ba-elf-
+#TOOLCHAIN_PATH = $(SDK_BASE_DIR)/../ba-elf/bin
+#TOOLCHAIN_PREFIX = 
 endif
+
+CC:=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)$(CC)
+AS:=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)$(AS)
+LD:=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)$(LD)
+AR:=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)$(AR)
+NM:=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)$(NM)
+STRIP:=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)$(STRIP)
+SIZE:=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)$(SIZE)
+OBJCOPY:=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)$(OBJCOPY)
+OBJDUMP:=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)$(OBJDUMP)
 
 # Figure out chip family and short chip name
 ifeq ($(JENNIC_CHIP), JN5168)
@@ -172,6 +165,7 @@ ADDITIONAL_SRC_DIR += $(COMPONENTS_BASE_DIR)/Utilities/Source
 # Standard Application header search paths
 INCFLAGS += -I$(ADDITIONAL_SRC_DIR) 
 # Application specific include files
+INCFLAGS += -I$(COMPONENTS_BASE_DIR)/MAC/Include
 INCFLAGS += -I$(COMPONENTS_BASE_DIR)/JenNet/Include
 INCFLAGS += -I$(COMPONENTS_BASE_DIR)/6LP/Include
 INCFLAGS += -I$(COMPONENTS_BASE_DIR)/OS/Include
@@ -232,9 +226,9 @@ CFLAGS += -DJENNIC_CHIP_NAME=_JN5168
 CHIP_BASE_DIR = $(SDK_BASE_DIR)/Chip/$(JENNIC_CHIP)
 
 # include definitions for the BA2 architecture
-#include $(SDK_BASE_DIR)/Chip/Common/Build/config_ba2.mk
-
+#include $(SDK_BASE_DIR)/Chip/Common/Build/config_ba2.mk
 # BA2 archtecture compiler flags
+ifeq ($(HOST_OS),Windows)
 CFLAGS += -msibcall -mno-multi -mno-setcc
 CFLAGS += -mno-carry -mno-subb -mno-sext
 CFLAGS += -mno-hard-div -mhard-mul -mbranch-cost=3 -msimple-mul
@@ -243,6 +237,16 @@ CFLAGS +=  -ffixed-r16 -ffixed-r17 -ffixed-r18 -ffixed-r19
 CFLAGS +=  -ffixed-r20 -ffixed-r21 -ffixed-r22 -ffixed-r23
 CFLAGS +=  -ffixed-r24 -ffixed-r25 -ffixed-r26 -ffixed-r27
 CFLAGS +=  -ffixed-r28 -ffixed-r29 -ffixed-r30 -ffixed-r31
+else
+CFLAGS += -msibcall -mno-multi -mno-setcc
+CFLAGS += -mno-carry -mno-subb
+CFLAGS += -mno-hard-div -mhard-mul -mbranch-cost=3
+CFLAGS += -march=ba2 -mredzone-size=4
+CFLAGS +=  -ffixed-r16 -ffixed-r17 -ffixed-r18 -ffixed-r19
+CFLAGS +=  -ffixed-r20 -ffixed-r21 -ffixed-r22 -ffixed-r23
+CFLAGS +=  -ffixed-r24 -ffixed-r25 -ffixed-r26 -ffixed-r27
+CFLAGS +=  -ffixed-r28 -ffixed-r29 -ffixed-r30 -ffixed-r31
+endif
 # omit frame pointer by default
 CFLAGS += -fomit-frame-pointer
 # default to optimise for size
@@ -572,12 +576,6 @@ CUSTOM_RULE_LINK=1
 	$(info Generating target & binary $@ +.bin...)
 	$(OBJCOPY) $@ $$( $(OBJDUMP) -h $< | sed -n 's/^ *[0-9]* \(.rom[._[:alnum:]]*\).*/-R \1/p' )
 	$(OBJCOPY) -S -O binary $@ $@.bin
-	$(info JENNIC_CHIP     = $(JENNIC_CHIP))
-	$(info JENNIC_PCB      = $(JENNIC_PCB))
-	$(info JENNIC_STACK    = $(JENNIC_STACK))
-	$(info VERSION         = $(VERSION))	
-	${SIZE} --totals $*.co contiki-$(TARGET).a
-	${SIZE} $@
 	
 %.$(TARGET).bin: %.$(TARGET) 
 	$(OBJCOPY) -S -O binary $< $@
