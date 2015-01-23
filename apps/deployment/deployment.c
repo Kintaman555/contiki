@@ -62,6 +62,9 @@
 #if IN_INDRIYA
 #pragma message "deployment.c: compiling with flag IN_INDRIYA"
 #endif
+#if IN_NESTESTBED
+#pragma message "deployment.c: compiling with flag IN_NESTESTBED"
+#endif
 
 #ifndef WITH_TSCH
 #define WITH_TSCH 1
@@ -190,6 +193,7 @@ static const struct id_mac id_mac_list[] = {
    * 019, 00:15:8D:00:00:36:01:8A
    * 020, 00:15:8D:00:00:36:04:DB
    * */
+#elif IN_NESTESTBED
 
   {  1, {{0x00,0x15,0x8d,0x00,0x00,0x57,0x64,0x68}}},
   {  2, {{0x00,0x15,0x8d,0x00,0x00,0x57,0x64,0x6d}}},
