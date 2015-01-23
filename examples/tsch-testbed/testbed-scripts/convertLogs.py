@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 import re
 import fileinput
@@ -6,17 +8,15 @@ from sets import Set
 from pylab import *
 from collections import OrderedDict
 
-def doConvert(input, output):
+def doConvert():
     global appDataStats, hopDataStats, receivedList, nodeState, timeline
 
     allData = []
     baseTime = None
     lastPrintedTime = 0
     t_us = None
-    
-    fileOut = open(output, 'w')
-    
-    for line in open(input, 'r').readlines():
+        
+    for line in sys.stdin.readlines():
         log = None
         module = None
         # match time, id, module, log; The common format for all log lines
@@ -34,17 +34,9 @@ def doConvert(input, output):
             t_s = t_ms / 1000.
             t_m = t_s / 60.
             
-            fileOut.write("%3u:%02u.%03u\tID:%s\t%s\n" %(t_m, t_s%60, t_ms%1000, id, log))
-             
+            print "%3u:%02u.%03u\tID:%s\t%s" %(t_m, t_s%60, t_ms%1000, id, log)
 
 def main():
-    if len(sys.argv) < 2:
-        dir = '.'
-    else:
-        dir = sys.argv[1].rstrip('/')
-
-    input = os.path.join(dir, "log.txt")
-    output = os.path.join(dir, "log2.txt")
-    parsed = doConvert(input, output)
+    doConvert()
     
 main()
