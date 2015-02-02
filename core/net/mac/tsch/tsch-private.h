@@ -210,7 +210,7 @@ void tsch_dump_status();
 #define RTIMER_MIN_DELAY (70 * 16UL) /* 70us */
 
 /* radio speed related */
-#define delayTx           ((unsigned)US_TO_RTIMERTICKS(250)) /* measured ~250us: 100uSec + between GO signal and SFD: radio fixed delay + 4Bytes preamble + 1B SFD -- 1Byte time is 31.25us */
+#define delayTx           ((unsigned)US_TO_RTIMERTICKS(350)) /* measured ~350us: 100uSec + between GO signal and SFD: radio fixed delay + 4Bytes preamble + 1B SFD -- 1Byte time is 31.25us */
 #define delayRx           ((unsigned)US_TO_RTIMERTICKS(248)) /* measured 248us: between GO signal and start listening */
 
 /* Convert rtimer ticks to clock and vice versa */
