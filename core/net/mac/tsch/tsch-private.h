@@ -209,12 +209,6 @@ void tsch_dump_status();
 
 #define RTIMER_MIN_DELAY (70 * 16UL) /* 70us */
 
-/* execution speed related */
-#define maxTxDataPrepare  ((unsigned)US_TO_RTIMERTICKS(127))
-#define maxRxAckPrepare   ((unsigned)US_TO_RTIMERTICKS(7))
-#define maxRxDataPrepare  ((unsigned)US_TO_RTIMERTICKS(127))
-#define maxTxAckPrepare   ((unsigned)US_TO_RTIMERTICKS(7))
-
 /* radio speed related */
 #define delayTx           ((unsigned)US_TO_RTIMERTICKS(250)) /* measured ~250us: 100uSec + between GO signal and SFD: radio fixed delay + 4Bytes preamble + 1B SFD -- 1Byte time is 31.25us */
 #define delayRx           ((unsigned)US_TO_RTIMERTICKS(248)) /* measured 248us: between GO signal and start listening */
@@ -241,12 +235,6 @@ void tsch_dump_status();
 #define RADIO_TO_RTIMER(X)  ((rtimer_clock_t)((int32_t)((int32_t)(X) * 524L) / (int32_t)1000L))
 
 #define RTIMER_MIN_DELAY 5
-
-/* execution speed related */
-#define maxTxDataPrepare    ((unsigned)US_TO_RTIMERTICKS(1200))
-#define maxRxAckPrepare     ((unsigned)US_TO_RTIMERTICKS(600))
-#define maxRxDataPrepare    ((unsigned)US_TO_RTIMERTICKS(600))
-#define maxTxAckPrepare     ((unsigned)US_TO_RTIMERTICKS(630))
 
 /* radio speed related */
   /* ~327us+129preample */
