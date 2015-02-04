@@ -95,7 +95,7 @@ app_send_to(uint16_t id, int ping, uint32_t seqno)
   uip_ipaddr_t dest_ipaddr;
   uip_lladdr_t dest_lladdr;
 
-  data.magic = LOG_MAGIC;
+  data.magic = UIP_HTONL(LOG_MAGIC);
   data.seqno = seqno;
   data.src = node_id;
   data.dest = id;
@@ -274,7 +274,7 @@ PROCESS_THREAD(unicast_sender_process, ev, data)
     tsch_is_coordinator = 1;
   }
 
-  if(deployment_init(&global_ipaddr, NULL)) {
+  if(deployment_init(&global_ipaddr, NULL, -1)) {
     printf("App: %u starting\n", node_id);
   } else {
     printf("App: %u *not* starting\n", node_id);

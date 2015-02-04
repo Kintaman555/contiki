@@ -113,7 +113,7 @@ PROCESS_THREAD(unicast_sender_process, ev, data)
 
   PROCESS_BEGIN();
 
-  if(deployment_init(&global_ipaddr, NULL)) {
+  if(deployment_init(&global_ipaddr, NULL, ROOT_ID)) {
     LOG("App: %u start\n", node_id);
   } else {
     etimer_set(&periodic_timer, 5*60*CLOCK_SECOND);

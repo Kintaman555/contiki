@@ -66,7 +66,7 @@ void set_ipaddr_from_id(uip_ipaddr_t *ipaddr, uint16_t id);
 /* Sets an linkaddr from a link-layer address */
 void set_linkaddr_from_id(linkaddr_t *lladdr, uint16_t id);
 /* Initializes global IPv6 and creates DODAG */
-int deployment_init(uip_ipaddr_t *ipaddr, uip_ipaddr_t *br_prefix);
+int deployment_init(uip_ipaddr_t *ipaddr, uip_ipaddr_t *br_prefix, int root_id);
 
 /* Our absolute index in the id_mac table */
 extern uint16_t node_index;

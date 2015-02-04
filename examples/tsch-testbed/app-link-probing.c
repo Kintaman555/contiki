@@ -52,14 +52,12 @@
 #define SEND_INTERVAL   (60 * CLOCK_SECOND)
 #define UDP_PORT 1234
 
-#define COORDINATOR_ID 2
-#define DEST_ID 2
-#define SRC_ID 3
+#define COORDINATOR_ID ROOT_ID
 
 static struct simple_udp_connection broadcast_connection;
 
 /*---------------------------------------------------------------------------*/
-PROCESS(broadcast_sender_process, "No-RPL Broadcast Application");
+PROCESS(broadcast_sender_process, "Link Probing Application");
 AUTOSTART_PROCESSES(&broadcast_sender_process);
 /*---------------------------------------------------------------------------*/
 static void
@@ -83,8 +81,9 @@ app_send_broadcast()
   uip_ipaddr_t dest_ipaddr;
 
   data.magic = UIP_HTONL(LOG_MAGIC);
-  data.seqno = ((uint32_t)node_id << 16) + cnt;
-  data.src = node_id;
+
+  data.seqno = UIP_HTONL(((uint32_t)node_id << 16) + cnt);
+  data.src = UIP_HTONS(node_id);
   data.dest = 0;
   data.hop = 0;
 
@@ -122,17 +121,32 @@ PROCESS_THREAD(broadcast_sender_process, ev, data)
                       NULL, UDP_PORT,
                       receiver);
 #if WITH_TSCH
+#if WITH_OFFLINE_SCHEDULE_DEDICATED_PROBING
+  /* 1: dedicated tx slot for each */
+  struct tsch_slotframe *sf2 = tsch_schedule_add_slotframe(1, 103);
+  tsch_schedule_add_link(sf2,
+      LINK_OPTION_TX,
+      LINK_TYPE_ADVERTISING, &tsch_broadcast_address,
+      node_index, 0);
+  /* 2: wakeup at every slot */
+  struct tsch_slotframe *sf1 = tsch_schedule_add_slotframe(2, 1);
+  tsch_schedule_add_link(sf1,
+        LINK_OPTION_RX,
+        LINK_TYPE_ADVERTISING, &tsch_broadcast_address,
+        0, 0);
+#else
   tsch_schedule_create_minimal();
 #endif
+#endif
+
 
   etimer_set(&periodic_timer, SEND_INTERVAL);
   while(1) {
     etimer_set(&send_timer, random_rand() % (SEND_INTERVAL));
     PROCESS_WAIT_UNTIL(etimer_expired(&send_timer));
 
-    if(node_id == SRC_ID) {
-      app_send_broadcast();
-    }
+    app_send_broadcast();
+
     PROCESS_WAIT_UNTIL(etimer_expired(&periodic_timer));
     etimer_reset(&periodic_timer);
   }

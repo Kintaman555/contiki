@@ -405,7 +405,7 @@ set_linkaddr_from_id(linkaddr_t *lladdr, uint16_t id)
 }
 /* Initializes global IPv6 and creates DODAG */
 int
-deployment_init(uip_ipaddr_t *ipaddr, uip_ipaddr_t *br_prefix)
+deployment_init(uip_ipaddr_t *ipaddr, uip_ipaddr_t *br_prefix, int root_id)
 {
   rpl_dag_t *dag;
   
@@ -431,7 +431,7 @@ deployment_init(uip_ipaddr_t *ipaddr, uip_ipaddr_t *br_prefix)
   set_ipaddr_from_id(ipaddr, node_id);
   uip_ds6_addr_add(ipaddr, 0, ADDR_AUTOCONF);
 
-  if(node_id == ROOT_ID) {
+  if(node_id == root_id) {
     rpl_set_root(RPL_DEFAULT_INSTANCE, ipaddr);
     dag = rpl_get_any_dag();
     rpl_set_prefix(dag, &prefix, 64);

@@ -132,7 +132,7 @@ PROCESS_THREAD(unicast_sender_process, ev, data)
 
   PROCESS_BEGIN();
 
-  if(deployment_init(&global_ipaddr, NULL)) {
+  if(deployment_init(&global_ipaddr, NULL, ROOT_ID)) {
     printf("App: %u starting\n", node_id);
   } else {
     printf("App: %u *not* starting\n", node_id);

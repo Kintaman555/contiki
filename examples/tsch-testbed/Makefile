@@ -1,4 +1,4 @@
-CONTIKI_PROJECT = app-rpl-collect-only
+CONTIKI_PROJECT = app-rpl-collect-only app-link-probing
 CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
 TARGET ?= sky
 
@@ -15,6 +15,7 @@ DEPLOYMENT_INDRIYA=4
 
 CONFIG=$(CONFIG_TSCH)
 #CONFIG=$(CONFIG_CONTIKIMAC)
+#CONFIG=$(CONFIG_NULLRDC)
 
 PANID ?= 0xABCD
 
