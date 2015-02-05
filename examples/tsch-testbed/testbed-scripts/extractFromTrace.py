@@ -325,7 +325,7 @@ def extractProbing(dir, parsed):
             if links[l]['rxCount'] == i:
                 pdfCount += 1
         cdfCount += pdfCount
-        print "%3u (%.2f%%): %5u (%.2f%%), %5u (%.2f%%) -- %5u" %(i, i*100./maxRxCount, pdfCount, pdfCount*100./len(links), cdfCount, cdfCount*100./len(links), len(links)-cdfCount)
+        print "%3u (%6.2f%%): %5u (%6.2f%%), %5u (%6.2f%%) -- %5u (%6.2f%%)" %(i, i*100./maxRxCount, pdfCount, pdfCount*100./len(links), cdfCount, cdfCount*100./len(links), len(links)-cdfCount, (len(links)-cdfCount)*100./len(links))
             
 def analyzeTimeline(dir, parsed):
         
