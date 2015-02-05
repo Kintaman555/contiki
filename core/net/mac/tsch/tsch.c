@@ -140,7 +140,11 @@ struct seqno {
 
 #if TSCH_EB_AUTOSELECT
 int best_neighbor_eb_count;
-NBR_TABLE(int, eb_stats);
+struct eb_stat {
+  int rx_count;
+  int jp;
+};
+NBR_TABLE(struct eb_stat, eb_stats);
 #endif
 
 static struct seqno received_seqnos[MAX_SEQNOS];
@@ -1407,28 +1411,40 @@ tsch_rx_process_pending()
                     &source_address, &eb_asn, &eb_join_priority)) {
 
 #if TSCH_EB_AUTOSELECT
-        /* Maintain EB received counter for every neighbor */
-        int *count = (int*)nbr_table_get_from_lladdr(eb_stats, &source_address);
-        if(count == NULL) {
-          count = (int*)nbr_table_add_lladdr(eb_stats, &source_address);
-        }
-        if(count != NULL) {
-          (*count)++;
-          best_neighbor_eb_count = MAX(best_neighbor_eb_count, *count);
-        }
-        /* Is neighbor eligible as a time source? */
-        if(*count > best_neighbor_eb_count / 2) {
-          /* Does the neighbor have lower join priority that us? */
-          if(eb_join_priority < tsch_join_priority) {
-            tsch_queue_update_time_source(&source_address);
+        if(!tsch_is_coordinator) {
+          /* Maintain EB received counter for every neighbor */
+          struct eb_stat *stat = (struct eb_stat *)nbr_table_get_from_lladdr(eb_stats, &source_address);
+          if(stat == NULL) {
+            stat = (struct eb_stat *)nbr_table_add_lladdr(eb_stats, &source_address);
+            printf("TSCH: reset %u %u %p\n", LOG_NODEID_FROM_LINKADDR(&source_address), stat->rx_count, stat);
+          }
+          if(stat != NULL) {
+            stat->rx_count++;
+            printf("TSCH: count %u %u %p\n", LOG_NODEID_FROM_LINKADDR(&source_address), stat->rx_count, stat);
+            stat->jp = eb_join_priority;
+            best_neighbor_eb_count = MAX(best_neighbor_eb_count, stat->rx_count);
+          }
+          /* Select best time source */
+          struct eb_stat *best_stat = NULL;
+          stat = nbr_table_head(eb_stats);
+          while(stat != NULL) {
+            /* Is neighbor eligible as a time source? */
+            if(stat->rx_count > best_neighbor_eb_count / 2) {
+              if(best_stat == NULL ||
+                  stat->jp < best_stat->jp) {
+                best_stat = stat;
+              }
+            }
+            printf("TSCH: %u %u %u\n", LOG_NODEID_FROM_LINKADDR(nbr_table_get_lladdr(eb_stats, stat)), stat->rx_count, stat->jp);
+            stat = nbr_table_next(eb_stats, stat);
+          }
+          /* Update time source */
+          if(best_stat != NULL) {
+            tsch_queue_update_time_source(nbr_table_get_lladdr(eb_stats, best_stat));
+            tsch_join_priority = best_stat->jp + 1;
+            printf("TSCH: =>=>=> %u %u %u\n", LOG_NODEID_FROM_LINKADDR(nbr_table_get_lladdr(eb_stats, best_stat)), best_stat->rx_count, best_stat->jp);
           }
         }
-//        count = nbr_table_head(eb_stats);
-//        while(count != NULL) {
-//          LOG("TSCH: EB stats: %u %u [%u]\n",
-//              LOG_NODEID_FROM_LINKADDR(nbr_table_get_lladdr(eb_stats, count)), *count, best_neighbor_eb_count);
-//          count  = nbr_table_next(eb_stats, count);
-//        }
 #endif
 
         struct tsch_neighbor *n = tsch_queue_get_time_source();
