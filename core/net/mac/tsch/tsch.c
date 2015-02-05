@@ -112,6 +112,12 @@ void TSCH_CALLBACK_LEAVING_NETWORK();
 #define TSCH_ADDRESS_FILTER 0
 #endif /* TSCH_CONF_ADDRESS_FILTER */
 
+#ifdef TSCH_CONF_EB_AUTOSELECT
+#define TSCH_EB_AUTOSELECT TSCH_CONF_EB_AUTOSELECT
+#else
+#define TSCH_EB_AUTOSELECT 0
+#endif /* TSCH_CONF_EB_AUTOSELECT */
+
 #ifndef TSCH_802154_DUPLICATE_DETECTION
 #ifdef TSCH_CONF_802154_DUPLICATE_DETECTION
 #define TSCH_802154_DUPLICATE_DETECTION TSCH_CONF_802154_DUPLICATE_DETECTION
@@ -131,6 +137,11 @@ struct seqno {
 #else /* NETSTACK_CONF_MAC_SEQNO_HISTORY */
 #define MAX_SEQNOS 8
 #endif /* NETSTACK_CONF_MAC_SEQNO_HISTORY */
+
+#if TSCH_EB_AUTOSELECT
+int best_neighbor_eb_count;
+NBR_TABLE(int, eb_stats);
+#endif
 
 static struct seqno received_seqnos[MAX_SEQNOS];
 #endif /* TSCH_802154_DUPLICATE_DETECTION */
@@ -1391,8 +1402,35 @@ tsch_rx_process_pending()
       uint8_t eb_join_priority;
       /* Verify incoming EB (does its ASN match our Rx time?),
        * and update our join priority. */
+
       if(tsch_parse_eb(current_input->payload, current_input->len,
                     &source_address, &eb_asn, &eb_join_priority)) {
+
+#if TSCH_EB_AUTOSELECT
+        /* Maintain EB received counter for every neighbor */
+        int *count = (int*)nbr_table_get_from_lladdr(eb_stats, &source_address);
+        if(count == NULL) {
+          count = (int*)nbr_table_add_lladdr(eb_stats, &source_address);
+        }
+        if(count != NULL) {
+          (*count)++;
+          best_neighbor_eb_count = MAX(best_neighbor_eb_count, *count);
+        }
+        /* Is neighbor eligible as a time source? */
+        if(*count > best_neighbor_eb_count / 2) {
+          /* Does the neighbor have lower join priority that us? */
+          if(eb_join_priority < tsch_join_priority) {
+            tsch_queue_update_time_source(&source_address);
+          }
+        }
+//        count = nbr_table_head(eb_stats);
+//        while(count != NULL) {
+//          LOG("TSCH: EB stats: %u %u [%u]\n",
+//              LOG_NODEID_FROM_LINKADDR(nbr_table_get_lladdr(eb_stats, count)), *count, best_neighbor_eb_count);
+//          count  = nbr_table_next(eb_stats, count);
+//        }
+#endif
+
         struct tsch_neighbor *n = tsch_queue_get_time_source();
         /* Did the EB come from our time source? */
         if(n != NULL && linkaddr_cmp(&source_address, &n->addr)) {
@@ -1517,6 +1555,10 @@ tsch_reset(void)
   current_neighbor = NULL;
 #ifdef TSCH_CALLBACK_LEAVING_NETWORK
   TSCH_CALLBACK_LEAVING_NETWORK();
+#endif
+#if TSCH_EB_AUTOSELECT
+  best_neighbor_eb_count = 0;
+  nbr_table_register(eb_stats, NULL);
 #endif
   /* Reset time-profiling variables for next wake up */
   t0prepare=0; t0tx=0; t0txack=0; t0post_tx=0; t0rx=0; t0rxack=0;
