@@ -218,7 +218,7 @@ def extractData(parsed, name, unit, condition, extractField, expectedRange, peri
     if export:
         generateDataFiles(parsed, name, unit, globalData, nodeIDs, perNodeIndexData, timelineData, perNodeGlobal)
                                 
-    if doSum:
+    if doSum and 'sum' in perNodeGlobal:
         print " => Sum %8.2f " %(perNodeGlobal['sum']),
     elif doMax:
         print " => Max %8.2f " %(perNodeGlobal['max']),
@@ -302,6 +302,30 @@ def connected(txGraph, s, r, channel):
     return (s in txGraph and r in txGraph[s]
                                 and channel in txGraph[s][r]
                                 and txGraph[s][r][channel] > 0)
+            
+def extractProbing(dir, parsed):
+    dataset = parsed['dataset']
+    links = {}
+    maxRxCount = 0
+    for line in dataset:
+        if line['module'] == "App":
+            if line['info']['event'] == "sending":
+                continue
+            elif line['info']['event'] == "received":
+                dst = line['id']
+                src = line['packet']['src']
+                if not (src,dst) in links:
+                    links[(src,dst)] = {'rxCount': 0}
+                links[(src,dst)]['rxCount'] += 1
+                maxRxCount = max(maxRxCount, links[(src,dst)]['rxCount'])
+    cdfCount = 0
+    for i in range(1, 1+maxRxCount):
+        pdfCount = 0
+        for l in links:
+            if links[l]['rxCount'] == i:
+                pdfCount += 1
+        cdfCount += pdfCount
+        print "%3u (%.2f%%): %5u (%.2f%%), %5u (%.2f%%) -- %5u" %(i, i*100./maxRxCount, pdfCount, pdfCount*100./len(links), cdfCount, cdfCount*100./len(links), len(links)-cdfCount)
             
 def analyzeTimeline(dir, parsed):
         
@@ -673,7 +697,8 @@ def process(parsed):
 
             if plottableData['doSum']:
                 str += showStats(plottableData['perNodeGlobal'], plottableData['unit'])
-                str += "   Sum: %8.2f " %(plottableData['perNodeGlobal']['sum'])
+                if 'sum' in plottableData['perNodeGlobal']:
+                    str += "   Sum: %8.2f " %(plottableData['perNodeGlobal']['sum'])
                 str += showStatsMinMax(plottableData['perNodeGlobal'])
             elif plottableData['doMax']:
                 str += showStats(plottableData['perNodeGlobal'], plottableData['unit'])
@@ -713,10 +738,16 @@ def main():
         print "\nProcessing %s" %(file)
         process(parsed)
         
-        print "\nGenerating timeline txOnly=False"
-        generateTimelineFile(dir, parsed, txOnly=False)
+#        print "\nGenerating timeline txOnly=False"
+ #       generateTimelineFile(dir, parsed, txOnly=False)
+ 
+        print "\nGenerating timeline txOnly=True"
+        generateTimelineFile(dir, parsed, txOnly=True)
         
 #        print "\nAnalyzing timeline"
  #       analyzeTimeline(dir, parsed)
+ 
+  #      print "\nExtracting probing data"
+   #     extractProbing(dir, parsed)
                 
 main()

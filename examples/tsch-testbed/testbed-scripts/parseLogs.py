@@ -95,6 +95,8 @@ def parseApp(line, time, id, log, packetInfo, asnInfo):
         hop = packetInfo['hop']
         src = packetInfo['src']
         dst = packetInfo['dst']
+    else:
+        return None
     
 #---- App: Sending -------------------------------------------------------------------------------------------------------------
     if log.startswith('sending'):
@@ -242,6 +244,7 @@ def parseTsch(line, time, id, log, packetInfo, asnInfo):
         dst = packetInfo['dst']
     
     if asnInfo != None:
+        #return None
         asn = asnInfo['asn'] 
         slotframe = asnInfo['slotframe']
         timeslot = asnInfo['timeslot']
