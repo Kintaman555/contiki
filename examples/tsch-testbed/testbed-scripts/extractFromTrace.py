@@ -307,11 +307,15 @@ def extractProbing(dir, parsed):
     dataset = parsed['dataset']
     links = {}
     maxRxCount = 0
+    totalTxCount = 0
+    totalRxCount = 0
     for line in dataset:
         if line['module'] == "App":
             if line['info']['event'] == "sending":
+                totalTxCount += 1
                 continue
             elif line['info']['event'] == "received":
+                totalRxCount += 1
                 dst = line['id']
                 src = line['packet']['src']
                 if not (src,dst) in links:
@@ -326,7 +330,8 @@ def extractProbing(dir, parsed):
                 pdfCount += 1
         cdfCount += pdfCount
         print "%3u (%6.2f%%): %5u (%6.2f%%), %5u (%6.2f%%) -- %5u (%6.2f%%)" %(i, i*100./maxRxCount, pdfCount, pdfCount*100./len(links), cdfCount, cdfCount*100./len(links), len(links)-cdfCount, (len(links)-cdfCount)*100./len(links))
-            
+    print "Overall statistics: %u/%u (%.2f)" %(totalRxCount, totalTxCount, totalRxCount*1./totalTxCount)
+
 def analyzeTimeline(dir, parsed):
         
     txGraph = {}
@@ -479,6 +484,14 @@ def process(parsed):
 #        allPlottableData.append( 
 #            extractData(parsed, "Not received, not dropped", "%", lambda x: x['module'] == 'App' and 'sending' in x['info'], lambda x: 100 if not x['info']['csmaDropped'] and not x['info']['duplicateDropped'] and not x['info']['tcpipDropped'] and not x['info']['received'] else 0, {'min': 0, 'max': 0}, MIN_INTERVAL)
 #        )
+
+        allPlottableData.append( extractData(parsed, "Rx Count", "#",
+                        lambda x: x['module'] == 'App' and 'sending' in x['info'],
+                        lambda x: x['info']['rxCount'],
+                        {'min': 0, 'max': 50},
+                        MIN_INTERVAL)
+        )
+
         allPlottableData.append( 
             extractData(parsed, "MAC drop", "%",
                         lambda x: x['module'] == 'App' and 'sending' in x['info'],
@@ -735,19 +748,19 @@ def main():
     
         file = entries['file']
         
-        print "\nProcessing %s" %(file)
-        process(parsed)
+#        print "\nProcessing %s" %(file)
+ #       process(parsed)
         
 #        print "\nGenerating timeline txOnly=False"
  #       generateTimelineFile(dir, parsed, txOnly=False)
  
-        print "\nGenerating timeline txOnly=True"
-        generateTimelineFile(dir, parsed, txOnly=True)
+  #      print "\nGenerating timeline txOnly=True"
+   #     generateTimelineFile(dir, parsed, txOnly=True)
         
 #        print "\nAnalyzing timeline"
  #       analyzeTimeline(dir, parsed)
  
-  #      print "\nExtracting probing data"
-   #     extractProbing(dir, parsed)
+        print "\nExtracting probing data"
+        extractProbing(dir, parsed)
                 
 main()

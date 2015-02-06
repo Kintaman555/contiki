@@ -123,19 +123,32 @@ PROCESS_THREAD(broadcast_sender_process, ev, data)
 #if WITH_TSCH
 #if WITH_OFFLINE_SCHEDULE_DEDICATED_PROBING
   /* 1: dedicated tx slot for each */
-  struct tsch_slotframe *sf2 = tsch_schedule_add_slotframe(1, 103);
-  tsch_schedule_add_link(sf2,
+  struct tsch_slotframe *sf1 = tsch_schedule_add_slotframe(1, 103);
+  tsch_schedule_add_link(sf1,
       LINK_OPTION_TX,
       LINK_TYPE_ADVERTISING, &tsch_broadcast_address,
       node_index, 0);
   /* 2: wakeup at every slot */
-  struct tsch_slotframe *sf1 = tsch_schedule_add_slotframe(2, 1);
-  tsch_schedule_add_link(sf1,
+  struct tsch_slotframe *sf2 = tsch_schedule_add_slotframe(2, 1);
+  tsch_schedule_add_link(sf2,
         LINK_OPTION_RX,
         LINK_TYPE_ADVERTISING, &tsch_broadcast_address,
         0, 0);
+#elif WITH_OFFLINE_SCHEDULE_MINIMAL_PROBING
+  /* 1: periodic shared EB timeslot */
+    struct tsch_slotframe *sf1 = tsch_schedule_add_slotframe(1, 5);
+    tsch_schedule_add_link(sf1,
+        LINK_OPTION_RX | LINK_OPTION_TX | LINK_OPTION_SHARED,
+        LINK_TYPE_ADVERTISING_ONLY, &tsch_broadcast_address,
+        0, 0);
+    /* 2: wakeup at every slot */
+    struct tsch_slotframe *sf2 = tsch_schedule_add_slotframe(2, 1);
+    tsch_schedule_add_link(sf2,
+        LINK_OPTION_RX | LINK_OPTION_TX | LINK_OPTION_SHARED,
+          LINK_TYPE_NORMAL, &tsch_broadcast_address,
+          0, 0);
 #else
-  tsch_schedule_create_minimal();
+#error Unsupported configuration
 #endif
 #endif
 
