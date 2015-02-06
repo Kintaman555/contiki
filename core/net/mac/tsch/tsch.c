@@ -1416,11 +1416,9 @@ tsch_rx_process_pending()
           struct eb_stat *stat = (struct eb_stat *)nbr_table_get_from_lladdr(eb_stats, &source_address);
           if(stat == NULL) {
             stat = (struct eb_stat *)nbr_table_add_lladdr(eb_stats, &source_address);
-            printf("TSCH: reset %u %u %p\n", LOG_NODEID_FROM_LINKADDR(&source_address), stat->rx_count, stat);
           }
           if(stat != NULL) {
             stat->rx_count++;
-            printf("TSCH: count %u %u %p\n", LOG_NODEID_FROM_LINKADDR(&source_address), stat->rx_count, stat);
             stat->jp = eb_join_priority;
             best_neighbor_eb_count = MAX(best_neighbor_eb_count, stat->rx_count);
           }
@@ -1435,14 +1433,12 @@ tsch_rx_process_pending()
                 best_stat = stat;
               }
             }
-            printf("TSCH: %u %u %u\n", LOG_NODEID_FROM_LINKADDR(nbr_table_get_lladdr(eb_stats, stat)), stat->rx_count, stat->jp);
             stat = nbr_table_next(eb_stats, stat);
           }
           /* Update time source */
           if(best_stat != NULL) {
             tsch_queue_update_time_source(nbr_table_get_lladdr(eb_stats, best_stat));
             tsch_join_priority = best_stat->jp + 1;
-            printf("TSCH: =>=>=> %u %u %u\n", LOG_NODEID_FROM_LINKADDR(nbr_table_get_lladdr(eb_stats, best_stat)), best_stat->rx_count, best_stat->jp);
           }
         }
 #endif
