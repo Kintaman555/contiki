@@ -110,7 +110,6 @@ PROCESS(slip_process, "SLIP driver");
 }
 
 /* A generic ATMOIC that disables all interrupts */
-#include "MicroSpecific/include/MicroSpecific.h"
 #define GLOBAL_ATOMIC(blah)   \
 {                             \
   MICRO_DISABLE_INTERRUPTS(); \

@@ -33,7 +33,7 @@
 #ifndef CONTIKI_CONF_H_
 #define CONTIKI_CONF_H_
 
-//#include <inttypes.h>
+#include <inttypes.h>
 #include <jendefs.h>
 
 #undef putchar

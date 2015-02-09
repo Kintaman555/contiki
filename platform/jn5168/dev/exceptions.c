@@ -53,7 +53,6 @@
 
 #include <jendefs.h>
 #include <AppHardwareApi.h>
-#include "MicroSpecific/Include/MicroSpecific.h"
 #include "exceptions.h"
 
 /****************************************************************************/

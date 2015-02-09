@@ -20,9 +20,8 @@
 #include "lib/crc16.h"
 #include "lib/ringbufindex.h"
 
-#include "HardwareApi/Include/AppHardwareApi.h"
-#include "AppApi/Include/AppApi.h"
-#include "MMAC/Include/MMAC.h"
+#include "AppHardwareApi.h"
+#include "MMAC.h"
 #include "micromac-radio.h"
 
 /* Perform CRC check for received packets in SW,

@@ -45,7 +45,6 @@
 
 #include "dev/watchdog.h"
 #include <AppHardwareApi.h>
-#include <AppApi.h>
 #include "dev/uart0.h"
 
 #include "contiki.h"
@@ -69,7 +68,6 @@
 #endif /* NETSTACK_CONF_WITH_IPV6 */
 
 #include "net/rime/rime.h"
-#include "Recal/Include/recal.h"
 
 #include "dev/micromac-radio.h"
 #include "MMAC.h"
