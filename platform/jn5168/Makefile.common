@@ -119,6 +119,7 @@ ALLLIBS = $(addprefix -l,$(LDLIBS)) $(addprefix -l,$(LDSTACKLIBS)) $(addprefix -
 %.$(TARGET): %.co $(PROJECT_OBJECTFILES) $(PROJECT_LIBRARIES) contiki-$(TARGET).a $(addsuffix _$(JENNIC_CHIP_FAMILY).a,$(addprefix $(COMPONENTS_BASE_DIR)/Library/lib,$(APPLIBS)))
 	echo  ${filter %.a,$^}
 	$(Q)$(CC) -Wl,--gc-sections $(LDFLAGS) -T$(LINKCMD) -o $@ -Wl,--start-group ${filter-out %.a,$^} ${filter %.a,$^} $(ALLLIBS) -Wl,--end-group -Wl,-Map,contiki-$(TARGET).map
+	$(OBJCOPY) -S -O binary $@ $@.bin
 
 %.$(TARGET).bin: %.$(TARGET) 
 	$(Q)$(OBJCOPY) -S -O binary $< $@
