@@ -97,7 +97,9 @@ static uip_mcast6_route_t *mcast_group;
 UIP_ICMP6_HANDLER(dis_handler, ICMP6_RPL, RPL_CODE_DIS, dis_input);
 UIP_ICMP6_HANDLER(dio_handler, ICMP6_RPL, RPL_CODE_DIO, dio_input);
 UIP_ICMP6_HANDLER(dao_handler, ICMP6_RPL, RPL_CODE_DAO, dao_input);
+#if RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES
 UIP_ICMP6_HANDLER(dao_ack_handler, ICMP6_RPL, RPL_CODE_DAO_ACK, dao_ack_input);
+#endif /* RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES */
 /*---------------------------------------------------------------------------*/
 static int
 get_global_addr(uip_ipaddr_t *addr)
