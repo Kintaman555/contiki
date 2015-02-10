@@ -2,258 +2,52 @@ ifndef CONTIKI
   $(error CONTIKI not defined! You must specify where CONTIKI resides!)
 endif
 
-.SUFFIXES:
-
-ifndef HOST_OS
-  ifeq ($(OS),Windows_NT)
-    HOST_OS := Windows
-  else
-    HOST_OS := $(shell uname)
-  endif
-endif
-
 ##############################################################################
 # User definable make parameters that may be overwritten from the command line
-
-# Default target device is the JN5148, (JN5148J01, JN5142J01, JN5168, JN5164 also valid)
 JENNIC_CHIP ?= JN5168
-# Default DK4 development kit target hardware
 JENNIC_PCB ?= DEVKIT4
-# Stack: JIP, None
-JENNIC_STACK ?= None
-# Factory reset PDM magic number (0 for default)
-FACTORY_RESET_MAGIC ?= 0
-# Zero version if not passed in on the command line 
-VERSION ?= 0
-
-###############################################################################
-# Default path for the SDK
-ifndef SDK_BASE_DIR
-  $(warning SDK_BASE_DIR not defined! You must specify where NXP SDK resides!)
-  ifeq ($(HOST_OS),Windows)     
-  SDK_BASE_DIR = /cygdrive/c/NXP/bstudio_nxp/sdk/JN-SW-4163
-  else
-  SDK_BASE_DIR = /usr/jn-toolchain/sdk/JN-SW-4163
-  endif
-  $(warning Defaulting to $(SDK_BASE_DIR))
-endif
-
-###############################################################################
-# from Stack/Common/Build/Config.mk -- end
-
-###############################################################################
-# Base location
-
-COMPONENTS_BASE_DIR = $(SDK_BASE_DIR)/Components
-STACK_BASE_DIR = $(SDK_BASE_DIR)/Stack
-
-###############################################################################
-# Include path for standard type definitions
-
-INCFLAGS += -I$(COMPONENTS_BASE_DIR)/Common/Include
-
-###############################################################################
-# Linker library paths
-
-LDFLAGS += -L$(COMPONENTS_BASE_DIR)/Library
-
-###############################################################################
-# Common ROM based software components
-
-ifneq ($(findstring $(JENNIC_MAC),MiniMacShim MAC),)
-INCFLAGS += -I$(COMPONENTS_BASE_DIR)/AppApi/Include
-INCFLAGS += -I$(COMPONENTS_BASE_DIR)/MAC/Include
-endif
-ifneq ($(findstring $(JENNIC_MAC),MiniMac MiniMacShim),)
-INCFLAGS += -I$(COMPONENTS_BASE_DIR)/MiniMac/Include
-INCFLAGS += -I$(COMPONENTS_BASE_DIR)/MMAC/Include
-endif
-INCFLAGS += -I$(COMPONENTS_BASE_DIR)/HardwareApi/Include
-INCFLAGS += -I$(COMPONENTS_BASE_DIR)/Aes/Include
-
-# Software debug support
-ifeq ($(DEBUG), SW)
-$(info Building SW debug version ...)
-
-LDLIBS  := SWDebug_$(JENNIC_CHIP) $(LDLIBS)
-
-# Set SWDEBUG_PORT to UART0 or UART1 dependent on connection to serial port on board
-ifeq ($(DEBUG_PORT), UART0)
-CFLAGS  += -DSWDEBUG_PORT=0
-$(info Software Debug will use UART0)
-else 
-ifeq ($(DEBUG_PORT), UART1)
-CFLAGS  += -DSWDEBUG_PORT=1
-$(info Software Debug will use UART1)
-endif
-endif
-endif
-
-INCFLAGS += -I$(COMPONENTS_BASE_DIR)/DBG/Include
-
-###############################################################################
-# Include stack specific definitions
-
-ifndef JENNIC_STACK
-$(info JENNIC_STACK is undefined, defaulting to MAC)
 JENNIC_STACK ?= MAC
-endif
-
-include $(STACK_BASE_DIR)/$(JENNIC_STACK)/Build/config_$(JENNIC_STACK).mk
-
-###############################################################################
-# Setup path for default stack size definition for the selected stack
-
-LDFLAGS := -TApp_Stack_Size.ld $(LDFLAGS) -L$(STACK_BASE_DIR)/$(JENNIC_STACK)/Build
-
-# from Stack/Common/Build/Config.mk -- end
-
-###############################################################################
-
-# from Platform/Common/Build/Config.mk
-
-ifdef JENNIC_PCB
-ifeq ($(JENNIC_PCB),DEVKIT1)
-PLATFORM_BASE_DIR = $(SDK_BASE_DIR)/Platform/DK1
+JENNIC_MAC ?= MiniMac
+# can be set to SW or HW
+DEBUG ?= None
+ifeq ($(HOST_OS),Windows)     
+  SDK_BASE_DIR ?= /cygdrive/c/NXP/bstudio_nxp/sdk/JN-SW-4163
 else
-ifeq ($(JENNIC_PCB),DEVKIT2)
-PLATFORM_BASE_DIR = $(SDK_BASE_DIR)/Platform/DK2
-else
-ifeq ($(JENNIC_PCB),HPDEVKIT)
-PLATFORM_BASE_DIR = $(SDK_BASE_DIR)/Platform/HPDevKit
-else
-ifeq ($(JENNIC_PCB),NTS)
-PLATFORM_BASE_DIR = $(SDK_BASE_DIR)/Platform/NTS
-else
-ifeq ($(JENNIC_PCB),DEVKIT3)
-PLATFORM_BASE_DIR = $(SDK_BASE_DIR)/Platform/DK3
-else
-ifeq ($(JENNIC_PCB),DEVKIT4)
-PLATFORM_BASE_DIR = $(SDK_BASE_DIR)/Platform/DK4
-else
-$(error JENNIC_PCB is not defined. Define for the Jennic development kit you are using.)
-endif
-endif
-endif
-endif
-endif
+  SDK_BASE_DIR ?= /usr/jn-toolchain/sdk/JN-SW-4163
 endif
 
 ###############################################################################
-# Compiler flags
+# Include NXP makefiles
+include $(SDK_BASE_DIR)/Chip/Common/Build/config.mk
+include $(SDK_BASE_DIR)/Platform/Common/Build/Config.mk
+include $(SDK_BASE_DIR)/Stack/Common/Build/config.mk
 
-INCFLAGS += -I$(SDK_BASE_DIR)/Platform/Common/Include
+# Add missing includes
+INCFLAGS += -I$(COMPONENTS_BASE_DIR)/MicroSpecific/Include
+INCFLAGS += -I$(COMPONENTS_BASE_DIR)/Recal/Include
 
-# Define the selected Jennic platform
+# Add missing libs
+LDLIBS += Recal_$(JENNIC_CHIP_FAMILY)
 
-CFLAGS += -DJENNIC_PCB=$(JENNIC_PCB)
-CFLAGS += -DJENNIC_PCB_$(JENNIC_PCB)
+# Do not link with MiniMac nor MiniMacShim (we use MMAC)
+LDLIBS := $(subst MiniMac_JN516x, ,$(LDLIBS))
+LDLIBS := $(subst MiniMacShim_JN516x, ,$(LDLIBS))
 
-###############################################################################
-# Include platform specific definitions
-
-include $(PLATFORM_BASE_DIR)/Build/PlatformConfig.mk
-INCFLAGS += -I$(PLATFORM_BASE_DIR)/Include
-
+# Pass DEBUG as CFLAG
+ifeq ($(DEBUG),SW)
+CFLAGS += -DDEBUG=1
 endif
 
-# from Chip/Common/Build/config.mk -- end
-
-###############################################################################
-# from Chip/Common/Build/config.mk
-
-###############################################################################
-# Toolchain
-###############################################################################
-
-TOOL_BASE_DIR ?= $(SDK_BASE_DIR)/Tools
-TOOL_COMMON_BASE_DIR ?= $(SDK_BASE_DIR)/../Tools
-
-SUBWCREV ?= $(TOOL_BASE_DIR)/TortoiseSVN/bin/subwcrev
-
-###############################################################################
-#
-# Set up defaults for stack configuration
-# JENNIC_STACK specifies the full stack (MAC only, JenNet-IP, etc.) and
-#   determines which set of libraries and include paths are added to the build
-# JENNIC_MAC allows selection of the MAC layer:
-#   MAC         for full MAC
-#   MiniMac     for size-optimised variant
-#   MiniMacShim for size-optimised with shim to the old API
-#
-# Values are normally specified by the application make file; the defaults here
-# are for legacy builds that pre-date the selection process
-#
-###############################################################################
-
-JENNIC_STACK ?= MAC
-JENNIC_MAC   ?= MAC
-
-###############################################################################
-# Include the chip or chip family definitions.
-# Chip takes precendence over chip family
-###############################################################################
-
-ifdef JENNIC_CHIP
-include $(SDK_BASE_DIR)/Chip/$(JENNIC_CHIP)/Build/config_$(JENNIC_CHIP).mk
-else
-ifdef JENNIC_CHIP_FAMILY
-include $(SDK_BASE_DIR)/Chip/$(JENNIC_CHIP_FAMILY)/Build/config_$(JENNIC_CHIP_FAMILY).mk
-else
-$(error JENNIC_CHIP or JENNIC_CHIP_FAMILY must be specified)
-endif
-endif
-
-###############################################################################
-# Define the selected Jennic chip
-###############################################################################
-
-CFLAGS += -DJENNIC_CHIP=$(JENNIC_CHIP)
-CFLAGS += -DJENNIC_CHIP_$(JENNIC_CHIP)
-CFLAGS += -DJENNIC_CHIP_FAMILY=$(JENNIC_CHIP_FAMILY)
-CFLAGS += -DJENNIC_CHIP_FAMILY_$(JENNIC_CHIP_FAMILY)
-
-CFLAGS += -DJENNIC_STACK_$(JENNIC_STACK)
-CFLAGS += -DJENNIC_MAC_$(JENNIC_MAC)
-
-###############################################################################
-# Chip independent compiler options
-###############################################################################
-
-CFLAGS += -Wall
-CFLAGS += -Wunreachable-code
-
-# Everything needs this
-CFLAGS += -DEMBEDDED
-
-###############################################################################
-# Compiler Paths
-###############################################################################
-
-CC	= gcc
-AS	= as
-LD	= ld
-AR	= ar
-NM	= nm
-STRIP	= strip
-SIZE	= size
-OBJCOPY = objcopy
-OBJDUMP = objdump
-RANLIB	= ranlib
-
-ifdef CROSS_COMPILE
-CC:=$(CROSS_COMPILE)-$(CC)
-AS:=$(CROSS_COMPILE)-$(AS)
-LD:=$(CROSS_COMPILE)-$(LD)
-AR:=$(CROSS_COMPILE)-$(AR)
-NM:=$(CROSS_COMPILE)-$(NM)
-STRIP:=$(CROSS_COMPILE)-$(STRIP)
-SIZE:=$(CROSS_COMPILE)-$(SIZE)
-OBJCOPY:=$(CROSS_COMPILE)-$(OBJCOPY)
-OBJDUMP:=$(CROSS_COMPILE)-$(OBJDUMP)
-endif
-
-# from Chip/Common/Build/config.mk -- end
+# Path-independent cross-compiler
+CC:=$(CROSS_COMPILE)-gcc
+AS:=$(CROSS_COMPILE)-as
+LD:=$(CROSS_COMPILE)-ls
+AR:=$(CROSS_COMPILE)-ar
+NM:=$(CROSS_COMPILE)-nm
+STRIP:=$(CROSS_COMPILE)-strip
+SIZE:=$(CROSS_COMPILE)-size
+OBJCOPY:=$(CROSS_COMPILE)-objcopy
+OBJDUMP:=$(CROSS_COMPILE)-objdump
 
 ### Contiki stuff
 
@@ -290,6 +84,8 @@ endif
 LDFLAGS += -L$(CHIP_BASE_DIR)/Build
 LDFLAGS += -L$(CHIP_BASE_DIR)/Library
 
+LDLIBS := $(addsuffix _$(JENNIC_CHIP_FAMILY),$(APPLIBS)) $(LDLIBS)
+
 #### make targets
 
 ifeq ($(HOST_OS),Windows)
@@ -314,70 +110,23 @@ UART_BAUDRATE ?= 1000000
 
 %.d: clean
 
-%.elf: $(APPOBJS) $(addsuffix _$(JENNIC_CHIP_FAMILY).a,$(addprefix $(COMPONENTS_BASE_DIR)/Library/lib,$(APPLIBS)))
-	$(info Linking $@ ...)
-	$(CC) -Wl,--gc-sections $(LDFLAGS) -T$(LINKCMD) -o $@ -Wl,--start-group $(APPOBJS) $(addprefix -l,$(LDLIBS)) $(addprefix -l,$(LDSTACKLIBS)) $(addprefix -l,$(LDMYLIBS)) -Wl,--end-group -Wl,-Map,contiki-$(TARGET).map  
-	@echo
-	
 %.nm: %.$(TARGET)
-	$(NM) -nS $< > $@
+	$(Q)$(NM) -nS $< > $@
 
 %.dmp: %.$(TARGET) 
-	$(OBJDUMP) -d $< > $@
+	$(Q)$(OBJDUMP) -d $< > $@
 
+CUSTOM_RULE_LINK = 1
 ALLLIBS = $(addprefix -l,$(LDLIBS)) $(addprefix -l,$(LDSTACKLIBS)) $(addprefix -l,$(LDMYLIBS))
-CUSTOM_RULE_LINK=1
-%.$(TARGET): %.co $(PROJECT_OBJECTFILES) $(PROJECT_LIBRARIES) contiki-$(TARGET).a 
-	$(TRACE_LD)
-	$(CC) -Wl,--gc-sections -T$(LINKCMD) $(LDFLAGS) -o $@ -Wl,--start-group $(TARGET_STARTFILES) ${filter-out %.a,$^} ${filter %.a,$^} $(ALLLIBS) -Wl,--end-group -Wl,-Map,contiki-$(TARGET).map
-	$(info Generating target & binary $@ +.bin...)
-	$(OBJCOPY) $@ $$( $(OBJDUMP) -h $< | sed -n 's/^ *[0-9]* \(.rom[._[:alnum:]]*\).*/-R \1/p' )
-	$(OBJCOPY) -S -O binary $@ $@.bin
-	
+%.$(TARGET): %.co $(PROJECT_OBJECTFILES) $(PROJECT_LIBRARIES) contiki-$(TARGET).a $(addsuffix _$(JENNIC_CHIP_FAMILY).a,$(addprefix $(COMPONENTS_BASE_DIR)/Library/lib,$(APPLIBS)))
+	echo  ${filter %.a,$^}
+	$(Q)$(CC) -Wl,--trace-symbol=printf -Wl,--gc-sections $(LDFLAGS) -T$(LINKCMD) -o $@ -Wl,--start-group ${filter-out %.a,$^} obj_jn5168/sprintf.o ${filter %.a,$^} $(ALLLIBS) -Wl,--end-group -Wl,-Map,contiki-$(TARGET).map
+
 %.$(TARGET).bin: %.$(TARGET) 
-	$(OBJCOPY) -S -O binary $< $@
-# .PHONY: symbols.c symbols.h
+	$(Q)$(OBJCOPY) -S -O binary $< $@
 
 symbols.c symbols.h:
 	@${CONTIKI}/tools/make-empty-symbols
-
-%.hex: %.$(TARGET)
-	$(OBJCOPY) $^ -O binary $@
-
-##
-#Usage: FlashCLI.exe [options] -f FLASHFILE
-#
-#NXP JN51xx Flash Programmer 1.8.9
-#
-#
-#Options:
-#  --version             show program's version number and exit
-#  -h, --help            show this help message and exit
-#  -c COMPORT, --ComPort=COMPORT
-#                        Select serial device to use (e.g. COM1, /dev/ttyUSB0)
-#                        - default COM1
-#  -f FLASHFILE, --FlashFile=FLASHFILE
-#                        Program FLASHFILE to the flash or RAM if --RAM
-#                        specified
-#  -l LISTFILE, --ListFile=LISTFILE
-#                        Program MAC address from LISTFILE
-#  -R, --RAM             Load binary into RAM and execute
-#  -w, --NoWait          Do not prompt user to put device into programming mode
-#  -m MACADDR, --MACAddress=MACADDR
-#                        Specify MAC address to program into the flash, hex
-#                        format XX:XX:XX:XX:XX:XX:XX:XX
-#  -B BAUDRATE, --BaudRate=BAUDRATE
-#                        Set the Baud Rate do not exceed 1000000 - defaults to
-#                        38400
-#  -p, --Preserve sector 3
-#                        Preserve sector 3
-#  -s, --SkipVerification
-#                        Skip verification of flash contents after programming
-#                        of the flash memory
-#  -a, --AutomaticPandR  Automatically generate PROGRAM and RESET signals
-#  -k PASSKEY, --Passkey=PASSKEY
-#                        Specify device security pass key
-##
 
 ### Upload target to one jn5168 mote specified by COM=portNumber
 %.upload: %.$(TARGET).bin
@@ -425,4 +174,3 @@ serialview: $(SERIALDUMP)
 		
 serialdump: $(SERIALDUMP)	
 	$(CONTIKI)/tools/sky/$(SERIALDUMP) -b${UART_BAUDRATE} $(PORT) | $(CONTIKI)/tools/timestamp | tee serialdump-$(notdir $(PORT))-`date +%Y%m%d-%H%M`
-	

@@ -45,6 +45,7 @@
 
 #include "dev/watchdog.h"
 #include <AppHardwareApi.h>
+#include <recal.h>
 #include "dev/uart0.h"
 
 #include "contiki.h"

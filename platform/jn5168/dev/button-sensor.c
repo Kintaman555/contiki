@@ -165,7 +165,6 @@ void button_ISR(uint32 u32DeviceId,	uint32 u32ItemBitmap)
   		if (u8WakeInt & E_AHI_WAKE_TIMER_MASK_1)
   		{
   			/* wake timer interrupt got us here */
-//  			DBG_vPrintf(TRACE_APP_BUTTON, "APP: Wake Timer 1 Interrupt\n");
 //  			PWRM_vWakeInterruptCallback();
   			PRINTF("button_ISR: u8WakeInt\n");
   		}

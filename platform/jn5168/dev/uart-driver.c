@@ -50,11 +50,16 @@
 /***        Include files                                                 ***/
 /****************************************************************************/
 #include <jendefs.h>
+
+#ifdef DEBUG
+#include <dbg.h>
+#else
+#define DBG_vPrintf(...)
+#endif
 #include "contiki-conf.h"
 #include "sys/rtimer.h"
 #include <math.h>
 #include <AppHardwareApi.h>
-#include <dbg.h>
 #include "uart-driver.h"
 
 #define UART_NUM_UARTS  2
