@@ -8,6 +8,7 @@ JENNIC_CHIP ?= JN5168
 JENNIC_PCB ?= DEVKIT4
 JENNIC_STACK ?= MAC
 JENNIC_MAC ?= MiniMac
+DISABLE_LTO ?= 1
 # can be set to SW or HW
 DEBUG ?= None
 ifeq ($(HOST_OS),Windows)     
@@ -49,11 +50,8 @@ SIZE:=$(CROSS_COMPILE)-size
 OBJCOPY:=$(CROSS_COMPILE)-objcopy
 OBJDUMP:=$(CROSS_COMPILE)-objdump
 
-### Contiki stuff
-
 # -Os is buggy!
 CFLAGS  := $(subst -Os,-O0,$(CFLAGS))
-LDFLAGS  := $(subst -Os,-O0,$(LDFLAGS))
 
 ARCH=clock.c rtimer-arch.c slip_uart0.c uart0.c uart1.c uart-driver.c watchdog.c \
  leds.c leds-arch.c \
@@ -120,7 +118,7 @@ CUSTOM_RULE_LINK = 1
 ALLLIBS = $(addprefix -l,$(LDLIBS)) $(addprefix -l,$(LDSTACKLIBS)) $(addprefix -l,$(LDMYLIBS))
 %.$(TARGET): %.co $(PROJECT_OBJECTFILES) $(PROJECT_LIBRARIES) contiki-$(TARGET).a $(addsuffix _$(JENNIC_CHIP_FAMILY).a,$(addprefix $(COMPONENTS_BASE_DIR)/Library/lib,$(APPLIBS)))
 	echo  ${filter %.a,$^}
-	$(Q)$(CC) -Wl,--trace-symbol=printf -Wl,--gc-sections $(LDFLAGS) -T$(LINKCMD) -o $@ -Wl,--start-group ${filter-out %.a,$^} obj_jn5168/sprintf.o ${filter %.a,$^} $(ALLLIBS) -Wl,--end-group -Wl,-Map,contiki-$(TARGET).map
+	$(Q)$(CC) -Wl,--gc-sections $(LDFLAGS) -T$(LINKCMD) -o $@ -Wl,--start-group ${filter-out %.a,$^} ${filter %.a,$^} $(ALLLIBS) -Wl,--end-group -Wl,-Map,contiki-$(TARGET).map
 
 %.$(TARGET).bin: %.$(TARGET) 
 	$(Q)$(OBJCOPY) -S -O binary $< $@
