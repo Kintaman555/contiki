@@ -127,7 +127,7 @@ PROCESS_THREAD(broadcast_sender_process, ev, data)
   tsch_schedule_add_link(sf1,
       LINK_OPTION_TX,
       LINK_TYPE_ADVERTISING, &tsch_broadcast_address,
-      node_index, 0);
+      (node_index*5)%103, 0);
   /* 2: wakeup at every slot */
   struct tsch_slotframe *sf2 = tsch_schedule_add_slotframe(2, 1);
   tsch_schedule_add_link(sf2,
