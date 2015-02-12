@@ -1446,6 +1446,27 @@ tsch_rx_process_pending()
         struct tsch_neighbor *n = tsch_queue_get_time_source();
         /* Did the EB come from our time source? */
         if(n != NULL && linkaddr_cmp(&source_address, &n->addr)) {
+          /* Check for ASN drift */
+          int32_t asn_diff = ASN_DIFF(current_input->rx_asn, eb_asn);
+          if(asn_diff != 0) {
+            /* We first need to take the lock, i.e. make sure no link operation inteferes with us */
+            if(tsch_get_lock()) {
+              /* Abort next link operation; it was scheduled as per a drifted ASN */
+              current_link = NULL;
+            }
+            /* Update ASN */
+            if(asn_diff > 0) {
+              /* The diff is positive, i.e. our ASN is too high */
+              ASN_DEC(current_asn, asn_diff);
+            } else {
+              /* The diff is negative, i.e. our ASN is too low */
+              ASN_INC(current_asn, -asn_diff);
+            }
+            last_sync_asn = current_asn;
+            tsch_release_lock();
+            LOG("TSCH: corrected ASN by %ld\n", asn_diff);
+          }
+
           /* Update join priority */
           if(eb_join_priority < TSCH_MAX_JOIN_PRIORITY) {
             if(tsch_join_priority != eb_join_priority + 1) {

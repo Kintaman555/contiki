@@ -249,7 +249,7 @@ tsch_schedule_remove_link(struct tsch_slotframe *slotframe, struct tsch_link *l)
       linkaddr_copy(&addr, &l->addr);
 
       /* The link to be removed is the scheduled as next, set it to NULL
-       * to abord the next link operation */
+       * to abort the next link operation */
       if(l == current_link) {
         current_link = NULL;
       }

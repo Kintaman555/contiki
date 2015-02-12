@@ -145,6 +145,13 @@ struct asn_divisor_t {
   (asn).ls4b = new_ls4b; \
 } while(0);
 
+/* Decrement an ASN by inc (32 bits) */
+#define ASN_DEC(asn, dec) do { \
+  uint32_t new_ls4b = (asn).ls4b - (dec); \
+  if(new_ls4b > (asn).ls4b) (asn).ms1b--; \
+  (asn).ls4b = new_ls4b; \
+} while(0);
+
 /* Returns the 32-bit diff between asn1 and asn2 */
 #define ASN_DIFF(asn1, asn2) \
     ((asn1).ls4b - (asn2).ls4b)
