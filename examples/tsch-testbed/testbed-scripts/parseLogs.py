@@ -247,7 +247,6 @@ def parseTsch(line, time, id, log, packetInfo, asnInfo):
         dst = packetInfo['dst']
     
     if asnInfo != None:
-        return None
         asn = asnInfo['asn'] 
         slotframe = asnInfo['slotframe']
         timeslot = asnInfo['timeslot']
@@ -374,7 +373,7 @@ def doParse(file, sinkId):
      #                   'RPL': parseRPL,
       #                  'Tcpip': parseTcpip,
        #                 '6LoWPAN': parse6lowpan,
-    #                    'TSCH': parseTsch,
+                        #'TSCH': parseTsch,
          #               'Cmac': parseCmac,
           #              'Scheduler': None,
                         }
@@ -484,6 +483,7 @@ def doParse(file, sinkId):
             lineData = {'time': time, 'id': id, 'module': module, 'log': log, 'packet': packetInfo, 'info': moduleInfo}
             allData.append(lineData)
                 
+    nodeIDs = allNodeIDs
     nodeIDs.sort()
     nodeIDs = filter(lambda x: x!=sinkId, nodeIDs)
     nodeIDs.insert(0, sinkId)

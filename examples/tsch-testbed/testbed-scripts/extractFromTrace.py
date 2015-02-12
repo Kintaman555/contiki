@@ -304,6 +304,7 @@ def connected(txGraph, s, r, channel):
                                 and txGraph[s][r][channel] > 0)
             
 def extractProbing(dir, parsed):
+    probingFile = open(os.path.join(dir, "probing.txt"), 'w')
     dataset = parsed['dataset']
     links = {}
     maxRxCount = 0
@@ -323,14 +324,23 @@ def extractProbing(dir, parsed):
                 links[(src,dst)]['rxCount'] += 1
                 maxRxCount = max(maxRxCount, links[(src,dst)]['rxCount'])
     cdfCount = 0
+    above90count = None
+    above90percent = None
     for i in range(1, 1+maxRxCount):
         pdfCount = 0
         for l in links:
             if links[l]['rxCount'] == i:
                 pdfCount += 1
         cdfCount += pdfCount
-        print "%3u (%6.2f%%): %5u (%6.2f%%), %5u (%6.2f%%) -- %5u (%6.2f%%)" %(i, i*100./maxRxCount, pdfCount, pdfCount*100./len(links), cdfCount, cdfCount*100./len(links), len(links)-cdfCount, (len(links)-cdfCount)*100./len(links))
-    print "Overall statistics: %u/%u (%.2f)" %(totalRxCount, totalTxCount, totalRxCount*1./totalTxCount)
+        if i*100./maxRxCount >= 90 and above90count == None:
+          above90count = len(links)-cdfCount
+          above90percent = (len(links)-cdfCount)*100./len(links)
+        str = "%3u (%6.2f%%): %5u (%6.2f%%), %5u (%6.2f%%) -- %5u (%6.2f%%)" %(i, i*100./maxRxCount, pdfCount, pdfCount*100./len(links), cdfCount, cdfCount*100./len(links), len(links)-cdfCount, (len(links)-cdfCount)*100./len(links))
+        print str
+        probingFile.write("%s\n"%(str))
+    str = "Overall statistics: %u/%u (%.2f), above 90%%: %u (%.2f%%)" %(totalRxCount, totalTxCount, totalRxCount*1./totalTxCount, above90count, above90percent)
+    print str
+    probingFile.write("%s\n"%(str))
 
 def analyzeTimeline(dir, parsed):
         
@@ -748,15 +758,15 @@ def main():
     
         file = entries['file']
         
-#        print "\nProcessing %s" %(file)
- #       process(parsed)
+        print "\nProcessing %s" %(file)
+        process(parsed)
         
-#        print "\nGenerating timeline txOnly=False"
- #       generateTimelineFile(dir, parsed, txOnly=False)
+  #      print "\nGenerating timeline txOnly=False"
+   #     generateTimelineFile(dir, parsed, txOnly=False)
  
-  #      print "\nGenerating timeline txOnly=True"
-   #     generateTimelineFile(dir, parsed, txOnly=True)
-        
+    #    print "\nGenerating timeline txOnly=True"
+        generateTimelineFile(dir, parsed, txOnly=True)
+     #   
 #        print "\nAnalyzing timeline"
  #       analyzeTimeline(dir, parsed)
  
