@@ -379,10 +379,9 @@ tsch_schedule_link_operation(struct rtimer *tm, rtimer_clock_t ref_time, rtimer_
   if(missed) {
     TSCH_LOG_ADD(tsch_log_message,
                 snprintf(log->message, sizeof(log->message),
-                    "!dl-miss-%d %x %x %x %x",
+                    "!dl-miss-%d %d %d",
                         conditional,
-                        ref_time, now,
-                        now - ref_time, offset);
+                        (int)(now - ref_time), (int)offset);
     );
 
     if(conditional) {

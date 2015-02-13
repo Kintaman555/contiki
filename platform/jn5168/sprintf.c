@@ -154,7 +154,11 @@ start_format:
   }
 
 abort:
-
+  if(str-str_orig < n) {
+    *str = '\0';
+  } else {
+    *(--str) = '\0';
+  }
   return str - str_orig;
 }
 
@@ -184,9 +188,8 @@ int printf(const char *fmt, ...)
   char str[256];
   __VALIST va;
   va_start(va,fmt);
-  m = vsnprintf(str, sizeof(str)-1, fmt, va);
+  m = vsnprintf(str, sizeof(str), fmt, va);
   va_end(va);
-  str[m+1] = '\0';
   for (i=0;i<m;i++)
 	  putchar(str[i]);
   return m;
