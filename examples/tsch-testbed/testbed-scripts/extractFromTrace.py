@@ -495,13 +495,6 @@ def process(parsed):
 #            extractData(parsed, "Not received, not dropped", "%", lambda x: x['module'] == 'App' and 'sending' in x['info'], lambda x: 100 if not x['info']['csmaDropped'] and not x['info']['duplicateDropped'] and not x['info']['tcpipDropped'] and not x['info']['received'] else 0, {'min': 0, 'max': 0}, MIN_INTERVAL)
 #        )
 
-        allPlottableData.append( extractData(parsed, "Rx Count", "#",
-                        lambda x: x['module'] == 'App' and 'sending' in x['info'],
-                        lambda x: x['info']['rxCount'],
-                        {'min': 0, 'max': 50},
-                        MIN_INTERVAL)
-        )
-
         allPlottableData.append( 
             extractData(parsed, "MAC drop", "%",
                         lambda x: x['module'] == 'App' and 'sending' in x['info'],
@@ -758,14 +751,14 @@ def main():
     
         file = entries['file']
         
-        print "\nProcessing %s" %(file)
-        process(parsed)
+#        print "\nProcessing %s" %(file)
+ #       process(parsed)
         
-  #      print "\nGenerating timeline txOnly=False"
-   #     generateTimelineFile(dir, parsed, txOnly=False)
+#        print "\nGenerating timeline txOnly=False"
+ #       generateTimelineFile(dir, parsed, txOnly=False)
  
-    #    print "\nGenerating timeline txOnly=True"
-        generateTimelineFile(dir, parsed, txOnly=True)
+  #      print "\nGenerating timeline txOnly=True"
+   #     generateTimelineFile(dir, parsed, txOnly=True)
      #   
 #        print "\nAnalyzing timeline"
  #       analyzeTimeline(dir, parsed)

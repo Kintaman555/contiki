@@ -46,7 +46,6 @@ def doAppReceive(packetId, recvTime, hops):
         appDataStats[packetId]['refmoduleInfo']['latency'] = latency 
     if receivedList[packetId]['hops'] > appDataStats[packetId]['refmoduleInfo']['hops']:
         appDataStats[packetId]['refmoduleInfo']['hops'] = receivedList[packetId]['hops']
-    appDataStats[packetId]['refmoduleInfo']['rxCount'] = receivedList[packetId]['rxCount']
 
 def tsch_register_drift(line, id, timeSource, asn, drift):
     global nodeState
@@ -102,7 +101,7 @@ def parseApp(line, time, id, log, packetInfo, asnInfo):
 #---- App: Sending -------------------------------------------------------------------------------------------------------------
     if log.startswith('sending'):
         moduleInfo = {'event': 'sending', 'sending': True, 'received': False,
-            'receivedCount': 0, 'fwCount': 0, 'rxCount': 0, 
+            'receivedCount': 0, 'fwCount': 0,  
             'hops': -1, 
             'lastLine': line,
             'e2eRxCount': 0}
@@ -116,9 +115,7 @@ def parseApp(line, time, id, log, packetInfo, asnInfo):
                 
 #---- App: Received -------------------------------------------------------------------------------------------------------------
     elif log.startswith('received'):
-        moduleInfo = {'event': 'received', 'recvTime': time, 'hops': hop, 'rxCount': 0}
-        if packetId in receivedList:
-            moduleInfo['rxCount'] = receivedList[packetId]['rxCount'] + 1
+        moduleInfo = {'event': 'received', 'recvTime': time, 'hops': hop }
         receivedList[packetId] = moduleInfo
         if packetId in appDataStats:
             doAppReceive(packetId, time, hop)
@@ -368,21 +365,21 @@ def doParse(file, sinkId):
     allNodeIDs = []
     nonExtractedModules = []
     parsingFunctions = {
-    #                    'Duty Cycle': parseDutyCycle,
+           #             'Duty Cycle': parseDutyCycle,
                         'App': parseApp,
-     #                   'RPL': parseRPL,
-      #                  'Tcpip': parseTcpip,
-       #                 '6LoWPAN': parse6lowpan,
-                        #'TSCH': parseTsch,
-         #               'Cmac': parseCmac,
-          #              'Scheduler': None,
+            #            'RPL': parseRPL,
+             #           'Tcpip': parseTcpip,
+              #          '6LoWPAN': parse6lowpan,
+               #         'TSCH': parseTsch,
+                #        'Cmac': parseCmac,
+                 #       'Scheduler': None,
                         }
     
     linesProcessedCount = 0
     linesParsedCount = 0
     
     for line in open(file, 'r').readlines():
-    #for line in open(file, 'r').readlines()[-500000:-1]:
+    #for line in open(file, 'r').readlines()[-200000:-1]:
         log = None
         module = None
         # match time, id, module, log; The common format for all log lines
