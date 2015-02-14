@@ -355,7 +355,9 @@ def extractProbing(dir, parsed):
                 1)
     dutyCycleTx = extractedDutyCycleTx["global"]["avg"] 
     
-    str = "Overall statistics: %u/%u (%.2f), above 90%%: %u (%.2f%%), tx duty cycle %.2f%%, duty cycle %.2f%%" %(
+    if dutyCycle > 100:
+      dutyCycle = 100
+    str = "Overall statistics: %u/%u (%.2f), above 90%%: %u (%.2f%%), tx duty cycle %.4f%%, duty cycle %.4f%%" %(
             totalRxCount, totalTxCount, totalRxCount*1./totalTxCount,
             above90count, above90count*100./len(links),
             dutyCycleTx, dutyCycle
