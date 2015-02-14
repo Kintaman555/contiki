@@ -365,7 +365,7 @@ def doParse(file, sinkId):
     allNodeIDs = []
     nonExtractedModules = []
     parsingFunctions = {
-           #             'Duty Cycle': parseDutyCycle,
+                        'Duty Cycle': parseDutyCycle,
                         'App': parseApp,
             #            'RPL': parseRPL,
              #           'Tcpip': parseTcpip,

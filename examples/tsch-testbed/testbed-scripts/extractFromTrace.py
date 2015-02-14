@@ -333,12 +333,33 @@ def extractProbing(dir, parsed):
                 pdfCount += 1
         cdfCount += pdfCount
         if i*100./maxRxCount >= 90 and above90count == None:
-          above90count = len(links)-cdfCount
-          above90percent = (len(links)-cdfCount)*100./len(links)
+          currCount = len(links)-cdfCount
+          currStat = i*1./maxRxCount
+          currWeight = (i*1./maxRxCount - 0.9) / (1./maxRxCount)
+          above90count = currCount * (currWeight) + prevCount * (1-currWeight)
+        prevCount = len(links)-cdfCount
         str = "%3u (%6.2f%%): %5u (%6.2f%%), %5u (%6.2f%%) -- %5u (%6.2f%%)" %(i, i*100./maxRxCount, pdfCount, pdfCount*100./len(links), cdfCount, cdfCount*100./len(links), len(links)-cdfCount, (len(links)-cdfCount)*100./len(links))
         print str
         probingFile.write("%s\n"%(str))
-    str = "Overall statistics: %u/%u (%.2f), above 90%%: %u (%.2f%%)" %(totalRxCount, totalTxCount, totalRxCount*1./totalTxCount, above90count, above90percent)
+    
+    extractedDutyCycle = extractData(parsed, "Duty Cycle", "%",
+                lambda x: x['module'] == 'Duty Cycle' and x['id'] != SINK_ID and x['id'] in parsed['nodeIDs'],
+                lambda x: x['info']['dutyCycle'],
+                {'min': 0, 'max': 25},
+                1)
+    dutyCycle = extractedDutyCycle["global"]["avg"]
+    extractedDutyCycleTx = extractData(parsed, "Tx Duty Cycle", "%",
+                lambda x: x['module'] == 'Duty Cycle' and x['id'] != SINK_ID and x['id'] in parsed['nodeIDs'],
+                lambda x: x['info']['dutyCycleTx'],
+                {'min': 0, 'max': 25},
+                1)
+    dutyCycleTx = extractedDutyCycleTx["global"]["avg"] 
+    
+    str = "Overall statistics: %u/%u (%.2f), above 90%%: %u (%.2f%%), tx duty cycle %.2f%%, duty cycle %.2f%%" %(
+            totalRxCount, totalTxCount, totalRxCount*1./totalTxCount,
+            above90count, above90count*100./len(links),
+            dutyCycleTx, dutyCycle
+            )
     print str
     probingFile.write("%s\n"%(str))
 
@@ -601,7 +622,7 @@ def process(parsed):
                         lambda x: 100 if x['info']['status'] == 0 else 0,
                         {'min': 0, 'max': 100},
                         MIN_INTERVAL)
-        )
+        ) 
         allPlottableData.append( 
             extractData(parsed, "Duty Cycle", "%",
                         lambda x: x['module'] == 'Duty Cycle' and x['id'] != SINK_ID and x['id'] in parsed['nodeIDs'],
