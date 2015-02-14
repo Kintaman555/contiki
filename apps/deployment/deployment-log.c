@@ -50,6 +50,7 @@
 
 #if WITH_LOG
 
+#if WITH_RPL
 /* Print all neighbors (RPL "parents"), their link metric and rank */
 void
 rpl_print_neighbor_list()
@@ -73,6 +74,8 @@ rpl_print_neighbor_list()
     printf("RPL: eol\n");
   }
 }
+#endif /* WITH_RPL */
+
 /* Copy an appdata to another with no assumption that the addresses are aligned */
 void
 appdata_copy(void *dst, void *src)
@@ -163,7 +166,9 @@ PROCESS_THREAD(log_process, ev, data)
     PROCESS_WAIT_UNTIL(etimer_expired(&periodic));
     etimer_reset(&periodic);
     simple_energest_step(!(WITH_RPL == 1 && default_instance == NULL));
+#if WITH_RPL
     rpl_print_neighbor_list();
+#endif /* WITH_RPL */
   }
 
   PROCESS_END();
