@@ -37,6 +37,7 @@
 #include "deployment-def.h"
 
 #define WITH_RPL 0
+#define TSCH_CONF_MAX_INCOMING_PACKETS 8
 
 /* #define WITH_OFFLINE_SCHEDULE_SHARED 1 */
 /* #define WITH_OFFLINE_SCHEDULE_DEDICATED 1 */
@@ -215,9 +216,14 @@
 
 #endif /* WITH_OF_HOP_ETX */
 
+#if WITH_RPL
 /* The neighbor table size */
 #undef NBR_TABLE_CONF_MAX_NEIGHBORS
 #define NBR_TABLE_CONF_MAX_NEIGHBORS 24
+#else
+#undef NBR_TABLE_CONF_MAX_NEIGHBORS
+#define NBR_TABLE_CONF_MAX_NEIGHBORS 12
+#endif
 
 /* The routing table size */
 #undef UIP_CONF_MAX_ROUTES

@@ -1031,6 +1031,11 @@ PT_THREAD(tsch_rx_link(struct pt *pt, struct rtimer *t))
     }
 
     t0rxack = RTIMER_NOW() - t0rxack;
+  } else {
+    TSCH_LOG_ADD(tsch_log_message,
+        snprintf(log->message, sizeof(log->message),
+            "!input queue full");
+        );
   }
 
   PT_END(pt);
