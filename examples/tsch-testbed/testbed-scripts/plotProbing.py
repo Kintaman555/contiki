@@ -43,8 +43,9 @@ def plotStat(all_res, field, ylabel, legendPos="lower right", legendBbox=None):
              }
   index = 0
   for mac in ["td", "ts", "cm64", "nm"]:
-    y = map(lambda x: all_res[(x,mac)]['stats'][field] if (x,mac) in all_res else None, x)
-    ax.plot(x, y,
+    y = map(lambda x: all_res[(x,mac)]['stats'][field]["avg"] if (x,mac) in all_res else 0, x)
+    e = map(lambda x: all_res[(x,mac)]['stats'][field]["stdev"] if (x,mac) in all_res else 0, x)
+    ax.errorbar(x, y, e,
             label=configs[mac]['l'],
             linestyle=getLineStyle(index),
             marker=getMarker(index),
@@ -118,7 +119,8 @@ def main():
     all_res[key]['stats'] = {}
     for field in ["rxCount","stableLinks","dcTx","dc"]:
       data = map(lambda x: x['stats'][field], all_res[key]['data'])
-      all_res[key]['stats'][field] = average(data)
+      all_res[key]['stats'][field] = {"avg": average(data),
+                                      "stdev": stdev(data)}
   plotStat(all_res, "rxCount", "Receiver count (#)")
   plotStat(all_res, "stableLinks", "Stable links (#)")
   plotStat(all_res, "dcTx", "Channel utilization (%)", legendPos="upper right")
