@@ -898,12 +898,15 @@ PT_THREAD(tsch_rx_link(struct pt *pt, struct rtimer *t))
   static linkaddr_t source_address;
   static linkaddr_t destination_address;
   static int16_t input_index;
+  static int input_queue_drop = 0;
 
   PT_BEGIN(pt);
 
   //TODO receive the packet and send NACK if we don't have buffer space!
   input_index = ringbufindex_peek_put(&input_ringbuf);
-  if(input_index != -1) {
+  if(input_index == -1) {
+    input_queue_drop++;
+  } else {
     static struct input_packet *current_input;
     /* Estimated drift based on RX time */
     static int32_t estimated_drift;
@@ -1031,11 +1034,13 @@ PT_THREAD(tsch_rx_link(struct pt *pt, struct rtimer *t))
     }
 
     t0rxack = RTIMER_NOW() - t0rxack;
-  } else {
-    TSCH_LOG_ADD(tsch_log_message,
-        snprintf(log->message, sizeof(log->message),
-            "!input queue full");
-        );
+    if(input_queue_drop != 0) {
+      TSCH_LOG_ADD(tsch_log_message,
+          snprintf(log->message, sizeof(log->message),
+              "!queue full skipped %u", input_queue_drop);
+      );
+      input_queue_drop = 0;
+    }
   }
 
   PT_END(pt);
