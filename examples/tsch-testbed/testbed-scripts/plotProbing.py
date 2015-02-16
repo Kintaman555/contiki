@@ -91,7 +91,6 @@ def extractStats(dir):
     last_line = f.readlines()[-1]
     res = re.compile('Overall statistics: ([\\d]+)/([\\d]+) \(([\\d.]+)\), above 90%: ([\\d]+) \(([\\d.]+)\%\), tx duty cycle ([\\d.]+)\%, duty cycle ([\\d.]+)\%').match(last_line)
     if res != None:
-      print last_line
       return {"rxCount": float(res.group(3)), "stableLinks": int(res.group(4)),
               "dcTx": float(res.group(6))*N_NODES, "dc": float(res.group(7))}
     else:
@@ -115,12 +114,13 @@ def main():
         all_res[(period, mac)] = {'data': []}
       all_res[(period, mac)]['data'].append({'dir': dir, 'stats': stats})
   for key in all_res:
-    print key
     all_res[key]['stats'] = {}
     for field in ["rxCount","stableLinks","dcTx","dc"]:
       data = map(lambda x: x['stats'][field], all_res[key]['data'])
       all_res[key]['stats'][field] = {"avg": average(data),
                                       "stdev": stdev(data)}
+
+      print key, field, all_res[key]['stats'][field]["avg"]
   plotStat(all_res, "rxCount", "Receiver count (#)")
   plotStat(all_res, "stableLinks", "Stable links (#)")
   plotStat(all_res, "dcTx", "Channel utilization (%)", legendPos="upper right")
