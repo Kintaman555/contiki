@@ -1004,9 +1004,13 @@ PT_THREAD(tsch_rx_link(struct pt *pt, struct rtimer *t))
               tsch_schedule_keepalive();
             }
 
+#if WITH_APP_PROBING
+            app_probing_received(LOG_APPDATAPTR_FROM_BUFFER(current_input->payload, current_input->len));
+#else
             /* Add current input to ringbuf and set ctimer for later processing */
             ringbufindex_put(&input_ringbuf);
             process_poll(&tsch_pending_events_process);
+#endif /* WITH_APP_PROBING */
 
             /* Log every reception */
             TSCH_LOG_ADD(tsch_log_rx,

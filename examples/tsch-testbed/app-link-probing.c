@@ -47,6 +47,7 @@
 #include "deployment.h"
 #include "simple-udp.h"
 #include "net/ip/uip-debug.h"
+#include "lib/ringbufindex.h"
 #include <stdio.h>
 
 #define SEND_INTERVAL   (60 * CLOCK_SECOND)
@@ -59,6 +60,7 @@ static struct simple_udp_connection broadcast_connection;
 /*---------------------------------------------------------------------------*/
 PROCESS(broadcast_sender_process, "Link Probing Application");
 AUTOSTART_PROCESSES(&broadcast_sender_process);
+PROCESS(pending_events_process, "pending events process");
 /*---------------------------------------------------------------------------*/
 static void
 receiver(struct simple_udp_connection *c,
@@ -72,10 +74,64 @@ receiver(struct simple_udp_connection *c,
   LOGA((void*)data, "App: received");
 }
 /*---------------------------------------------------------------------------*/
+#define MAX_PRB 128
+static struct ringbufindex log_ringbuf;
+static uint32_t log_array[MAX_PRB];
+static int log_dropped = 0;
+void
+app_probing_received(struct app_data *data)
+{
+  int log_index = ringbufindex_peek_put(&log_ringbuf);
+  if(data && log_index != -1) {
+    uint32_t *seqno = &log_array[log_index];
+    struct app_data appdata;
+    appdata_copy(&appdata, data);
+    *seqno = appdata.seqno;
+    ringbufindex_put(&log_ringbuf);
+    process_poll(&pending_events_process);
+    return;
+  } else {
+    log_dropped++;
+    return;
+  }
+}
+/*---------------------------------------------------------------------------*/
+void
+process_pending()
+{
+  static int last_log_dropped = 0;
+  int16_t log_index;
+  if(log_dropped != last_log_dropped) {
+    LOG("App:! prb dropped %u\n", log_dropped);
+    last_log_dropped = log_dropped;
+  }
+  while((log_index = ringbufindex_peek_get(&log_ringbuf)) != -1) {
+    uint32_t *seqno = &log_array[log_index];
+    struct app_data appdata;
+    appdata.magic = UIP_HTONL(LOG_MAGIC);
+    appdata.seqno = *seqno;
+    appdata.src = UIP_HTONS(UIP_HTONL(*seqno) >> 16);
+    appdata.dest = 0;
+    appdata.hop = 0;
+    LOGA((void*)&appdata, "App: received");
+    /* Remove input from ringbuf */
+    ringbufindex_get(&log_ringbuf);
+  }
+}
+/*---------------------------------------------------------------------------*/
+PROCESS_THREAD(pending_events_process, ev, data)
+{
+  PROCESS_BEGIN();
+  while(1) {
+    PROCESS_YIELD_UNTIL(ev == PROCESS_EVENT_POLL);
+    process_pending();
+  }
+  PROCESS_END();
+}
+/*---------------------------------------------------------------------------*/
 void
 app_send_broadcast()
 {
-
   static unsigned int cnt;
   struct app_data data;
   uip_ipaddr_t dest_ipaddr;
@@ -152,7 +208,8 @@ PROCESS_THREAD(broadcast_sender_process, ev, data)
 #endif
 #endif
 
-
+  ringbufindex_init(&log_ringbuf, MAX_PRB);
+  process_start(&pending_events_process, NULL);
   etimer_set(&periodic_timer, SEND_INTERVAL);
   while(1) {
     etimer_set(&send_timer, random_rand() % (SEND_INTERVAL));
