@@ -421,7 +421,11 @@ send_packet(mac_callback_t sent, void *ptr)
 static void
 input_packet(void)
 {
+#if WITH_APP_PROBING
+  app_probing_received(LOG_APPDATAPTR_FROM_PACKETBUF());
+#else
   NETSTACK_LLSEC.input();
+#endif
 }
 /*---------------------------------------------------------------------------*/
 static int
