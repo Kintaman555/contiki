@@ -61,11 +61,12 @@ def plotStat(all_res, field, ylabel, legendPos="lower right", legendBbox=None):
   ax.set_xscale('log')
   
   if field == "dcTx":
-    ax.set_yscale('log')
-    yt = [1, 3, 10, 30, 100, 300]
-    ax.axis(ymin=0.1, xmin=1.7, xmax=70)
-    ax.set_yticks(yt)
-    ax.set_yticklabels(yt)
+    #ax.set_yscale('log')
+    #yt = [1, 3, 10, 30]
+    #ax.axis(ymin=0.1, xmin=1.7, xmax=70)
+    ax.axis(xmin=1.7, xmax=70)
+    #ax.set_yticks(yt)
+    #ax.set_yticklabels(yt)
   elif field == "dc":
     ax.axis(ymin=0,ymax=105, xmin=1.7, xmax=70)
   else:
@@ -92,7 +93,7 @@ def extractStats(dir):
     res = re.compile('Overall statistics: ([\\d]+)/([\\d]+) \(([\\d.]+)\), above 90%: ([\\d]+) \(([\\d.]+)\%\), tx duty cycle ([\\d.]+)\%, duty cycle ([\\d.]+)\%').match(last_line)
     if res != None:
       return {"rxCount": float(res.group(3)), "stableLinks": int(res.group(4)),
-              "dcTx": float(res.group(6))*N_NODES, "dc": float(res.group(7))}
+              "dcTx": float(res.group(6)), "dc": float(res.group(7))}
     else:
       return None
 
@@ -123,7 +124,7 @@ def main():
       print key, field, all_res[key]['stats'][field]["avg"]
   plotStat(all_res, "rxCount", "Receiver count (#)")
   plotStat(all_res, "stableLinks", "Stable links (#)")
-  plotStat(all_res, "dcTx", "Channel utilization (%)", legendPos="upper right")
+  plotStat(all_res, "dcTx", "Tx Duty Cycle (%)", legendPos="upper right")
   plotStat(all_res, "dc", "Duty Cycle (%)", legendPos="upper right", legendBbox=(1,0.95))
   
 main()
