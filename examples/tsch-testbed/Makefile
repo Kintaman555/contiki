@@ -1,4 +1,4 @@
-CONTIKI_PROJECT = app-rpl-collect-only app-link-probing
+CONTIKI_PROJECT = app-rpl-collect-only
 CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
 TARGET ?= sky
 
