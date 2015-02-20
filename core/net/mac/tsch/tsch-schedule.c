@@ -73,9 +73,6 @@
 #define TSCH_SCHEDULE_DEFAULT_LENGTH 17 /* 17x15ms => 255ms */
 #endif
 
-/* Slotframe used for EBs */
-struct tsch_slotframe *sf_eb;
-
 /* Max number of TSCH slotframes */
 #ifdef TSCH_CONF_MAX_SLOTFRAMES
 #define TSCH_MAX_SLOTFRAMES TSCH_CONF_MAX_SLOTFRAMES
@@ -473,14 +470,15 @@ tsch_schedule_init()
 void
 tsch_schedule_create_minimal()
 {
+  static struct tsch_slotframe *sf_min;
   /* Build 6TiSCH minimal schedule.
    * We pick a slotframe length of TSCH_SCHEDULE_DEFAULT_LENGTH */
-  sf_eb = tsch_schedule_add_slotframe(0, TSCH_SCHEDULE_DEFAULT_LENGTH);
+  sf_min = tsch_schedule_add_slotframe(0, TSCH_SCHEDULE_DEFAULT_LENGTH);
   /* Add a single Tx|Rx|Shared slot using broadcast address (i.e. usable for unicast and broadcast).
    * We set the link type to advertising, which is not compliant with 6TiSCH minimal schedule
    * but is required according to 802.15.4e if also used for EB transmission.
    * Timeslot: 0, channel offset: 0. */
-  tsch_schedule_add_link(sf_eb,
+  tsch_schedule_add_link(sf_min,
       LINK_OPTION_RX | LINK_OPTION_TX | LINK_OPTION_SHARED,
       LINK_TYPE_ADVERTISING, &tsch_broadcast_address,
       0, 0);

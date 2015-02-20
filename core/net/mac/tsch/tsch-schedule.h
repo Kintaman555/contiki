@@ -122,7 +122,4 @@ struct tsch_link *tsch_schedule_get_next_active_link(struct asn_t *asn, uint16_t
 /* Create a 6TiSCH minimal schedule */
 void tsch_schedule_create_minimal();
 
-/* Slotframe used for EBs */
-extern struct tsch_slotframe *sf_eb;
-
 #endif /* __TSCH_SCHEDULE_H__ */

@@ -45,7 +45,7 @@
 #include "net/mac/tsch/tsch-rpl.h"
 #include "deployment.h"
 #include "simple-udp.h"
-#include "tools/offline-scheduler.h"
+#include "tools/orchestra.h"
 #include <stdio.h>
 
 #define SEND_INTERVAL   (60*CLOCK_SECOND)
@@ -128,10 +128,8 @@ PROCESS_THREAD(unicast_sender_process, ev, data)
                       NULL, UDP_PORT, receiver);
 
 #if WITH_TSCH
-#if WITH_OFFLINE_SCHEDULE_SHARED
-  offline_scheduler_init_shared();
-#elif WITH_OFFLINE_SCHEDULE_DEDICATED
-  offline_scheduler_init_dedicated();
+#if WITH_ORCHESTRA
+  orchestra_init();
 #else
   tsch_schedule_create_minimal();
 #endif

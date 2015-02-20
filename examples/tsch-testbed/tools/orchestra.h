@@ -29,14 +29,47 @@
  */
 /**
  * \file
- *         A simple offline scheduler for TSCH
+ *         Orchestra header file
  *
  * \author Simon Duquennoy <simonduq@sics.se>
  */
 
-#include "net/mac/tsch/tsch.h"
-#include "net/mac/tsch/tsch-private.h"
-#include "net/mac/tsch/tsch-queue.h"
+#ifndef __ORCHESTRA_H__
+#define __ORCHESTRA_H__
 
-void offline_scheduler_init();
+#include "net/mac/tsch/tsch.h"
+#include "net/mac/tsch/tsch-schedule.h"
+
+#if ORCHESTRA_CONFIG == ORCHESTRA_MINIMAL_SCHEDULE
+
+#define ORCHESTRA_WITH_COMMON_SHARED              1
+#define ORCHESTRA_COMMON_SHARED_PERIOD            TSCH_SCHEDULE_CONF_DEFAULT_LENGTH
+#define ORCHESTRA_COMMON_SHARED_TYPE              LINK_TYPE_ADVERTISING
+
+#elif ORCHESTRA_CONFIG == ORCHESTRA_RECEIVER_BASED
+
+#define ORCHESTRA_WITH_EBSF                       1
+#define ORCHESTRA_EBSF_PERIOD                     397
+#define ORCHESTRA_WITH_COMMON_SHARED              1
+#define ORCHESTRA_COMMON_SHARED_TYPE              LINK_TYPE_NORMAL
+#define ORCHESTRA_COMMON_SHARED_PERIOD            63
+#define ORCHESTRA_WITH_RBUNICAST                  1
+#define ORCHESTRA_RBUNICAST_PERIOD                ORCHESTRA_UNICAST_PERIOD
+
+#elif ORCHESTRA_CONFIG == ORCHESTRA_SENDER_BASED
+
+#define ORCHESTRA_WITH_EBSF                       1
+#define ORCHESTRA_EBSF_PERIOD                     397
+#define ORCHESTRA_WITH_COMMON_SHARED              1
+#define ORCHESTRA_COMMON_SHARED_TYPE              LINK_TYPE_NORMAL
+#define ORCHESTRA_COMMON_SHARED_PERIOD            63
+#define ORCHESTRA_WITH_SBUNICAST                  1
+#define ORCHESTRA_SBUNICAST_PERIOD                ORCHESTRA_UNICAST_PERIOD
+#define ORCHESTRA_SBUNICAST_SHARED               (ORCHESTRA_UNICAST_PERIOD < MAX_NODES)
+
+#endif
+
+void orchestra_init();
 void tsch_callback_new_time_source(struct tsch_neighbor *old, struct tsch_neighbor *new);
+
+#endif /* __ORCHESTRA_H__ */

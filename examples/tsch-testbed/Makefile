@@ -43,7 +43,7 @@ CFLAGS+= -DWITHOUT_ATTR_TIMESTAMP
 CFLAGS+= -DWITHOUT_ATTR_FRAME_TYPE
 
 PROJECTDIRS += tools
-PROJECT_SOURCEFILES += node-id.c offline-scheduler.c 
+PROJECT_SOURCEFILES += node-id.c orchestra.c 
 
 ifneq ($(TARGET),jn5168)
 PROJECT_SOURCEFILES += uart1-putchar.c
