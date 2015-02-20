@@ -11,10 +11,10 @@ import pygraphviz as pgv
 N_NODES = 99
 N_NEIGHBORS = 15.7
 
-markers = ['s', 'o', '^', 'p', '*']
-colors = ['#FF9900', '#00A876', '#0a51a7', '#FF5900', 'yellow', 'black']
+markers = ['s', 'o', '^', 'p', 'd']
+colors = ['#FF9900', '#00A876', '#0a51a7', '#FF5900', '#8FD9F2', 'black']
 linestyles = ['-', '--']
-fillColors = ['#0a51a7', '#FF9900', '#00A876', '#FF5900', 'yellow', 'black']
+fillColors = ['#0a51a7', '#FF9900', '#00A876', '#FF5900', '#8FD9F2', 'black']
 
 def getMarker(index):
     return markers[index % len(markers)]
@@ -32,17 +32,18 @@ def stdev(data):
   avg = average(data)
   return math.sqrt(average(map(lambda x: (x - avg)**2, data)))
 
-def plotStat(all_res, field, ylabel, legendPos="lower right", legendBbox=None):
+def plotStat(all_res, field, ylabel, legendPos="lower right", legendBbox=None, legend=True):
   fig = plt.figure(figsize=(4.5, 3.5))
   ax = fig.add_subplot(111)
   x = [2, 5, 15, 30, 60]
-  configs = {"nm": {'l': "Csma"},
-             "cm64": {"l": "ContikiMAC"},
-             "ts": {"l": "TSCH-minimal"},
-             "td": {"l": "TSCH-dedicated"}
+  configs = {"nm": {'l': "Csma", 'i': 3},
+             "cm8": {"l": "ContikiMAC@8Hz", 'i': 4},
+             "cm64": {"l": "ContikiMAC@64Hz", 'i': 2},
+             "ts": {"l": "TSCH-minimal", 'i': 1},
+             "td": {"l": "TSCH-dedicated", 'i': 0}
              }
-  index = 0
-  for mac in ["td", "ts", "cm64", "nm"]:
+  for mac in ["td", "ts", "cm64", "cm8", "nm"]:
+    index = configs[mac]["i"]
     y = map(lambda x: all_res[(x,mac)]['stats'][field]["avg"] if (x,mac) in all_res else 0, x)
     e = map(lambda x: all_res[(x,mac)]['stats'][field]["stdev"] if (x,mac) in all_res else 0, x)
     ax.errorbar(x, y, e,
@@ -51,12 +52,12 @@ def plotStat(all_res, field, ylabel, legendPos="lower right", legendBbox=None):
             marker=getMarker(index),
             color=getLineColor(index)
             )
-    index += 1
   ax.grid(True)
-  if legendBbox != None:
-    ax.legend(bbox_to_anchor=legendBbox, prop={'size':12})
-  else:
-    ax.legend(loc=legendPos, prop={'size':12})
+  if legend:
+    if legendBbox != None:
+      ax.legend(bbox_to_anchor=legendBbox, prop={'size':12})
+    else:
+      ax.legend(loc=legendPos, prop={'size':12})
   ax.set_xlabel("Probing interval (s)", fontsize=16)
   ax.set_xscale('log')
   
@@ -99,15 +100,15 @@ def extractStats(dir):
 
 def main():
   all_res = {}
-  xp_dir = "experiments"
+  xp_dir = "."
   for f in os.listdir(xp_dir):
     res = re.compile('Indriya_prb([\\d]+)_([^_]+)_[\\d]+_[\\d]+').match(f)
     if res != None:
       period = int(res.group(1))
       mac = res.group(2)
       dir = os.path.join(xp_dir, f)
-      if mac == "cm8":
-        continue
+#      if mac == "cm8":
+ #       continue
       stats = extractStats(dir)
       if stats == None:
         continue
@@ -123,8 +124,8 @@ def main():
 
       print key, field, all_res[key]['stats'][field]["avg"]
   plotStat(all_res, "rxCount", "Receiver count (#)")
-  plotStat(all_res, "stableLinks", "Stable links (#)")
-  plotStat(all_res, "dcTx", "Tx Duty Cycle (%)", legendPos="upper right")
-  plotStat(all_res, "dc", "Duty Cycle (%)", legendPos="upper right", legendBbox=(1,0.95))
+  plotStat(all_res, "stableLinks", "Stable links (#)",legend=False)
+  plotStat(all_res, "dcTx", "Tx Duty Cycle (%)", legendPos="upper right",legend=False)
+  plotStat(all_res, "dc", "Duty Cycle (%)", legendPos="upper right", legendBbox=(1,0.95),legend=False)
   
 main()

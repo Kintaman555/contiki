@@ -15,7 +15,7 @@ MIN_TIME = 0 # start counting only after 10 minutes (except for timeline)
 MAX_TIME = 999999
 EDC_DIVISOR = 128
 #SINK_ID = 2
-SINK_ID = 1
+SINK_ID = 2
 #SINK_ID = 272
 plotIndex = 0
 
@@ -496,9 +496,9 @@ def process(parsed):
                 {'min': 1, 'max': 100},
                 MIN_INTERVAL, verbose=False, export=False)
         
-        if parsed['maxTime']/60 > 20:
+        if parsed['maxTime']/60 > 6:
             #MIN_TIME = (parsed['maxTime']/60) / 2
-            MIN_TIME = 20
+            MIN_TIME = 5
             MAX_TIME = (parsed['maxTime']/60) - 1
         else:
             MIN_TIME = 0
@@ -774,8 +774,8 @@ def main():
     
         file = entries['file']
         
-#        print "\nProcessing %s" %(file)
- #       process(parsed)
+        print "\nProcessing %s" %(file)
+        process(parsed)
         
 #        print "\nGenerating timeline txOnly=False"
  #       generateTimelineFile(dir, parsed, txOnly=False)
@@ -786,7 +786,7 @@ def main():
 #        print "\nAnalyzing timeline"
  #       analyzeTimeline(dir, parsed)
  
-        print "\nExtracting probing data"
-        extractProbing(dir, parsed)
+#        print "\nExtracting probing data"
+ #       extractProbing(dir, parsed)
                 
 main()

@@ -367,12 +367,12 @@ def doParse(file, sinkId):
     parsingFunctions = {
                         'Duty Cycle': parseDutyCycle,
                         'App': parseApp,
-            #            'RPL': parseRPL,
-             #           'Tcpip': parseTcpip,
-              #          '6LoWPAN': parse6lowpan,
-               #         'TSCH': parseTsch,
-                #        'Cmac': parseCmac,
-                 #       'Scheduler': None,
+                        'RPL': parseRPL,
+                        'Tcpip': parseTcpip,
+                        '6LoWPAN': parse6lowpan,
+                        'TSCH': parseTsch,
+                        'Cmac': parseCmac,
+                        'Scheduler': None,
                         }
     
     linesProcessedCount = 0
