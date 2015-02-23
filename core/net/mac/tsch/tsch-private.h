@@ -80,6 +80,20 @@
 #define TSCH_MAX_JOIN_PRIORITY 16
 #endif
 
+/* Rx guard time (TsLongGT) */
+#ifdef TSCH_CONF_GUARD_TIME
+#define TSCH_GUARD_TIME TSCH_CONF_GUARD_TIME
+#else
+#define TSCH_GUARD_TIME 1000
+#endif
+
+/* Max number of links */
+#ifdef TSCH_CONF_MAX_LINKS
+#define TSCH_MAX_LINKS TSCH_CONF_MAX_LINKS
+#else
+#define TSCH_MAX_LINKS 32
+#endif
+
 /* TSCH MAC parameters */
 #define MAC_MIN_BE 0
 #define MAC_MAX_FRAME_RETRIES 8
@@ -116,7 +130,7 @@
 
 #define TsTxOffset          ((unsigned)US_TO_RTIMERTICKS(4000))
 #define TsTxAckDelay        ((unsigned)US_TO_RTIMERTICKS(4000))
-#define TsLongGT            ((unsigned)US_TO_RTIMERTICKS(1000))
+#define TsLongGT            ((unsigned)US_TO_RTIMERTICKS(TSCH_GUARD_TIME))
 #define TsShortGT           ((unsigned)US_TO_RTIMERTICKS(400))
 #define TsSlotDuration      ((unsigned)US_TO_RTIMERTICKS(15000))
 

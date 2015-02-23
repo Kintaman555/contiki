@@ -80,13 +80,6 @@
 #define TSCH_MAX_SLOTFRAMES 4
 #endif
 
-/* Max number of links */
-#ifdef TSCH_CONF_MAX_LINKS
-#define TSCH_MAX_LINKS TSCH_CONF_MAX_LINKS
-#else
-#define TSCH_MAX_LINKS 32
-#endif
-
 /* Pre-allocated space for links */
 MEMB(link_memb, struct tsch_link, TSCH_MAX_LINKS);
 /* Pre-allocated space for slotframes */
