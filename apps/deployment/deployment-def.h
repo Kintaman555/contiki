@@ -63,10 +63,13 @@
 #define ROOT_ID 137
 #elif IN_INDRIYA
 #define ROOT_ID 2
+#define MAX_NODES 99
 #elif IN_NESTESTBED
 #define ROOT_ID 1
+#define MAX_NODES 25
 #else
 #define ROOT_ID 1
+#define MAX_NODES 9
 #endif
 
 #endif /* DEPLOYMENT_DEF_H */
