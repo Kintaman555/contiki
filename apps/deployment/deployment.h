@@ -45,8 +45,6 @@
 #include "net/ip/uip.h"
 #include "net/linkaddr.h"
 
-/* Returns the node's node-id */
-uint16_t get_n_nodes();
 /* Returns the total number of nodes in the deployment */
 uint16_t get_node_id();
 /* Returns a node-index from a node's linkaddr */

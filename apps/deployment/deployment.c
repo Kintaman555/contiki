@@ -243,12 +243,15 @@ static const struct id_mac id_mac_list[] = {
   { 0, { { 0 } } }
 };
 
-/* The total number of nodes in the deployment */
-#if IN_COOJA
-#define N_NODES 8
+uint16_t
+nodex_index_map(uint16_t index)
+{
+#if NODE_INDEX_SUFFLE
+  return (index * 11) % MAX_NODES;
 #else
-#define N_NODES ((sizeof(id_mac_list) / sizeof(struct id_mac)) - 1)
+  return index;
 #endif
+}
 
 /* Returns the node's node-id */
 uint16_t
@@ -261,12 +264,6 @@ get_node_id()
   extern unsigned char ds2411_id[8];
   return node_id_from_linkaddr((const linkaddr_t *)&ds2411_id);
 #endif
-}
-/* Returns the total number of nodes in the deployment */
-uint16_t
-get_n_nodes()
-{
-  return N_NODES;
 }
 /* Build a global link-layer address from an IPv6 based on its UUID64 */
 static void
@@ -287,7 +284,7 @@ node_index_from_linkaddr(const linkaddr_t *addr)
   if(addr == NULL) {
     return 0xffff;
   } else {
-    return node_id_from_linkaddr(addr)-1;
+    return nodex_index_map(node_id_from_linkaddr(addr)-1);
   }
 #else /* IN_COOJA */
   if(addr == NULL) {
@@ -297,7 +294,7 @@ node_index_from_linkaddr(const linkaddr_t *addr)
   while(curr->id != 0) {
     /* Assume network-wide unique 16-bit MAC addresses */
     if(curr->mac.u8[6] == addr->u8[6] && curr->mac.u8[7] == addr->u8[7]) {
-      return curr - id_mac_list;
+      return nodex_index_map(curr - id_mac_list);
     }
     curr++;
   }
@@ -342,26 +339,16 @@ uint16_t
 get_node_index_from_id(uint16_t id)
 {
 #if IN_COOJA
-  return id - 1;
+  return nodex_index_map(id - 1);
 #else
   const struct id_mac *curr = id_mac_list;
   while(curr->id != 0) {
     if(curr->id == id) {
-      return curr - id_mac_list;
+      return nodex_index_map(curr - id_mac_list);
     }
     curr++;
   }
   return 0xffff;
-#endif
-}
-/* Returns a node-id from a node's absolute index in the deployment */
-uint16_t
-get_node_id_from_index(uint16_t index)
-{
-#if IN_COOJA
-  return 1 + (index % N_NODES);
-#else
-  return id_mac_list[index % N_NODES].id;
 #endif
 }
 /* Sets an IPv6 from a node-id */
