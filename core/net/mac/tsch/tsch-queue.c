@@ -259,7 +259,7 @@ tsch_queue_add_packet(const linkaddr_t *addr, mac_callback_t sent, void *ptr)
       }
     }
   }
-  LOGP("TSCH-queue:! add packet failed: %u %p %d %p %p\n", tsch_is_locked(), n, put_index, p, p ? p->qb : NULL);
+  LOGP("TSCH-queue:! add packet failed: %u %p %d %p %p", tsch_is_locked(), n, put_index, p, p ? p->qb : NULL);
   return 0;
 }
 /* Returns the number of packets currently in the queue */
