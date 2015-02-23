@@ -197,7 +197,7 @@ tsch_schedule_add_link(struct tsch_slotframe *slotframe,
         l->slotframe_handle = slotframe->handle;
         l->timeslot = timeslot;
         l->channel_offset = channel_offset;
-        l->creation_asn = current_asn;
+        l->data = NULL;
         if(address == NULL) {
           address = &linkaddr_null;
         }

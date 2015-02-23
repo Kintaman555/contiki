@@ -52,7 +52,7 @@
 #define ORCHESTRA_EBSF_PERIOD                     397
 #define ORCHESTRA_WITH_COMMON_SHARED              1
 #define ORCHESTRA_COMMON_SHARED_TYPE              LINK_TYPE_NORMAL
-#define ORCHESTRA_COMMON_SHARED_PERIOD            63
+#define ORCHESTRA_COMMON_SHARED_PERIOD            113
 #define ORCHESTRA_WITH_RBUNICAST                  1
 #define ORCHESTRA_RBUNICAST_PERIOD                ORCHESTRA_UNICAST_PERIOD
 
@@ -62,7 +62,7 @@
 #define ORCHESTRA_EBSF_PERIOD                     397
 #define ORCHESTRA_WITH_COMMON_SHARED              1
 #define ORCHESTRA_COMMON_SHARED_TYPE              LINK_TYPE_NORMAL
-#define ORCHESTRA_COMMON_SHARED_PERIOD            63
+#define ORCHESTRA_COMMON_SHARED_PERIOD            61
 #define ORCHESTRA_WITH_SBUNICAST                  1
 #define ORCHESTRA_SBUNICAST_PERIOD                ORCHESTRA_UNICAST_PERIOD
 #define ORCHESTRA_SBUNICAST_SHARED               (ORCHESTRA_UNICAST_PERIOD < MAX_NODES)
@@ -70,6 +70,7 @@
 #endif
 
 void orchestra_init();
-void tsch_callback_new_time_source(struct tsch_neighbor *old, struct tsch_neighbor *new);
+void orchestra_callback_new_time_source(struct tsch_neighbor *old, struct tsch_neighbor *new);
+void orchestra_callback_joining_network();
 
 #endif /* __ORCHESTRA_H__ */

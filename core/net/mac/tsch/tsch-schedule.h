@@ -62,8 +62,6 @@ struct tsch_link {
   struct tsch_link *next;
   /* Unique identifier */
   uint16_t handle;
-  /* Creation time */
-  struct asn_t creation_asn;
   /* MAC address of neighbor */
   linkaddr_t addr;
   /* Slotframe identifier */
@@ -81,6 +79,8 @@ struct tsch_link {
   /* Type of link. NORMAL = 0. ADVERTISING = 1, and indicates
      the link may be used to send an Enhanced beacon. */
   enum link_type link_type;
+  /* Any other data for upper layers */
+  void *data;
 };
 
 struct tsch_slotframe {
