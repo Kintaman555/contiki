@@ -34,9 +34,9 @@ def extract(dir):
         sys.stdout.flush() 
         os.system("python extractFromTrace.py %s > /dev/null" %path)
         
-        #print " generating plots...",
-        #sys.stdout.flush()
-        #os.system("python generateSummaryPlots.py %s > /dev/null" %path)
+        print " generating plots...",
+        sys.stdout.flush()
+        os.system("python generateSummaryPlots.py %s > /dev/null" %path)
         
         print " done."
 

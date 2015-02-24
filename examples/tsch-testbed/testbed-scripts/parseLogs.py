@@ -244,6 +244,7 @@ def parseTsch(line, time, id, log, packetInfo, asnInfo):
         dst = packetInfo['dst']
     
     if asnInfo != None:
+        return None
         asn = asnInfo['asn'] 
         slotframe = asnInfo['slotframe']
         timeslot = asnInfo['timeslot']
