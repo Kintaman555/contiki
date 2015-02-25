@@ -116,12 +116,6 @@ PROCESS_THREAD(unicast_sender_process, ev, data)
   if(deployment_init(&global_ipaddr, NULL, ROOT_ID)) {
     //LOG("App: %u start\n", node_id);
   } else {
-    //etimer_set(&periodic_timer, 5*60*CLOCK_SECOND);
-    while(1) {
-      //LOG("App: %u out\n", node_id);
-      //PROCESS_WAIT_UNTIL(etimer_expired(&periodic_timer));
-      //etimer_reset(&periodic_timer);
-    }
     PROCESS_EXIT();
   }
   simple_udp_register(&unicast_connection, UDP_PORT,

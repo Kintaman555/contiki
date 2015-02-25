@@ -421,7 +421,11 @@ def doParse(file, sinkId):
         if module == None or log == None:
             if log != None and len(log) > 0 and not module in nonExtractedModules:
                 print "Could not extract module:", line
-                nonExtractedModules.append(module) 
+                nonExtractedModules.append(module)
+            if not baseTime:
+                baseTime = time
+            time -= baseTime
+            time /= 1000000. # time from us to s 
         else:           
             # default for all structures
             packetInfo = None

@@ -620,7 +620,6 @@ rpl_init_link_metric(rpl_parent_t *p, rpl_dio_t *dio) {
     //LOG("RPL: calc init ETX to %u, RSSI: %d -> %u\n",
       //  LOG_NODEID_FROM_LINKADDR(nbr_table_get_lladdr(rpl_parents, p)),
         //dio->rssi, etx);
-    printf("ETX %u RSSI %u\n", etx, dio->rssi);
     return etx;
   }
 }
