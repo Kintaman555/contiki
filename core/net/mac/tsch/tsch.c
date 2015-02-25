@@ -464,7 +464,7 @@ send_packet(mac_callback_t sent, void *ptr)
   packet_count_before = tsch_queue_packet_count(addr);
 
   if(NETSTACK_FRAMER.create() < 0) {
-    LOGP("TSCH:! can't send packet due to framer error");
+    //LOGP("TSCH:! can't send packet due to framer error");
     ret = MAC_TX_ERR;
   } else {
     /* Enqueue packet */
@@ -497,7 +497,7 @@ packet_input(void)
 #endif
 
     if(frame_parsed < 0) {
-      LOGP("TSCH:! failed to parse %u", packetbuf_datalen());
+      //LOGP("TSCH:! failed to parse %u", packetbuf_datalen());
 #if TSCH_ADDRESS_FILTER
   } else if(!linkaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER),
                           &linkaddr_node_addr)
@@ -517,7 +517,7 @@ packet_input(void)
          linkaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_SENDER),
                       &received_seqnos[i].sender)) {
         /* Drop the packet. */
-        LOGP("TSCH:! drop duplicate link layer packet from %u with seqno %u",
+        LOGP("TSCH:! drop dup ll from %u seqno %u",
                LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)),
                packetbuf_attr(PACKETBUF_ATTR_PACKET_ID));
         duplicate = 1;
@@ -1178,8 +1178,8 @@ PT_THREAD(tsch_associate(struct pt *pt))
     associated = 1;
     tsch_join_priority = 0;
 
-    LOG("TSCH: starting, asn-%x.%lx\n",
-                      current_asn.ms1b, current_asn.ls4b);
+    //LOG("TSCH: starting, asn-%x.%lx\n",
+      //                current_asn.ms1b, current_asn.ls4b);
 
     current_link_start = RTIMER_NOW() + 20*RTIMER_MIN_DELAY;
     /* Actually start only after a short time, as required by rtimer
@@ -1239,8 +1239,8 @@ PT_THREAD(tsch_associate(struct pt *pt))
           int32_t asn_threshold = TSCH_CHECK_TIME_AT_ASSOCIATION*60ul*TSCH_CLOCK_TO_SLOTS(CLOCK_SECOND);
           int32_t asn_diff = (int32_t)current_asn.ls4b-expected_asn;
           if(asn_diff > asn_threshold) {
-            LOG("TSCH:! EB ASN rejected %lx %lx %ld\n",
-              current_asn.ls4b, expected_asn, asn_diff);
+            //LOG("TSCH:! EB ASN rejected %lx %lx %ld\n",
+              //current_asn.ls4b, expected_asn, asn_diff);
             eb_parsed = 0;
           }
         }
@@ -1274,10 +1274,10 @@ PT_THREAD(tsch_associate(struct pt *pt))
 #endif
 
             /* TODO: Verify if tsch_nbrs are created and timesources are set */
-            LOG("TSCH: association done, asn-%x.%lx, jp %u, from %u, time source %u\n",
-                current_asn.ms1b, current_asn.ls4b, tsch_join_priority,
-                LOG_NODEID_FROM_LINKADDR(&source_address),
-                LOG_NODEID_FROM_LINKADDR(&tsch_queue_get_time_source()->addr));
+//            LOG("TSCH: association done, asn-%x.%lx, jp %u, from %u, time source %u\n",
+//                current_asn.ms1b, current_asn.ls4b, tsch_join_priority,
+//                LOG_NODEID_FROM_LINKADDR(&source_address),
+//                LOG_NODEID_FROM_LINKADDR(&tsch_queue_get_time_source()->addr));
           }
         }
       }
