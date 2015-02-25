@@ -984,7 +984,7 @@ cc2420_read(void *buf, unsigned short bufsize)
       radio_last_rssi = cc2420_last_rssi = footer[0];
       radio_last_correlation = cc2420_last_correlation = footer[1] & FOOTER1_CORRELATION;
 
-      if(!interrupt_enabled) {
+      if(interrupt_enabled) {
         /* If interrupt are disabled, this function is possibly called from interrupt
          * by the MAC or RDC layer. Don't write to packetbuf in interrupt. */
         packetbuf_set_attr(PACKETBUF_ATTR_RSSI, cc2420_last_rssi-45);
