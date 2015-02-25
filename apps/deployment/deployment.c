@@ -247,7 +247,7 @@ uint16_t
 nodex_index_map(uint16_t index)
 {
 #if NODE_INDEX_SUFFLE
-  return (index * 11) % MAX_NODES;
+  return (index * NODE_INDEX_SUFFLE_MULTIPLICATOR) % NODE_INDEX_SUFFLE_MODULUS;
 #else
   return index;
 #endif
