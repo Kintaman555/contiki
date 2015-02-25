@@ -588,6 +588,7 @@ rpl_free_dag(rpl_dag_t *dag)
   dag->used = 0;
 }
 /*---------------------------------------------------------------------------*/
+#if RPL_CONF_RSSI_BASED_ETX
 uint16_t
 rpl_init_link_metric(rpl_parent_t *p, rpl_dio_t *dio) {
   if(dio == NULL) {
@@ -619,9 +620,11 @@ rpl_init_link_metric(rpl_parent_t *p, rpl_dio_t *dio) {
     //LOG("RPL: calc init ETX to %u, RSSI: %d -> %u\n",
       //  LOG_NODEID_FROM_LINKADDR(nbr_table_get_lladdr(rpl_parents, p)),
         //dio->rssi, etx);
+    printf("ETX %u RSSI %u\n", etx, dio->rssi);
     return etx;
   }
 }
+#endif /* RPL_CONF_RSSI_BASED_ETX */
 /*---------------------------------------------------------------------------*/
 rpl_parent_t *
 rpl_add_parent(rpl_dag_t *dag, rpl_dio_t *dio, uip_ipaddr_t *addr)
@@ -648,7 +651,11 @@ rpl_add_parent(rpl_dag_t *dag, rpl_dio_t *dio, uip_ipaddr_t *addr)
       p->rank = dio->rank;
       p->dtsn = dio->dtsn;
       p->tx_count = 0;
+#if RPL_CONF_RSSI_BASED_ETX
       p->link_metric = rpl_init_link_metric(p, dio);
+#else
+      p->link_metric = RPL_INIT_LINK_METRIC * RPL_DAG_MC_ETX_DIVISOR;
+#endif
       p->rssi = dio->rssi;
 #if RPL_DAG_MC != RPL_DAG_MC_NONE
       memcpy(&p->mc, &dio->mc, sizeof(p->mc));
