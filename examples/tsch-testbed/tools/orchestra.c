@@ -47,7 +47,7 @@
 #include "tools/orchestra.h"
 #include <stdio.h>
 
-#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_NONE
 #include "net/ip/uip-debug.h"
 
 #if ORCHESTRA_WITH_EBSF
