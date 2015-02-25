@@ -27,6 +27,7 @@ TICK_PER_LINK = LINK_DURATION/TICK_DURATION
 #excludedNodes = [20, 21, 48, 109]
 #excludedNodes = [21, 48, 109]
 excludedNodes = []
+scriptlog = None
 
 def showStats(stats, unit):
     if stats != None:
@@ -124,14 +125,17 @@ def generateDataFiles(parsed, name, unit, globalData, nodeIDs, perNodeIndexData,
 
 def extractData(parsed, name, unit, condition, extractField, expectedRange, period, doSum=False, revert=False, doMax=False, verbose=False, export=True):
     global plotIndex
+    global scriptlog
     dataset = parsed['dataset']
     data = []
     intervals = []
     outOfRange = 0
     validCount = 0
-    
-    print "__ Extracting %s (%s)" %(name, unit),
+        
+    str = "__ Extracting %s (%s)" %(name, unit)
+    print str,
     sys.stdout.flush()
+    scriptlog.write(str + "\n")
     
     for line in dataset:  
         if condition(line):
@@ -160,12 +164,17 @@ def extractData(parsed, name, unit, condition, extractField, expectedRange, peri
                     time_str = "%3u:%02u.%03u" %(t_m, t_s%60, t_ms%1000)
                     
                     if outOfRange == 1:
-                        print ""
+                        str = ""
+                        print str
                     
                     if 'lastLine' in line['info']:
-                        print '____%c %s ID:%3d Packet %06x %s: %.2f | %s' %('*' if withinTimeBounds else ' ', time_str, id, line['packet']['id'] if line['packet'] != None else 0, name, value, line['info']['lastLine']),
+                        str = '____%c %s ID:%3d Packet %06x %s: %.2f | %s' %('*' if withinTimeBounds else ' ', time_str, id, line['packet']['id'] if line['packet'] != None else 0, name, value, line['info']['lastLine'])
+                        print str,
+                        scriptlog.write(str)
                     else:
-                        print '____%c %s ID:%3d Packet %06x %s: %.2f' %('*' if withinTimeBounds else ' ', time_str, id, line['packet']['id'] if line['packet'] != None else 0, name, value)
+                        str = '____%c %s ID:%3d Packet %06x %s: %.2f' %('*' if withinTimeBounds else ' ', time_str, id, line['packet']['id'] if line['packet'] != None else 0, name, value)
+                        print str
+                        scriptlog.write(str + "\n")
             else:
                 if withinTimeBounds:
                     validCount += 1
@@ -235,6 +244,55 @@ def extractData(parsed, name, unit, condition, extractField, expectedRange, peri
             'timeline': timelineData,
             'count': len(globalDataList), 'validCount': validCount}
 
+def generateTimelineFileVector(dir, parsed, txOnly=False):
+        
+    nodeIDs = sorted(parsed['nodeIDs'])
+    timeline = parsed['timeline']
+    
+    id_to_index = {}
+    for node in nodeIDs:
+        id_to_index[node] = nodeIDs.index(node)
+        
+    firstAsn = timeline.keys()[0]
+    lastAsn = timeline.keys()[-1]
+    
+    data_x = {}
+    data_y = {}
+    
+    for asn in timeline.keys():
+        asnEvents = timeline[asn]
+        for node in asnEvents:
+            event = asnEvents[node]['event']
+            asnInfo = asnEvents[node]['asnInfo']
+            slotframe = asnInfo['slotframe']
+            if not (slotframe, event) in data_x:
+                data_x[(slotframe, event)] = []
+                data_y[(slotframe, event)] = []
+            data_x[(slotframe, event)].append(asn-firstAsn)
+            data_y[(slotframe, event)].append(id_to_index[node])
+    for k in data_x.keys():
+        data_x[k] = array(data_x[k])
+        data_y[k] = array(data_y[k])
+        data_x[k] = data_x[k] * 0.015
+    
+    fig = plt.figure(figsize=(20, 3))
+    ax = fig.add_subplot(111)
+    #ax.axis(ymin=0,ymax=len(nodeIDs),xmin=0,xmax=(lastAsn-firstAsn)*0.015)
+    ax.axis(ymin=0,ymax=len(nodeIDs),xmin=0,xmax=9)
+         
+    colors = ['#FF9900', '#00A876', '#0a51a7', '#FF5900', '#8FD9F2', 'black']
+    ax.scatter(data_x[(0,"Tx")], data_y[(0,"Tx")], marker='s', edgecolor='none', color=colors[0],s=5)
+    ax.scatter(data_x[(0,"Rx")], data_y[(0,"Rx")], marker='o', edgecolor='none', color=colors[0],s=2)
+    ax.scatter(data_x[(1,"Tx")], data_y[(1,"Tx")], marker='s', edgecolor='none', color=colors[1],s=5)
+    ax.scatter(data_x[(1,"Rx")], data_y[(1,"Rx")], marker='o', edgecolor='none', color=colors[1],s=2)
+    ax.scatter(data_x[(2,"Tx")], data_y[(2,"Tx")], marker='s', edgecolor='none', color=colors[2],s=5)
+    ax.scatter(data_x[(2,"Rx")], data_y[(2,"Rx")], marker='o', edgecolor='none', color=colors[2],s=2)
+    plt.gca().invert_yaxis()
+    ax.set_xlabel("Time (s)", fontsize=16)
+    ax.set_ylabel("Node Index", fontsize=16)
+    #plt.axis('off')
+    fig.savefig('timeline.pdf', format='pdf', bbox_inches='tight', pad_inches=0)
+
 def generateTimelineFile(dir, parsed, txOnly=False):
         
     nodeIDs = parsed['nodeIDs']
@@ -255,7 +313,6 @@ def generateTimelineFile(dir, parsed, txOnly=False):
     trafficFile.write("\n")
     #for asn in timeline.keys():
     for asn in range(firstAsn, lastAsn, 1):
-        
         if asn in timeline:
             asnEvents = timeline[asn]
             trafficFile.write("asn-%010x |" %(asn))
@@ -496,9 +553,9 @@ def process(parsed):
                 {'min': 1, 'max': 100},
                 MIN_INTERVAL, verbose=False, export=False)
         
-        if parsed['maxTime']/60 > 6:
+        if parsed['maxTime']/60 > 11:
             #MIN_TIME = (parsed['maxTime']/60) / 2
-            MIN_TIME = 5
+            MIN_TIME = 10
             MAX_TIME = (parsed['maxTime']/60) - 1
         else:
             MIN_TIME = 0
@@ -567,16 +624,16 @@ def process(parsed):
                         {'min': 0, 'max': 30},
                         MIN_INTERVAL)
         )
-        allPlottableData.append( 
-            extractData(parsed, "TSCH Unicast Tx Has Contenders", "%",
-                        lambda x: x['module'] == 'TSCH' and x['info']['event'] == 'Tx' and x['info']['is_unicast'],
-                        lambda x: 100 if x['info']['contenderCount'] > 0 else 0,
-                        {'min': 0, 'max': 100},
-                        MIN_INTERVAL)
-        )
+        #allPlottableData.append( 
+         #   extractData(parsed, "TSCH Unicast Tx Has Contenders", "%",
+          #              lambda x: x['module'] == 'TSCH' and x['info']['event'] == 'Tx' and x['info']['is_unicast'],
+           #             lambda x: 100 if x['info']['contenderCount'] > 0 else 0,
+            #            {'min': 0, 'max': 100},
+             #           MIN_INTERVAL)
+        #)
         allPlottableData.append( 
             extractData(parsed, "MAC Unicast Count", "#",
-                        lambda x: (x['module'] == 'TSCH' or x['module'] == 'Cmac')
+                        lambda x: (x['module'] == 'TSCH' or x['module'] == 'Cmac' or x['module'] == 'Nullrdc')
                             and x['info']['event'] == 'Tx' and x['info']['is_unicast'],
                         lambda x: 1,
                         {'min': 1, 'max': 1},
@@ -584,7 +641,7 @@ def process(parsed):
         )
         allPlottableData.append( 
             extractData(parsed, "MAC Unicast Success", "%",
-                        lambda x: (x['module'] == 'TSCH' or x['module'] == 'Cmac')
+                        lambda x: (x['module'] == 'TSCH' or x['module'] == 'Cmac' or x['module'] == 'Nullrdc')
                             and x['info']['event'] == 'Tx' and x['info']['is_unicast'],
                         lambda x: 100 if x['info']['status'] == 0 else 0,
                         {'min': 0, 'max': 100},
@@ -597,13 +654,13 @@ def process(parsed):
                         {'min': 0, 'max': 100},
                         MIN_INTERVAL)
         )
-        allPlottableData.append( 
-            extractData(parsed, "TSCH Unicast lost (no contender)", "%",
-                        lambda x: x['module'] == 'TSCH' and x['info']['event'] == 'Tx' and x['info']['is_unicast'],
-                        lambda x: 100 if x['info']['status'] == 2 and x['info']['rxCount'] == 0 and x['info']['contenderCount'] == 0 else 0,
-                        {'min': 0, 'max': 100},
-                        MIN_INTERVAL)
-        )
+        #allPlottableData.append( 
+         #   extractData(parsed, "TSCH Unicast lost (no contender)", "%",
+          #              lambda x: x['module'] == 'TSCH' and x['info']['event'] == 'Tx' and x['info']['is_unicast'],
+           #             lambda x: 100 if x['info']['status'] == 2 and x['info']['rxCount'] == 0 and x['info']['contenderCount'] == 0 else 0,
+            #            {'min': 0, 'max': 100},
+             #           MIN_INTERVAL)
+        #)
         allPlottableData.append( 
             extractData(parsed, "TSCH Unicast lost (with contenders)", "%",
                         lambda x: x['module'] == 'TSCH' and x['info']['event'] == 'Tx' and x['info']['is_unicast'],
@@ -756,11 +813,14 @@ def process(parsed):
 def main():
     global MIN_TIME
     global MAX_TIME
+    global scriptlog
 
     if len(sys.argv) < 2:
         dir = '.'
     else:
         dir = sys.argv[1].rstrip('/')
+
+    scriptlog = open(os.path.join(dir, "scriptlog.txt"), "w")
 
     file = os.path.join(dir, "log.txt")
     parsed = parseLogs.doParse(file, SINK_ID)
@@ -777,14 +837,17 @@ def main():
         print "\nProcessing %s" %(file)
         process(parsed)
         
+#        print "\nGenerating vector graphics timeline"
+ #       generateTimelineFileVector(dir, parsed, txOnly=False)
+        
 #        print "\nGenerating timeline txOnly=False"
  #       generateTimelineFile(dir, parsed, txOnly=False)
  
-  #      print "\nGenerating timeline txOnly=True"
-   #     generateTimelineFile(dir, parsed, txOnly=True)
+   #     print "\nGenerating timeline txOnly=True"
+    #    generateTimelineFile(dir, parsed, txOnly=True)
      #   
-#        print "\nAnalyzing timeline"
- #       analyzeTimeline(dir, parsed)
+ #       print "\nAnalyzing timeline"
+  #      analyzeTimeline(dir, parsed)
  
 #        print "\nExtracting probing data"
  #       extractProbing(dir, parsed)

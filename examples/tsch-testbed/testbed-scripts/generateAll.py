@@ -23,9 +23,9 @@ def extract(dir):
         if os.path.exists(os.path.join(path, 'plots/allplots.pdf')):
             print " already done."
             continue
-        if os.path.exists(os.path.join(path, 'probing.txt')):
-            print " already done."
-            continue
+        #if os.path.exists(os.path.join(path, 'probing.txt')):
+            #print " already done."
+            #continue
         #if not file.startswith("Indriya_prb"):
          #   print "not a probing"
           #  continue

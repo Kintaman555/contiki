@@ -476,6 +476,9 @@ def extractMetricGeneric(metric, xpname, baseDir):
 
     return dataSet
 
+def extractMetric(metric):
+    return extractMetricGeneric(metric, 'collect', 'experiments/')
+
 def extractMetricCollect(metric):
     return extractMetricGeneric(metric, 'collect', 'experiments/up-traffic')
 

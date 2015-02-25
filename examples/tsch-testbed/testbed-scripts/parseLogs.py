@@ -233,6 +233,26 @@ def parseCmac(line, time, id, log, packetInfo, asnInfo):
             return {'event': 'Tx', 'is_unicast': is_unicast, 'strobeLen': strobeLen,
                                  'datalen': datalen, 'nextHop': nextHop, 'packet': packetInfo,
                                  'status': status }
+def parseNullrdc(line, time, id, log, packetInfo, asnInfo):
+    global appDataStats, receivedList, nodeState, timeline
+    
+    if packetInfo != None:
+        packetId = packetInfo['id']
+        hop = packetInfo['hop']
+        src = packetInfo['src']
+        dst = packetInfo['dst']
+
+#---- Nullrdc Tx -------------------------------------------------------------------------------------------------------------                
+        res = re.compile('([ub]c) (\d+) tx (\d+), st (\d+)$').match(log)
+        if res:
+            is_unicast = res.group(1) == "uc"
+            datalen = int(res.group(2))
+            nextHop = int(res.group(3))
+            status = int(res.group(4))
+        
+            return {'event': 'Tx', 'is_unicast': is_unicast,
+                                 'datalen': datalen, 'nextHop': nextHop, 'packet': packetInfo,
+                                 'status': status }
                   
 def parseTsch(line, time, id, log, packetInfo, asnInfo):
     global appDataStats, receivedList, nodeState, timeline
@@ -242,9 +262,11 @@ def parseTsch(line, time, id, log, packetInfo, asnInfo):
         hop = packetInfo['hop']
         src = packetInfo['src']
         dst = packetInfo['dst']
+    else:
+        if asnInfo != None:
+            return None
     
     if asnInfo != None:
-        return None
         asn = asnInfo['asn'] 
         slotframe = asnInfo['slotframe']
         timeslot = asnInfo['timeslot']
@@ -373,6 +395,7 @@ def doParse(file, sinkId):
                         '6LoWPAN': parse6lowpan,
                         'TSCH': parseTsch,
                         'Cmac': parseCmac,
+                        'Nullrdc': parseNullrdc,
                         'Scheduler': None,
                         }
     
@@ -380,7 +403,7 @@ def doParse(file, sinkId):
     linesParsedCount = 0
     
     for line in open(file, 'r').readlines():
-    #for line in open(file, 'r').readlines()[-200000:-1]:
+    #for line in open(file, 'r').readlines()[-2550:-300]:
         log = None
         module = None
         # match time, id, module, log; The common format for all log lines
