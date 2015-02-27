@@ -61,6 +61,7 @@ static struct tsch_slotframe *sf_rb;
 #endif
 #if ORCHESTRA_WITH_SBUNICAST
 static struct tsch_slotframe *sf_sb;
+static struct tsch_slotframe *sf_sb2;
 /* Delete dedicated slots after 2 minutes */
 #define DEDICATED_SLOT_LIFETIME TSCH_CLOCK_TO_SLOTS(2 * 60 * CLOCK_SECOND)
 /* A net-layer sniffer for packets sent and received */
@@ -82,11 +83,11 @@ orchestra_callback_do_nack(struct tsch_link *link, linkaddr_t *src, linkaddr_t *
   return 0;
 }
 /*---------------------------------------------------------------------------*/
-void
-orchestra_callback_joining_network(void)
+static void
+orchestra_callback_joining_network_sf(struct tsch_slotframe *sf)
 {
-  /* Cleanup sf_sb: reset timestamps. Old links remain active for DEDICATED_SLOT_LIFETIME */
-  struct tsch_link *l = list_head(sf_sb->links_list);
+  /* Cleanup sf: reset timestamps. Old links remain active for DEDICATED_SLOT_LIFETIME */
+  struct tsch_link *l = list_head(sf->links_list);
   while(l != NULL) {
     struct link_timestamps *ts = (struct link_timestamps *)l->data;
     if(ts != NULL) {
@@ -94,13 +95,22 @@ orchestra_callback_joining_network(void)
     }
     l = list_item_next(l);
   }
+}
+/*---------------------------------------------------------------------------*/
+void
+orchestra_callback_joining_network(void)
+{
+  orchestra_callback_joining_network_sf(sf_sb);
+#ifdef ORCHESTRA_SBUNICAST_PERIOD2
+  orchestra_callback_joining_network_sf(sf_sb2);
+#endif
   tsch_rpl_callback_joining_network();
 }
 /*---------------------------------------------------------------------------*/
 static void
-orchestra_delete_old_links(void)
+orchestra_delete_old_links_sf(struct tsch_slotframe *sf)
 {
-  struct tsch_link *l = list_head(sf_sb->links_list);
+  struct tsch_link *l = list_head(sf->links_list);
   struct tsch_link *prev = NULL;
   /* Loop over all links and remove old ones. */
   while(l != NULL) {
@@ -111,13 +121,13 @@ orchestra_delete_old_links(void)
       if(tx_outdated && rx_outdated) {
         /* Link outdated both for tx and rx, delete */
         PRINTF("Orchestra: removing link at %u\n", l->timeslot);
-        tsch_schedule_remove_link(sf_sb, l);
+        tsch_schedule_remove_link(sf, l);
         memb_free(&nbr_timestamps, ts);
         l = prev;
       } else if(!rx_outdated && tx_outdated && (l->link_options & LINK_OPTION_TX)) {
         PRINTF("Orchestra: removing tx flag at %u\n", l->timeslot);
         /* Link outdated for tx, update */
-        tsch_schedule_add_link(sf_sb,
+        tsch_schedule_add_link(sf,
             l->link_options & ~(LINK_OPTION_TX | LINK_OPTION_SHARED),
             LINK_TYPE_NORMAL, &linkaddr_null,
             l->timeslot, 2);
@@ -126,7 +136,7 @@ orchestra_delete_old_links(void)
         /* Link outdated for rx, update */
         linkaddr_t link_addr;
         linkaddr_copy(&link_addr, &l->addr);
-        tsch_schedule_add_link(sf_sb,
+        tsch_schedule_add_link(sf,
             l->link_options & ~LINK_OPTION_RX,
             LINK_TYPE_NORMAL, &link_addr,
             l->timeslot, 2);
@@ -135,6 +145,15 @@ orchestra_delete_old_links(void)
     prev = l;
     l = list_item_next(l);
   }
+}
+/*---------------------------------------------------------------------------*/
+static void
+orchestra_delete_old_links()
+{
+  orchestra_delete_old_links_sf(sf_sb);
+#ifdef ORCHESTRA_SBUNICAST_PERIOD2
+  orchestra_delete_old_links_sf(sf_sb2);
+#endif
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -153,10 +172,24 @@ orchestra_packet_received(void)
      * We schedule a Rx link to listen to the source's dedicated slot,
      * in all unicast SFs */
     linkaddr_t link_addr;
-    uint8_t timeslot = src_index % ORCHESTRA_SBUNICAST_PERIOD;
+    uint8_t timeslot;
+    static struct tsch_slotframe *sf;
+#ifdef ORCHESTRA_SBUNICAST_PERIOD2
+    if(src_index < ORCHESTRA_SBUNICAST_PERIOD) {
+      /* Use the first slotframe */
+      timeslot = src_index;
+      sf = sf_sb;
+    } else {
+      timeslot = src_index - ORCHESTRA_SBUNICAST_PERIOD;
+      sf = sf_sb2;
+    }
+#else
+    sf = sf_sb;
+    timeslot = src_index % ORCHESTRA_SBUNICAST_PERIOD;
+#endif
     struct link_timestamps *ts;
     uint8_t link_options = LINK_OPTION_RX;
-    struct tsch_link *l = tsch_schedule_get_link_from_timeslot(sf_sb, timeslot);
+    struct tsch_link *l = tsch_schedule_get_link_from_timeslot(sf, timeslot);
     if(l == NULL) {
       linkaddr_copy(&link_addr, &linkaddr_null);
       ts = memb_alloc(&nbr_timestamps);
@@ -172,7 +205,7 @@ orchestra_packet_received(void)
     /* Now add/update the link */
     if(l == NULL) {
       PRINTF("Orchestra: adding rx link at %u\n", timeslot);
-      l = tsch_schedule_add_link(sf_sb,
+      l = tsch_schedule_add_link(sf,
           link_options,
           LINK_TYPE_NORMAL, &link_addr,
           timeslot, 2);
@@ -200,10 +233,24 @@ orchestra_packet_sent(int mac_status)
   if(dest_index != 0xffff && mac_status == MAC_TX_OK) {
     /* Successful unicast Tx
      * We schedule a Tx link to this neighbor, in all unicast SFs */
-    uint8_t timeslot = node_index % ORCHESTRA_SBUNICAST_PERIOD;
+    uint8_t timeslot;
+    static struct tsch_slotframe *sf;
+#ifdef ORCHESTRA_SBUNICAST_PERIOD2
+    if(node_index < ORCHESTRA_SBUNICAST_PERIOD) {
+      /* Use the first slotframe */
+      timeslot = node_index;
+      sf = sf_sb;
+    } else {
+      timeslot = node_index - ORCHESTRA_SBUNICAST_PERIOD;
+      sf = sf_sb2;
+    }
+#else
+    sf = sf_sb;
+    timeslot = node_index % ORCHESTRA_SBUNICAST_PERIOD;
+#endif
     struct link_timestamps *ts;
     uint8_t link_options = LINK_OPTION_TX | (ORCHESTRA_SBUNICAST_SHARED ? LINK_OPTION_SHARED : 0);
-    struct tsch_link *l = tsch_schedule_get_link_from_timeslot(sf_sb, timeslot);
+    struct tsch_link *l = tsch_schedule_get_link_from_timeslot(sf, timeslot);
     if(l == NULL) {
       ts = memb_alloc(&nbr_timestamps);
     } else {
@@ -218,7 +265,7 @@ orchestra_packet_sent(int mac_status)
     /* Now add/update the link */
     if(l == NULL) {
       PRINTF("Orchestra: adding tx link at %u\n", timeslot);
-      l = tsch_schedule_add_link(sf_sb,
+      l = tsch_schedule_add_link(sf,
           link_options,
           LINK_TYPE_NORMAL, packetbuf_addr(PACKETBUF_ADDR_RECEIVER),
           timeslot, 2);
@@ -321,6 +368,9 @@ orchestra_init()
   memb_init(&nbr_timestamps);
   /* Sender-based slotframe for unicast */
   sf_sb = tsch_schedule_add_slotframe(2, ORCHESTRA_SBUNICAST_PERIOD);
+#ifdef ORCHESTRA_SBUNICAST_PERIOD2
+  sf_sb2 = tsch_schedule_add_slotframe(3, ORCHESTRA_SBUNICAST_PERIOD2);
+#endif
   /* Rx links (with lease time) will be added upon receiving unicast */
   /* Tx links (with lease time) will be added upon transmitting unicast (if ack received) */
   rime_sniffer_add(&orhcestra_sniffer);
