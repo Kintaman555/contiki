@@ -72,5 +72,6 @@
 void orchestra_init();
 void orchestra_callback_new_time_source(struct tsch_neighbor *old, struct tsch_neighbor *new);
 void orchestra_callback_joining_network();
+int orchestra_callback_do_nack(struct tsch_link *link, linkaddr_t *src, linkaddr_t *dst);
 
 #endif /* __ORCHESTRA_H__ */

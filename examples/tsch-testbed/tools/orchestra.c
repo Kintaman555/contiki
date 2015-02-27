@@ -76,6 +76,12 @@ struct link_timestamps {
 };
 MEMB(nbr_timestamps, struct link_timestamps, TSCH_MAX_LINKS);
 /*---------------------------------------------------------------------------*/
+int
+orchestra_callback_do_nack(struct tsch_link *link, linkaddr_t *src, linkaddr_t *dst)
+{
+  return 0;
+}
+/*---------------------------------------------------------------------------*/
 void
 orchestra_callback_joining_network(void)
 {

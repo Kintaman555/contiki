@@ -76,6 +76,10 @@
 /* inject drift to test drift correction */
 #define DEBUG_INJECT_DRIFT 0
 
+#ifdef TSCH_CALLBACK_DO_NACK
+int TSCH_CALLBACK_DO_NACK(struct tsch_link *link, linkaddr_t *src, linkaddr_t *dst);
+#endif
+
 #ifdef TSCH_CALLBACK_JOINING_NETWORK
 void TSCH_CALLBACK_JOINING_NETWORK();
 #endif
@@ -774,6 +778,7 @@ PT_THREAD(tsch_tx_link(struct pt *pt, struct rtimer *t))
             if(!is_broadcast) {
               uint8_t ackbuf[TSCH_ACK_LEN];
               int ack_len;
+              int is_nack;
               int ret;
               int32_t received_drift;
               rtimer_clock_t ack_start_time;
@@ -808,7 +813,7 @@ PT_THREAD(tsch_tx_link(struct pt *pt, struct rtimer *t))
 
               is_time_source = current_neighbor != NULL && current_neighbor->is_time_source;
               received_drift = 0;
-              ret = tsch_packet_parse_sync_ack(&received_drift, NULL,
+              ret = tsch_packet_parse_sync_ack(&received_drift, &is_nack,
                   ackbuf, ack_len, seqno, is_time_source);
 
               if(ret & TSCH_ACK_OK) {
@@ -975,7 +980,15 @@ PT_THREAD(tsch_rx_link(struct pt *pt, struct rtimer *t))
         if(frame_valid) {
           if(linkaddr_cmp(&destination_address, &linkaddr_node_addr)
               || linkaddr_cmp(&destination_address, &linkaddr_null)) {
+            int do_nack = 0;
             estimated_drift = ((int32_t)expected_rx_time - (int32_t)rx_start_time);
+
+#ifdef TSCH_CALLBACK_DO_NACK
+            if(ack_needed) {
+              do_nack = TSCH_CALLBACK_DO_NACK(current_link,
+                  &source_address, &destination_address);
+            }
+#endif
 
             if(ack_needed) {
               static uint8_t ack_buf[TSCH_ACK_LEN];
@@ -983,7 +996,7 @@ PT_THREAD(tsch_rx_link(struct pt *pt, struct rtimer *t))
 
               /* Build ACK frame */
               ack_len = tsch_packet_make_sync_ack(
-                  estimated_drift, 0,
+                  estimated_drift, do_nack,
                   ack_buf, sizeof(ack_buf), &source_address, seqno);
               /* Copy to radio buffer */
               NETSTACK_RADIO.prepare((const void *)ack_buf, ack_len);
