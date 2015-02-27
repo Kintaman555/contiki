@@ -57,7 +57,7 @@ PROCESS_NAME(tsch_pending_events_process);
 #define DEBUG DEBUG_NONE
 #include "net/ip/uip-debug.h"
 
-#define TSCH_MAX_LOGS 32
+#define TSCH_MAX_LOGS 16
 #if (TSCH_MAX_LOGS & (TSCH_MAX_LOGS-1)) != 0
 #error TSCH_MAX_LOGS must be power of two
 #endif
