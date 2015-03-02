@@ -7,6 +7,7 @@ import math
 from pylab import *
 import parseLogs
 import pygraphviz as pgv
+from collections import OrderedDict
 
 #MIN_INTERVAL = 0.1
 MIN_INTERVAL = 1
@@ -424,6 +425,8 @@ def extractProbing(dir, parsed):
 
 def analyzeTimeline(dir, parsed):
         
+    contentionlog = open(os.path.join(dir, "contentionlog.txt"), "w")
+        
     txGraph = {}
     channelSet = []
         
@@ -433,6 +436,15 @@ def analyzeTimeline(dir, parsed):
     if len(timeline) == 0:
         return
     
+    timeline_filtered = OrderedDict()
+    for asn in timeline.keys():
+        asnEvents = timeline[asn]
+        for node in asnEvents:
+            if asnEvents[node]['asnInfo']['slotframe'] >= 2:
+                if not asn in timeline_filtered:
+                    timeline_filtered[asn] = {}
+                timeline_filtered[asn][node] = asnEvents[node]
+        
     firstAsn = timeline.keys()[0]
     lastAsn = timeline.keys()[-1]
 
@@ -451,7 +463,8 @@ def analyzeTimeline(dir, parsed):
                         #txGraph[node] = {}
                     #print asnEvents[node]
             # Now look only at asn with a single tx
-            if txCount == 1:
+            #if txCount == 1:
+            if txCount > 0:
                 for node in asnEvents:
                     event = asnEvents[node]['event']
                     if event == 'Rx':    
@@ -480,6 +493,9 @@ def analyzeTimeline(dir, parsed):
     totalRxSuccessContended = 0
     totalRxAttemptsContendedSet = {}
     totalRxSuccessContendedSet = {}
+    
+    timeline = timeline_filtered
+    
     # Now dissect every tx: contention or not, capture or not
     for asn in range(firstAsn, lastAsn, 1):        
         if asn in timeline:
@@ -489,6 +505,7 @@ def analyzeTimeline(dir, parsed):
                 if event == 'Tx':
                     receiver = asnEvents[node]['nextHop']
                     channel = asnEvents[node]['asnInfo']['channel']
+                    slotframe = asnEvents[node]['asnInfo']['slotframe']
                     expectedReceiverSet = []
                     # compute set of nodes expected to receive this
                     if receiver == 0:
@@ -509,6 +526,7 @@ def analyzeTimeline(dir, parsed):
                         for contender in asnEvents:
                             if(contender != node and asnEvents[contender]['event'] == 'Tx'
                                and asnEvents[contender]['asnInfo']['channel'] == channel
+                               and asnEvents[contender]['asnInfo']['slotframe'] == slotframe # TODO remove this hack
                                and connected(txGraph, contender, r, channel)):
                                 contenderCount += 1
                         if contenderCount > 0:
@@ -523,15 +541,28 @@ def analyzeTimeline(dir, parsed):
                             #print "%x, %u->%u, %u %u" %(asn, node, r, contenderCount, success)
     totalRxAttemptsNonContended = totalRxAttempts - totalRxAttemptsContended
     totalRxSuccessNonContended = totalRxSuccess - totalRxSuccessContended
-    print "Overall Rx statistics: %u/%u (%.4f%%)" %(totalRxSuccess, totalRxAttempts, 100.*totalRxSuccess/totalRxAttempts)
-    print "Overall Non-Contended Rx statistics: %u/%u (%.4f%%)" %(totalRxSuccessNonContended, totalRxAttemptsNonContended, 100.*totalRxSuccessNonContended/totalRxAttemptsNonContended)
-    print "Overall Contended Rx statistics: %u/%u (%.4f%%)" %(totalRxSuccessContended, totalRxAttemptsContended, 100.*totalRxSuccessContended/totalRxAttemptsContended)
+    str = "Overall Rx statistics: %u/%u (%.4f%%)" %(totalRxSuccess, totalRxAttempts, 100.*totalRxSuccess/totalRxAttempts)
+    print str
+    contentionlog.write(str + "\n")
+    str = "Overall Non-Contended Rx statistics: %u/%u (%.4f%%)" %(totalRxSuccessNonContended, totalRxAttemptsNonContended, 100.*totalRxSuccessNonContended/totalRxAttemptsNonContended)
+    print str
+    contentionlog.write(str + "\n")
+    if totalRxAttemptsContended > 0:
+        str = "Overall Contended Rx statistics: %u/%u (%.4f%%)" %(totalRxSuccessContended, totalRxAttemptsContended, 100.*totalRxSuccessContended/totalRxAttemptsContended)
+        print str
+        contentionlog.write(str + "\n")
     for contenderCount in totalRxAttemptsContendedSet:
-        print "%u Contenders Rx statistics: %u/%u (%.4f%%)" %(contenderCount+1,
+        str = "%u Contenders Rx statistics: %u/%u (%.4f%%)" %(contenderCount+1,
                     totalRxSuccessContendedSet[contenderCount], totalRxAttemptsContendedSet[contenderCount],
                     100.*totalRxSuccessContendedSet[contenderCount]/totalRxAttemptsContendedSet[contenderCount])
-    print "Portion of successful Rx having contenders: %u/%u (%.4f%%)" %(totalRxSuccessContended, totalRxSuccess, 100.*totalRxSuccessContended/totalRxSuccess)
-    print "Portion of attempted Rx having contenders: %u/%u (%.4f%%)" %(totalRxAttemptsContended, totalRxAttempts, 100.*totalRxAttemptsContended/totalRxAttempts)
+        print str
+        contentionlog.write(str + "\n")
+    str = "Portion of successful Rx having contenders: %u/%u (%.4f%%)" %(totalRxSuccessContended, totalRxSuccess, 100.*totalRxSuccessContended/totalRxSuccess)
+    print str
+    contentionlog.write(str + "\n")
+    str = "Portion of attempted Rx having contenders: %u/%u (%.4f%%)" %(totalRxAttemptsContended, totalRxAttempts, 100.*totalRxAttemptsContended/totalRxAttempts)
+    print str
+    contentionlog.write(str + "\n")
                                 
 def process(parsed):      
         global MIN_TIME, MAX_TIME
@@ -846,8 +877,8 @@ def main():
    #     print "\nGenerating timeline txOnly=True"
     #    generateTimelineFile(dir, parsed, txOnly=True)
      #   
- #       print "\nAnalyzing timeline"
-  #      analyzeTimeline(dir, parsed)
+#        print "\nAnalyzing timeline"
+ #       analyzeTimeline(dir, parsed)
  
 #        print "\nExtracting probing data"
  #       extractProbing(dir, parsed)

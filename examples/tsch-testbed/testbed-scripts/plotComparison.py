@@ -45,23 +45,24 @@ def plotStat(all_res, metric, filename, ylabel, legendPos="lower right", legendB
   xshift = 0.4
 
   a = 0
-  b = 4
-  c = 8
-  d = 13
+  b = a+4
+  c = b+2
+  d = c+2
   configs = [{"mac":"nm", 'l': "Csma", 'i': a, 'color': colors[1]},
              {"mac":"cm64", "l": "ContikiMAC-64", 'i': a+1, 'color': colors[1]},
              {"mac":"cm8", "l": "ContikiMAC-8", 'i': a+2, 'color': colors[1]},
              {"mac":"tmin3", "l": "TSCH-min-3", 'i': b, 'color': colors[2]},
              {"mac":"tmin5", "l": "TSCH-min-5", 'i': b+1, 'color': colors[2]},
-             {"mac":"tmin7", "l": "TSCH-min-7", 'i': b+2, 'color': colors[2]},
-             {"mac":"trb397x31x3", "l": "TSCH-RB-3", 'i': c, 'color': colors[2]},
+             #{"mac":"tmin7", "l": "TSCH-min-7", 'i': b+2, 'color': colors[2]},
+#             {"mac":"trb397x31x3", "l": "TSCH-RB-3", 'i': c, 'color': colors[2]},
              {"mac":"trb397x31x7", "l": "TSCH-RB-7", 'i': c+1, 'color': colors[2]},
-             {"mac":"trb397x31x17", "l": "TSCH-RB-17", 'i': c+2, 'color': colors[2]},
-             {"mac":"trb397x31x29", "l": "TSCH-RB-29", 'i': c+3, 'color': colors[2]},
+#             {"mac":"trb397x31x17", "l": "TSCH-RB-17", 'i': c+2, 'color': colors[2]},
+#             {"mac":"trb397x31x29", "l": "TSCH-RB-29", 'i': c+3, 'color': colors[2]},
              {"mac":"tsb397x31x7", "l": "TSCH-SB-7", 'i': d, 'color': colors[2]},
-             {"mac":"tsb397x31x17", "l": "TSCH-SB-17", 'i': d+1, 'color': colors[2]},
-             {"mac":"tsb397x31x29", "l": "TSCH-SB-29", 'i': d+2, 'color': colors[2]},
-             {"mac":"tsb397x31x53", "l": "TSCH-SB-53", 'i': d+3, 'color': colors[2]},
+#             {"mac":"tsb397x31x17", "l": "TSCH-SB-17", 'i': d+1, 'color': colors[2]},
+#             {"mac":"tsb397x31x29", "l": "TSCH-SB-29", 'i': d+2, 'color': colors[2]},
+             {"mac":"tsb397x31x47", "l": "TSCH-SB-47", 'i': d+1, 'color': colors[2]},
+#             {"mac":"tsb397x31x47x53", "l": "TSCH-SB-47-53", 'i': d+1, 'color': colors[2]},
              ]
   
   w = 0.6

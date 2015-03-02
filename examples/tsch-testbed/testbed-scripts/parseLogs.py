@@ -403,7 +403,7 @@ def doParse(file, sinkId):
     linesParsedCount = 0
     
     for line in open(file, 'r').readlines():
-    #for line in open(file, 'r').readlines()[-2550:-300]:
+    #for line in open(file, 'r').readlines()[-20000:]:
         log = None
         module = None
         # match time, id, module, log; The common format for all log lines
