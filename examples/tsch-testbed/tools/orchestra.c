@@ -130,7 +130,7 @@ orchestra_delete_old_links_sf(struct tsch_slotframe *sf)
         tsch_schedule_add_link(sf,
             l->link_options & ~(LINK_OPTION_TX | LINK_OPTION_SHARED),
             LINK_TYPE_NORMAL, &linkaddr_null,
-            l->timeslot, 2);
+            l->timeslot, l->channel_offset);
       } else if(!tx_outdated && rx_outdated && (l->link_options & LINK_OPTION_RX)) {
         PRINTF("Orchestra: removing rx flag at %u\n", l->timeslot);
         /* Link outdated for rx, update */
@@ -139,7 +139,7 @@ orchestra_delete_old_links_sf(struct tsch_slotframe *sf)
         tsch_schedule_add_link(sf,
             l->link_options & ~LINK_OPTION_RX,
             LINK_TYPE_NORMAL, &link_addr,
-            l->timeslot, 2);
+            l->timeslot, l->channel_offset);
       }
     }
     prev = l;
@@ -173,19 +173,23 @@ orchestra_packet_received(void)
      * in all unicast SFs */
     linkaddr_t link_addr;
     uint8_t timeslot;
+    uint8_t choffset;
     static struct tsch_slotframe *sf;
 #ifdef ORCHESTRA_SBUNICAST_PERIOD2
     if(src_index < ORCHESTRA_SBUNICAST_PERIOD) {
       /* Use the first slotframe */
       timeslot = src_index;
       sf = sf_sb;
+      choffset = 2;
     } else {
       timeslot = src_index - ORCHESTRA_SBUNICAST_PERIOD;
       sf = sf_sb2;
+      choffset = 3;
     }
 #else
     sf = sf_sb;
     timeslot = src_index % ORCHESTRA_SBUNICAST_PERIOD;
+    choffset = 2;
 #endif
     struct link_timestamps *ts;
     uint8_t link_options = LINK_OPTION_RX;
@@ -208,7 +212,7 @@ orchestra_packet_received(void)
       l = tsch_schedule_add_link(sf,
           link_options,
           LINK_TYPE_NORMAL, &link_addr,
-          timeslot, 2);
+          timeslot, choffset);
     } else {
       PRINTF("Orchestra: updating rx link at %u\n", timeslot);
     }
@@ -234,15 +238,18 @@ orchestra_packet_sent(int mac_status)
     /* Successful unicast Tx
      * We schedule a Tx link to this neighbor, in all unicast SFs */
     uint8_t timeslot;
+    uint8_t choffset;
     static struct tsch_slotframe *sf;
 #ifdef ORCHESTRA_SBUNICAST_PERIOD2
     if(node_index < ORCHESTRA_SBUNICAST_PERIOD) {
       /* Use the first slotframe */
       timeslot = node_index;
       sf = sf_sb;
+      choffset = 2;
     } else {
       timeslot = node_index - ORCHESTRA_SBUNICAST_PERIOD;
       sf = sf_sb2;
+      choffset = 3;
     }
 #else
     sf = sf_sb;
@@ -268,7 +275,7 @@ orchestra_packet_sent(int mac_status)
       l = tsch_schedule_add_link(sf,
           link_options,
           LINK_TYPE_NORMAL, packetbuf_addr(PACKETBUF_ADDR_RECEIVER),
-          timeslot, 2);
+          timeslot, choffset);
     } else {
       PRINTF("Orchestra: update tx link at %u\n", timeslot);
     }
