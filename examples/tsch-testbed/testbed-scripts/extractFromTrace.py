@@ -566,9 +566,13 @@ def analyzeTimeline(dir, parsed):
                                 
 def process(parsed):      
         global MIN_TIME, MAX_TIME
+        global scriptlog
+                
         dataset = parsed['dataset']
         appDataStats = parsed['appDataStats']
         dir = parsed['dir']
+        
+        scriptlog = open(os.path.join(dir, "scriptlog.txt"), "w")
     
         destDir = os.path.join(dir, "data")
         if os.path.exists(destDir):
@@ -844,29 +848,18 @@ def process(parsed):
 def main():
     global MIN_TIME
     global MAX_TIME
-    global scriptlog
 
     if len(sys.argv) < 2:
         dir = '.'
     else:
         dir = sys.argv[1].rstrip('/')
 
-    scriptlog = open(os.path.join(dir, "scriptlog.txt"), "w")
-
     file = os.path.join(dir, "log.txt")
     parsed = parseLogs.doParse(file, SINK_ID)
-
-    allDataSets = []
-    allDataSets.append({'file': file, 'parsed': parsed})
+    parsed['dir'] = dir
     
-    for entries in allDataSets:
-        parsed = entries['parsed']
-        parsed['dir'] = dir
-    
-        file = entries['file']
-        
-        print "\nProcessing %s" %(file)
-        process(parsed)
+    print "\nProcessing %s" %(file)
+    process(parsed)
         
 #        print "\nGenerating vector graphics timeline"
  #       generateTimelineFileVector(dir, parsed, txOnly=False)
@@ -877,8 +870,8 @@ def main():
    #     print "\nGenerating timeline txOnly=True"
     #    generateTimelineFile(dir, parsed, txOnly=True)
      #   
-#        print "\nAnalyzing timeline"
- #       analyzeTimeline(dir, parsed)
+    #print "\nAnalyzing timeline"
+    #analyzeTimeline(dir, parsed)
  
 #        print "\nExtracting probing data"
  #       extractProbing(dir, parsed)

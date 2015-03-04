@@ -51,6 +51,7 @@ def plotStat(all_res, metric, filename, ylabel, legendPos="lower right", legendB
   configs = [{"mac":"nm", 'l': "Csma", 'i': a, 'color': colors[1]},
              {"mac":"cm64", "l": "ContikiMAC-64", 'i': a+1, 'color': colors[1]},
              {"mac":"cm8", "l": "ContikiMAC-8", 'i': a+2, 'color': colors[1]},
+#             {"mac":"tmin1", "l": "TSCH-min-1", 'i': b-1, 'color': colors[2]},
              {"mac":"tmin3", "l": "TSCH-min-3", 'i': b, 'color': colors[2]},
              {"mac":"tmin5", "l": "TSCH-min-5", 'i': b+1, 'color': colors[2]},
              #{"mac":"tmin7", "l": "TSCH-min-7", 'i': b+2, 'color': colors[2]},

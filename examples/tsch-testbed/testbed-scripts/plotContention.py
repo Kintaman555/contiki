@@ -31,7 +31,10 @@ def stdev(data):
 
 def macName(baseName, x):
     if x == 100:
-        return "%s397x31x47x53" %(baseName)
+        if baseName == "tsb":
+            return "tsb397x31x47x53"
+        else:
+            return "trb397x31x101"
     else:
         return "%s397x31x%d" %(baseName,x)
 
@@ -58,7 +61,7 @@ def plotStat(all_res, field, ylabel):
   
   if field == "prr":
       #ax.legend(loc="lower left", prop={'size':12})
-      ax.axis(xmin=3, ymin=85, ymax=100)
+      ax.axis(xmin=3, ymin=80, ymax=100)
   else:
       ax.legend(loc="upper left", prop={'size':12})
       ax.axis(xmin=3, ymin=0)
