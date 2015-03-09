@@ -132,12 +132,10 @@ rpl_verify_header(int uip_ext_opt_offset)
 	 instance->current_dag->rank
 	 );
 
-  if((down && !sender_closer) || (!down && sender_closer)) {
-    PRINTF("RPL: Loop detected - senderrank: %d my-rank: %d sender_closer: %d\n",
-	   sender_rank, instance->current_dag->rank,
-	   sender_closer);
+  rpl_parent_t *p = nbr_table_get_from_lladdr(rpl_parents, packetbuf_addr(PACKETBUF_ADDR_SENDER));
 
-    rpl_parent_t *p = nbr_table_get_from_lladdr(rpl_parents, packetbuf_addr(PACKETBUF_ADDR_SENDER));
+  if(((down && !sender_closer) || (!down && sender_closer))
+      || UIP_EXT_HDR_OPT_RPL_BUF->flags & RPL_HDR_OPT_RANK_ERR) {
     if(p != NULL && sender_rank != p->rank) {
       /* Update parent rank from ext header */
       LOGU("RPL: ext-header rank for %u hdr %u curr %u",
@@ -145,6 +143,21 @@ rpl_verify_header(int uip_ext_opt_offset)
       p->rank = sender_rank;
       rpl_select_dag(instance, p);
     }
+  }
+
+  if((down && !sender_closer) || (!down && sender_closer)) {
+    LOGU("RPL: loop detected - sender rank: %d my-rank: %d sender_closer: %d",
+	   sender_rank, instance->current_dag->rank,
+	   sender_closer);
+
+    /* Send probe to the packet source so it gets an update on our rank */
+#if RPL_CONF_PROBING
+    if(p != NULL) {
+      instance->probing_target = p;
+      ctimer_set(&instance->probing_timer,
+                  0, handle_probing_timer, instance->current_dag);
+    }
+#endif
 
     if(UIP_EXT_HDR_OPT_RPL_BUF->flags & RPL_HDR_OPT_RANK_ERR) {
       PRINTF("RPL: Rank error signalled in RPL option!\n");

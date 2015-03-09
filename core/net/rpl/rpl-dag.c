@@ -830,7 +830,7 @@ best_parent(rpl_dag_t *dag)
 }
 /*---------------------------------------------------------------------------*/
 #if RPL_CONF_PROBING
-static void
+void
 handle_probing_timer(void *ptr)
 {
   /* Probe the best or next best preferred parent */
@@ -839,35 +839,47 @@ handle_probing_timer(void *ptr)
   rpl_parent_t *p, *second_best, *probing_target;
   rpl_rank_t second_best_rank;
 
-  if(best->tx_count < RPL_CONF_PROBING_TX_THRESHOLD) {
-    probing_target = best;
-  } else {
-    /* Look for the second best parent. Must be done without the
-     * OF's best_parent function in order to ignore OF-specific
-     * policies such as mrhof rank hysteresis */
-    second_best = NULL;
-    second_best_rank = INFINITE_RANK;
-    p = nbr_table_head(rpl_parents);
-    while(p != NULL) {
-      if(p->dag != dag || p->rank == INFINITE_RANK || p == dag->preferred_parent) {
-        /* ignore this neighborm, and skip the best neighbor */
-      } else if(second_best == NULL) {
-        second_best = p;
-        second_best_rank = dag->instance->of->calculate_rank(second_best, 0);
-      } else {
-        rpl_rank_t p_rank = dag->instance->of->calculate_rank(p, 0);
-        if(p_rank < second_best_rank) {
-          /* Found new second best */
-          second_best = p;
-          second_best_rank = p_rank;
-        }
-      }
-      p = nbr_table_next(rpl_parents, p);
-    }
-    probing_target = second_best;
+  if(dag == NULL || dag->instance == NULL) {
+    return;
   }
 
-  if(probing_target != NULL && probing_target->tx_count < RPL_CONF_PROBING_TX_THRESHOLD) {
+  if(dag->instance->probing_target != NULL) {
+    probing_target = dag->instance->probing_target;
+    dag->instance->probing_target = NULL;
+  } else {
+    if(best->tx_count < RPL_CONF_PROBING_TX_THRESHOLD) {
+      probing_target = best;
+    } else {
+      /* Look for the second best parent. Must be done without the
+       * OF's best_parent function in order to ignore OF-specific
+       * policies such as mrhof rank hysteresis */
+      second_best = NULL;
+      second_best_rank = INFINITE_RANK;
+      p = nbr_table_head(rpl_parents);
+      while(p != NULL) {
+        if(p->dag != dag || p->rank == INFINITE_RANK || p == dag->preferred_parent) {
+          /* ignore this neighborm, and skip the best neighbor */
+        } else if(second_best == NULL) {
+          second_best = p;
+          second_best_rank = dag->instance->of->calculate_rank(second_best, 0);
+        } else {
+          rpl_rank_t p_rank = dag->instance->of->calculate_rank(p, 0);
+          if(p_rank < second_best_rank) {
+            /* Found new second best */
+            second_best = p;
+            second_best_rank = p_rank;
+          }
+        }
+        p = nbr_table_next(rpl_parents, p);
+      }
+      probing_target = second_best;
+    }
+    if(probing_target != NULL && probing_target->tx_count >= RPL_CONF_PROBING_TX_THRESHOLD) {
+      probing_target = NULL;
+    }
+  }
+
+  if(probing_target != NULL && rpl_get_parent_ipaddr(probing_target) != NULL) {
     LOG("RPL: probing %u (%u tx)\n",
         LOG_NODEID_FROM_IPADDR(rpl_get_parent_ipaddr(probing_target)), probing_target->tx_count);
     dio_output(dag->instance, rpl_get_parent_ipaddr(probing_target));

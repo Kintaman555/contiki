@@ -231,12 +231,16 @@ struct rpl_instance {
   struct ctimer dio_timer;
 #if RPL_CONF_PROBING
   struct ctimer probing_timer;
+  rpl_parent_t *probing_target;
 #endif /* RPL_CONF_PROBING */
 #if RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES
   struct ctimer dao_timer;
   struct ctimer dao_lifetime_timer;
 #endif /* RPL_CONF_MOP != RPL_MOP_NO_DOWNWARD_ROUTES */
 };
+#if RPL_CONF_PROBING
+void handle_probing_timer(void *ptr);
+#endif
 
 /*---------------------------------------------------------------------------*/
 /* Public RPL functions. */
