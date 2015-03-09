@@ -254,6 +254,7 @@ orchestra_packet_sent(int mac_status)
 #else
     sf = sf_sb;
     timeslot = node_index % ORCHESTRA_SBUNICAST_PERIOD;
+    choffset = 2;
 #endif
     struct link_timestamps *ts;
     uint8_t link_options = LINK_OPTION_TX | (ORCHESTRA_SBUNICAST_SHARED ? LINK_OPTION_SHARED : 0);
