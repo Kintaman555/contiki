@@ -283,6 +283,9 @@ dio_input(void)
   dio.rank = get16(buffer, i);
   i += 2;
 
+  LOG("RPL: DIO input from %d, rank %u\n",
+      LOG_NODEID_FROM_IPADDR(&from),(unsigned)dio.rank);
+
   PRINTF("RPL: Incoming DIO (id, ver, rank) = (%u,%u,%u)\n",
          (unsigned)dio.instance_id,
          (unsigned)dio.version,
