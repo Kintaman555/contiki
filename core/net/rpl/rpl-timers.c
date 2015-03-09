@@ -195,8 +195,8 @@ rpl_reset_periodic_timer(void)
 void
 rpl_reset_dio_timer(rpl_instance_t *instance, int src)
 {
-  //LOG("RPL: reset DIO timer, was %d (%d)\n",
-      //default_instance != NULL ? default_instance->dio_intcurrent : -1, src);
+  LOG("RPL: reset DIO timer, was %d (%d)\n",
+      default_instance != NULL ? default_instance->dio_intcurrent : -1, src);
 #if !RPL_LEAF_ONLY
   /* Do not reset if we are already on the minimum interval,
      unless forced to do so. */

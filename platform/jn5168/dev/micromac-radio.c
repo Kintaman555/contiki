@@ -366,6 +366,7 @@ off(void)
   vMMAC_RadioOff();
   /* TODO PROTOCOL shutdown... to shutdown the circuit instead. */
 }
+char *jn_tx_err = NULL;
 /*---------------------------------------------------------------------------*/
 static int
 micromac_radio_transmit(unsigned short payload_len)
@@ -389,15 +390,21 @@ micromac_radio_transmit(unsigned short payload_len)
   if(tx_error == 0) {
     ret = RADIO_TX_OK;
     RIMESTATS_ADD(acktx);
+    jn_tx_err = "ok";
   } else if(tx_error & E_MMAC_TXSTAT_ABORTED) {
     ret = RADIO_TX_ERR;
     RIMESTATS_ADD(sendingdrop);
+    jn_tx_err = "aborted";
   } else if(tx_error & E_MMAC_TXSTAT_CCA_BUSY) {
     ret = RADIO_TX_COLLISION;
     RIMESTATS_ADD(contentiondrop);
+    jn_tx_err = "ccabusy";
   } else if(tx_error & E_MMAC_TXSTAT_NO_ACK) {
     ret = RADIO_TX_NOACK;
     RIMESTATS_ADD(noacktx);
+    jn_tx_err = "noack";
+  } else {
+    jn_tx_err = "unknown";
   }
   RELEASE_LOCK();
   return ret;

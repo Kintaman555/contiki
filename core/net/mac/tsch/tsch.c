@@ -843,6 +843,13 @@ PT_THREAD(tsch_tx_link(struct pt *pt, struct rtimer *t))
             }
           } else {
             mac_tx_status = MAC_TX_ERR;
+#if CONTIKI_TARGET_JN5168
+            extern char *jn_tx_err;
+            TSCH_LOG_ADD(tsch_log_message,
+                  snprintf(log->message, sizeof(log->message),
+                      "!tx err %s\n", jn_tx_err);
+            );
+#endif
           }
         }
       }

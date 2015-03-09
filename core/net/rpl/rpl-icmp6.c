@@ -249,9 +249,6 @@ dio_input(void)
   PRINT6ADDR(&from);
   PRINTF("\n");
 
-  LOG("RPL: DIO input from %d\n",
-      LOG_NODEID_FROM_IPADDR(&from));
-
   if((nbr = uip_ds6_nbr_lookup(&from)) == NULL) {
     if((nbr = uip_ds6_nbr_add(&from, (uip_lladdr_t *)
                               packetbuf_addr(PACKETBUF_ADDR_SENDER),
