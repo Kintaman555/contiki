@@ -374,7 +374,7 @@ check_timer_miss(rtimer_clock_t ref_time, rtimer_clock_t offset, rtimer_clock_t 
  * If conditional: schedule only if the deadline is not missed.
  * Otherwise: schedule regardless of deadline miss. */
 static uint8_t
-tsch_schedule_link_operation(struct rtimer *tm, rtimer_clock_t ref_time, rtimer_clock_t offset, int conditional)
+tsch_schedule_link_operation(struct rtimer *tm, rtimer_clock_t ref_time, rtimer_clock_t offset, int conditional, const char *str)
 {
   rtimer_clock_t now = RTIMER_NOW();
   int r;
@@ -383,9 +383,9 @@ tsch_schedule_link_operation(struct rtimer *tm, rtimer_clock_t ref_time, rtimer_
   if(missed) {
     TSCH_LOG_ADD(tsch_log_message,
                 snprintf(log->message, sizeof(log->message),
-                    "!dl-miss-%d %d %d",
-                        conditional,
-                        (int)(now - ref_time), (int)offset);
+                    "!dl-miss-%d %s %d %d",
+                        conditional, str,
+                        (int)(now-ref_time), (int)offset);
     );
 
     if(conditional) {
@@ -400,9 +400,9 @@ tsch_schedule_link_operation(struct rtimer *tm, rtimer_clock_t ref_time, rtimer_
   return 1;
 }
 /* Schedule link operation conditionally, and YIELD if success only */
-#define TSCH_SCHEDULE_AND_YIELD(pt, tm, ref_time, offset) \
+#define TSCH_SCHEDULE_AND_YIELD(pt, tm, ref_time, offset, str) \
   do { \
-    if(tsch_schedule_link_operation(tm, ref_time, offset, 1)) { \
+    if(tsch_schedule_link_operation(tm, ref_time, offset, 1, str)) { \
       PT_YIELD(pt); \
     } \
   } while(0);
@@ -468,7 +468,7 @@ send_packet(mac_callback_t sent, void *ptr)
   packet_count_before = tsch_queue_packet_count(addr);
 
   if(NETSTACK_FRAMER.create() < 0) {
-    //LOGP("TSCH:! can't send packet due to framer error");
+    LOGP("TSCH:! can't send packet due to framer error");
     ret = MAC_TX_ERR;
   } else {
     /* Enqueue packet */
@@ -740,7 +740,7 @@ PT_THREAD(tsch_tx_link(struct pt *pt, struct rtimer *t))
 #if CCA_ENABLED
         cca_status = 1;
         /* delay before CCA */
-        TSCH_SCHEDULE_AND_YIELD(pt, t, current_link_start, TsCCAOffset);
+        TSCH_SCHEDULE_AND_YIELD(pt, t, current_link_start, TsCCAOffset, "cca");
         on();
         /* CCA */
         BUSYWAIT_UNTIL_ABS(!(cca_status |= NETSTACK_RADIO.channel_clear()),
@@ -753,18 +753,12 @@ PT_THREAD(tsch_tx_link(struct pt *pt, struct rtimer *t))
 #endif /* CCA_ENABLED */
         {
           /* delay before TX */
-          TSCH_SCHEDULE_AND_YIELD(pt, t, current_link_start, TsTxOffset - delayTx);
+          TSCH_SCHEDULE_AND_YIELD(pt, t, current_link_start, TsTxOffset - delayTx, "TxBeforeTx");
           t0tx = RTIMER_NOW();
           /* send packet already in radio tx buffer */
           mac_tx_status = NETSTACK_RADIO.transmit(payload_len);
           /* Save tx timestamp */
-#if TSCH_USE_SFD_FOR_SYNC
           tx_start_time = current_link_start + TsTxOffset;
-          /* TODO test this on H/W */
-          /*      tx_start_time = NETSTACK_RADIO_read_sfd_timer(); */
-#else
-          tx_start_time = current_link_start + TsTxOffset;
-#endif
           /* calculate TX duration based on sent packet len */
           tx_duration = TSCH_PACKET_DURATION(payload_len);
           /* limit tx_time to its max value */
@@ -787,8 +781,8 @@ PT_THREAD(tsch_tx_link(struct pt *pt, struct rtimer *t))
               /* Disabling address decoding so the radio accepts the enhanced ACK */
               NETSTACK_RADIO_address_decode(0);
               /* Unicast: wait for ack after tx: sleep until ack time */
-              TSCH_SCHEDULE_AND_YIELD(pt, t, tx_start_time,
-                  tx_duration + TsTxAckDelay - TsShortGT - delayRx);
+              TSCH_SCHEDULE_AND_YIELD(pt, t, current_link_start,
+                  TsTxOffset + tx_duration + TsTxAckDelay - TsShortGT - delayRx, "TxBeforeAck");
               on();
               /* Wait for ACK to come */
               BUSYWAIT_UNTIL_ABS(NETSTACK_RADIO.receiving_packet(),
@@ -917,7 +911,6 @@ PT_THREAD(tsch_rx_link(struct pt *pt, struct rtimer *t))
     static int32_t estimated_drift;
     /* Rx timestamps */
     static rtimer_clock_t rx_start_time;
-    static rtimer_clock_t rx_end_time;
     static rtimer_clock_t expected_rx_time;
 
     expected_rx_time = current_link_start + TsTxOffset;
@@ -929,7 +922,7 @@ PT_THREAD(tsch_rx_link(struct pt *pt, struct rtimer *t))
     current_input = &input_array[input_index];
 
     /* Wait before starting to listen */
-    TSCH_SCHEDULE_AND_YIELD(pt, t, current_link_start, TsTxOffset - TsLongGT - delayRx);
+    TSCH_SCHEDULE_AND_YIELD(pt, t, current_link_start, TsTxOffset - TsLongGT - delayRx, "RxBeforeListen");
 
     /* Start radio for at least guard time */
     on();
@@ -972,7 +965,6 @@ PT_THREAD(tsch_rx_link(struct pt *pt, struct rtimer *t))
         ack_needed = tsch_packet_parse_frame_type((uint8_t *)current_input->payload, current_input->len, &seqno) & DO_ACK;
         frame_valid = tsch_packet_extract_addresses((uint8_t*)current_input->payload,
             current_input->len, &source_address, &destination_address);
-        rx_end_time = rx_start_time + TSCH_PACKET_DURATION(current_input->len);
 
         t0rx = RTIMER_NOW() - t0rx;
         t0rxack = RTIMER_NOW();
@@ -1002,7 +994,8 @@ PT_THREAD(tsch_rx_link(struct pt *pt, struct rtimer *t))
               NETSTACK_RADIO.prepare((const void *)ack_buf, ack_len);
 
               /* Wait for time to ACK and transmit ACK */
-              TSCH_SCHEDULE_AND_YIELD(pt, t, rx_end_time, TsTxAckDelay - delayTx);
+              TSCH_SCHEDULE_AND_YIELD(pt, t, rx_start_time,
+                  TSCH_PACKET_DURATION(current_input->len) + TsTxAckDelay - delayTx, "RxBeforeAck");
               NETSTACK_RADIO.transmit(ack_len);
             }
 
@@ -1152,7 +1145,7 @@ PT_THREAD(tsch_link_operation(struct rtimer *t, void *ptr))
         /* Update current link start */
         prev_link_start = current_link_start;
         current_link_start += tsch_time_until_next_active_link;
-      } while(!tsch_schedule_link_operation(t, prev_link_start, tsch_time_until_next_active_link, 1));
+      } while(!tsch_schedule_link_operation(t, prev_link_start, tsch_time_until_next_active_link, 1, "main"));
 
       /* Drift correction monitoring */
       //PRINTF("TSCH: end of cell, drift correction: %d ticks, next wake up: %u slots\n", (int16_t)drift_correction_backup, timeslot_diff);
@@ -1347,7 +1340,7 @@ PROCESS_THREAD(tsch_process, ev, data)
       /* Update current link start */
       prev_link_start = current_link_start;
       current_link_start += tsch_time_until_next_active_link;
-    } while(!tsch_schedule_link_operation(&link_operation_timer, prev_link_start, tsch_time_until_next_active_link, 1));
+    } while(!tsch_schedule_link_operation(&link_operation_timer, prev_link_start, tsch_time_until_next_active_link, 1, "asso"));
 
     PROCESS_YIELD_UNTIL(!associated);
 
