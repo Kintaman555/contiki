@@ -157,6 +157,28 @@ orchestra_delete_old_links()
 }
 /*---------------------------------------------------------------------------*/
 static void
+orhcestra_get_sb_slot(uint16_t sender_index,
+    struct tsch_slotframe **sf,uint8_t *timeslot, uint8_t *choffset)
+{
+#ifdef ORCHESTRA_SBUNICAST_PERIOD2
+    if(sender_index < ORCHESTRA_SBUNICAST_PERIOD) {
+      /* Use the first slotframe */
+      *sf = sf_sb;
+      *timeslot = sender_index;
+      *choffset = 2;
+    } else {
+      *sf = sf_sb2;
+      *timeslot = sender_index - ORCHESTRA_SBUNICAST_PERIOD;
+      *choffset = 3;
+    }
+#else
+    *sf = sf_sb;
+    *timeslot = sender_index % ORCHESTRA_SBUNICAST_PERIOD;
+    *choffset = 2;
+#endif
+}
+/*---------------------------------------------------------------------------*/
+static void
 orchestra_packet_received(void)
 {
   if(packetbuf_attr(PACKETBUF_ATTR_PROTO) == UIP_PROTO_ICMP6) {
@@ -171,28 +193,14 @@ orchestra_packet_received(void)
     /* Successful unicast Rx
      * We schedule a Rx link to listen to the source's dedicated slot,
      * in all unicast SFs */
-    linkaddr_t link_addr;
+    struct link_timestamps *ts;
+    static struct tsch_slotframe *sf;
     uint8_t timeslot;
     uint8_t choffset;
-    static struct tsch_slotframe *sf;
-#ifdef ORCHESTRA_SBUNICAST_PERIOD2
-    if(src_index < ORCHESTRA_SBUNICAST_PERIOD) {
-      /* Use the first slotframe */
-      timeslot = src_index;
-      sf = sf_sb;
-      choffset = 2;
-    } else {
-      timeslot = src_index - ORCHESTRA_SBUNICAST_PERIOD;
-      sf = sf_sb2;
-      choffset = 3;
-    }
-#else
-    sf = sf_sb;
-    timeslot = src_index % ORCHESTRA_SBUNICAST_PERIOD;
-    choffset = 2;
-#endif
-    struct link_timestamps *ts;
+    linkaddr_t link_addr;
     uint8_t link_options = LINK_OPTION_RX;
+    /* Get coordinates of our sender-based slot */
+    orhcestra_get_sb_slot(src_index, &sf, &timeslot, &choffset);
     struct tsch_link *l = tsch_schedule_get_link_from_timeslot(sf, timeslot);
     if(l == NULL) {
       linkaddr_copy(&link_addr, &linkaddr_null);
@@ -237,26 +245,12 @@ orchestra_packet_sent(int mac_status)
   if(dest_index != 0xffff && mac_status == MAC_TX_OK) {
     /* Successful unicast Tx
      * We schedule a Tx link to this neighbor, in all unicast SFs */
+    struct link_timestamps *ts;
+    static struct tsch_slotframe *sf;
     uint8_t timeslot;
     uint8_t choffset;
-    static struct tsch_slotframe *sf;
-#ifdef ORCHESTRA_SBUNICAST_PERIOD2
-    if(node_index < ORCHESTRA_SBUNICAST_PERIOD) {
-      /* Use the first slotframe */
-      timeslot = node_index;
-      sf = sf_sb;
-      choffset = 2;
-    } else {
-      timeslot = node_index - ORCHESTRA_SBUNICAST_PERIOD;
-      sf = sf_sb2;
-      choffset = 3;
-    }
-#else
-    sf = sf_sb;
-    timeslot = node_index % ORCHESTRA_SBUNICAST_PERIOD;
-    choffset = 2;
-#endif
-    struct link_timestamps *ts;
+    /* Get coordinates of our sender-based slot */
+    orhcestra_get_sb_slot(node_index, &sf, &timeslot, &choffset);
     uint8_t link_options = LINK_OPTION_TX | (ORCHESTRA_SBUNICAST_SHARED ? LINK_OPTION_SHARED : 0);
     struct tsch_link *l = tsch_schedule_get_link_from_timeslot(sf, timeslot);
     if(l == NULL) {
