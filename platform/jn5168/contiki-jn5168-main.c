@@ -271,7 +271,12 @@ main(void)
   leds_init();
   leds_on(LEDS_ALL);
   init_node_mac();
+
+  energest_init();
+  ENERGEST_ON(ENERGEST_TYPE_CPU);
+
   node_id_restore();
+
 #if WITH_TINYOS_AUTO_IDS
   node_id = TOS_NODE_ID;
 #endif /* WITH_TINYOS_AUTO_IDS */
@@ -413,8 +418,12 @@ main(void)
       }
     }
 #endif /* DCOSYNCH_CONF_ENABLED */
+    ENERGEST_OFF(ENERGEST_TYPE_CPU);
+    ENERGEST_ON(ENERGEST_TYPE_LPM);
     vAHI_CpuDoze();
     watchdog_start();
+    ENERGEST_OFF(ENERGEST_TYPE_LPM);
+    ENERGEST_ON(ENERGEST_TYPE_CPU);
   }
 
   return 0;

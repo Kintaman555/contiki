@@ -187,6 +187,9 @@ static tsPhyFrame input_array[RADIO_BUF_NUM];
 /* SFD timestamp in RTIMER ticks */
 static volatile uint32_t last_packet_timestamp = 0;
 
+/* Are we currently listening? */
+static uint8_t listen_on;
+
 /* Local functions prototypes */
 static void on(void);
 static void off(void);
@@ -344,6 +347,9 @@ on(void)
   /* TODO not needed since we are using radio timer directly
    * micromac_radio_sfd_sync();*/
   micromac_radio_phy_rx();
+
+  ENERGEST_ON(ENERGEST_TYPE_LISTEN);
+  listen_on = 1;
 }
 /*---------------------------------------------------------------------------*/
 int
@@ -359,6 +365,9 @@ micromac_radio_raw_rx_on(void)
 static void
 off(void)
 {
+  listen_on = 0;
+  ENERGEST_OFF(ENERGEST_TYPE_LISTEN);
+
 //  rx_in_progress = 0;
 //  tx_in_progress = 0;
   /* TODO only needed when using scheduled/delayed RF functions
@@ -379,11 +388,19 @@ micromac_radio_transmit(unsigned short payload_len)
   GET_LOCK();
   tx_in_progress = 1;
   /* TODO no auto ack in Pyh mode, remove it here and constuct ack in interrupt */
+  if(listen_on) {
+    ENERGEST_OFF(ENERGEST_TYPE_LISTEN);
+  }
+  ENERGEST_ON(ENERGEST_TYPE_TRANSMIT);
   vMMAC_StartPhyTransmit(&tx_frame_buffer,
       E_MMAC_TX_START_NOW | MMAC_TX_AUTO_ACK_CONF | E_MMAC_TX_NO_CCA);
   /* TODO should this be removed? */
   BUSYWAIT_UNTIL(u32MMAC_PollInterruptSource(E_MMAC_INT_TX_COMPLETE),
       MAX_PACKET_DURATION);
+  ENERGEST_OFF(ENERGEST_TYPE_TRANSMIT);
+  if(listen_on) {
+    ENERGEST_ON(ENERGEST_TYPE_LISTEN);
+  }
   tx_in_progress = 0;
   int ret = RADIO_TX_ERR;
   uint32_t tx_error = u32MMAC_GetTxErrors();

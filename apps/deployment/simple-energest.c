@@ -39,6 +39,7 @@
 #include "node-id.h"
 #include "simple-energest.h"
 #include <stdio.h>
+#include <limits.h>
 
 static uint32_t last_tx, last_rx, last_time;
 static uint32_t delta_tx, delta_rx, delta_time;
@@ -73,12 +74,22 @@ simple_energest_step(int verbose)
   last_time = curr_time;
 
   if(verbose) {
+#if UINT_MAX == 65535
     uint32_t fraction = (1000ul * (delta_tx + delta_rx)) / delta_time;
-    LOG("Duty Cycle: [%u %u] %8lu +%8lu /%8lu (%lu permil)\n",
+    LOG("Duty Cycle: [%u %u] %10lu +%10lu /%10lu (%lu permil)\n",
                  node_id,
                  cnt++,
                  delta_tx, delta_rx, delta_time,
                  fraction
                  );
+#else
+    uint32_t fraction = (delta_tx + delta_rx) / (delta_time / 1000);
+    LOG("Duty Cycle: [%u %u] %10u +%10u /%10u (%u permil)\n",
+                     node_id,
+                     cnt++,
+                     delta_tx, delta_rx, delta_time,
+                     fraction
+                     );
+#endif
   }
 }
