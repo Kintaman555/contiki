@@ -836,10 +836,10 @@ handle_probing_timer(void *ptr)
   /* Probe the best or next best preferred parent */
   rpl_dag_t *dag = (rpl_dag_t *)ptr;
   rpl_parent_t *best = best_parent(dag);
-  rpl_parent_t *p, *second_best, *probing_target;
+  rpl_parent_t *p, *second_best, *probing_target = NULL;
   rpl_rank_t second_best_rank;
 
-  if(dag == NULL || dag->instance == NULL) {
+  if(dag == NULL || dag->instance == NULL || best == NULL) {
     return;
   }
 
@@ -847,6 +847,7 @@ handle_probing_timer(void *ptr)
     probing_target = dag->instance->probing_target;
     dag->instance->probing_target = NULL;
   } else {
+    /* No target specified. Probe either the best or second best parent. */
     if(best->tx_count < RPL_CONF_PROBING_TX_THRESHOLD) {
       probing_target = best;
     } else {
@@ -872,10 +873,14 @@ handle_probing_timer(void *ptr)
         }
         p = nbr_table_next(rpl_parents, p);
       }
-      probing_target = second_best;
-    }
-    if(probing_target != NULL && probing_target->tx_count >= RPL_CONF_PROBING_TX_THRESHOLD) {
-      probing_target = NULL;
+      if(second_best != NULL) {
+        int second_best_target_count = RPL_CONF_PROBING_FOREVER ? best->tx_count : RPL_CONF_PROBING_TX_THRESHOLD;
+        if(second_best->tx_count < second_best_target_count) {
+          probing_target = second_best;
+        } else {
+          probing_target = best;
+        }
+      }
     }
   }
 
@@ -907,7 +912,7 @@ rpl_select_parent(rpl_dag_t *dag)
         rpl_set_preferred_parent(dag, best);
         /* Probe second best parent */
         ctimer_set(&dag->instance->probing_timer,
-              random_rand() % (CLOCK_SECOND*60),
+              random_rand() % RPL_CONF_PROBING_INTERVAL,
               handle_probing_timer, dag);
       }
 #else
