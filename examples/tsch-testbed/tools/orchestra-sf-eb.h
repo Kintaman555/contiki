@@ -29,67 +29,15 @@
  */
 /**
  * \file
- *         Orchestra
+ *         Orchestra header file
  *
  * \author Simon Duquennoy <simonduq@sics.se>
  */
 
-#include "contiki.h"
+#ifndef __ORCHESTRA_SF_EB_H__
+#define __ORCHESTRA_SF_EB_H__
 
-#include "lib/memb.h"
-#include "net/packetbuf.h"
-#include "net/rpl/rpl.h"
-#include "net/mac/tsch/tsch.h"
-#include "net/mac/tsch/tsch-private.h"
-#include "net/mac/tsch/tsch-schedule.h"
-#include "deployment.h"
-#include "net/rime/rime.h"
-#include "tools/orchestra.h"
-#if ORCHESTRA_WITH_EBSF
-#include "tools/orchestra-sf-eb.h"
-#endif
-#if ORCHESTRA_WITH_COMMON_SHARED
-#include "tools/orchestra-sf-common-shared.h"
-#endif
-#if ORCHESTRA_WITH_RBUNICAST
-#include "tools/orchestra-sf-rb-unicast.h"
-#endif
-#if ORCHESTRA_WITH_SBUNICAST
-#include "tools/orchestra-sf-sb-unicast.h"
-#endif
-#include <stdio.h>
+void orchestra_sf_eb_init();
+void orchestra_sf_eb_new_time_source(struct tsch_neighbor *old, struct tsch_neighbor *new);
 
-#define DEBUG DEBUG_NONE
-#include "net/ip/uip-debug.h"
-
-void
-orchestra_callback_new_time_source(struct tsch_neighbor *old, struct tsch_neighbor *new)
-{
-#if ORCHESTRA_WITH_EBSF
-  orchestra_sf_eb_new_time_source(old, new);
-#endif
-
-#if ORCHESTRA_WITH_RBUNICAST
-  orchestra_sf_rb_unicast_new_time_source(old, new);
-#endif
-}
-
-void
-orchestra_init()
-{
-#if ORCHESTRA_WITH_EBSF
-  orchestra_sf_eb_init();
-#endif
-
-#if ORCHESTRA_WITH_COMMON_SHARED
-  orchestra_sf_common_shared_init();
-#endif
-
-#if ORCHESTRA_WITH_RBUNICAST
-  orchestra_sf_rb_unicast_init();
-#endif
-
-#if ORCHESTRA_WITH_SBUNICAST
-  orchestra_sf_sb_unicast_init();
-#endif
-}
+#endif /* __ORCHESTRA_SF_EB_H__ */

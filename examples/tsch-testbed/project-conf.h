@@ -87,7 +87,6 @@
 #define TSCH_CONF_PACKET_DEST_ADDR_IN_ACK (ORCHESTRA_UNICAST_PERIOD < MAX_NODES)
 #define TSCH_CALLBACK_NEW_TIME_SOURCE orchestra_callback_new_time_source
 #define TSCH_CALLBACK_JOINING_NETWORK orchestra_callback_joining_network
-//#define TSCH_CALLBACK_DO_NACK orchestra_callback_do_nack
 #define TSCH_CONF_MIN_EB_PERIOD (2 * CLOCK_SECOND)
 #define TSCH_CONF_MAX_EB_PERIOD (2 * CLOCK_SECOND)
 

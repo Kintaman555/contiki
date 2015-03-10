@@ -29,51 +29,68 @@
  */
 /**
  * \file
- *         Orchestra header file
+ *         Orchestra
  *
  * \author Simon Duquennoy <simonduq@sics.se>
  */
 
-#ifndef __ORCHESTRA_H__
-#define __ORCHESTRA_H__
+#include "contiki.h"
 
+#include "lib/memb.h"
+#include "net/packetbuf.h"
+#include "net/rpl/rpl.h"
 #include "net/mac/tsch/tsch.h"
+#include "net/mac/tsch/tsch-private.h"
 #include "net/mac/tsch/tsch-schedule.h"
+#include "deployment.h"
+#include "net/rime/rime.h"
+#include "tools/orchestra.h"
+#include <stdio.h>
 
-#if ORCHESTRA_CONFIG == ORCHESTRA_MINIMAL_SCHEDULE
+#define DEBUG DEBUG_NONE
+#include "net/ip/uip-debug.h"
 
-#define ORCHESTRA_WITH_COMMON_SHARED              1
-#define ORCHESTRA_COMMON_SHARED_PERIOD            TSCH_SCHEDULE_CONF_DEFAULT_LENGTH
-#define ORCHESTRA_COMMON_SHARED_TYPE              LINK_TYPE_ADVERTISING
-
-#elif ORCHESTRA_CONFIG == ORCHESTRA_RECEIVER_BASED
-
-#define ORCHESTRA_WITH_EBSF                       1
-#define ORCHESTRA_EBSF_PERIOD                     397
-#define ORCHESTRA_WITH_COMMON_SHARED              1
-#define ORCHESTRA_COMMON_SHARED_TYPE              LINK_TYPE_NORMAL
-#define ORCHESTRA_COMMON_SHARED_PERIOD            ORCHESTRA_SHARED_PERIOD
-#define ORCHESTRA_WITH_RBUNICAST                  1
-#define ORCHESTRA_RBUNICAST_PERIOD                ORCHESTRA_UNICAST_PERIOD
-
-#elif ORCHESTRA_CONFIG == ORCHESTRA_SENDER_BASED
-
-#define ORCHESTRA_WITH_EBSF                       1
-#define ORCHESTRA_EBSF_PERIOD                     397
-#define ORCHESTRA_WITH_COMMON_SHARED              1
-#define ORCHESTRA_COMMON_SHARED_TYPE              LINK_TYPE_NORMAL
-#define ORCHESTRA_COMMON_SHARED_PERIOD            ORCHESTRA_SHARED_PERIOD
-#define ORCHESTRA_WITH_SBUNICAST                  1
-#define ORCHESTRA_SBUNICAST_PERIOD                ORCHESTRA_UNICAST_PERIOD
-#ifdef ORCHESTRA_UNICAST_PERIOD2
-#define ORCHESTRA_SBUNICAST_PERIOD2               ORCHESTRA_UNICAST_PERIOD2
+#ifndef ORCHESTRA_EBSF_PERIOD
+#define ORCHESTRA_EBSF_PERIOD 397
 #endif
 
-#endif
+static struct tsch_slotframe *sf_eb;
 
-void orchestra_init();
-void orchestra_callback_new_time_source(struct tsch_neighbor *old, struct tsch_neighbor *new);
-void orchestra_callback_joining_network();
-int orchestra_callback_do_nack(struct tsch_link *link, linkaddr_t *src, linkaddr_t *dst);
+/*---------------------------------------------------------------------------*/
+void
+orchestra_sf_eb_new_time_source(struct tsch_neighbor *old, struct tsch_neighbor *new)
+{
+  uint16_t old_id = node_id_from_linkaddr(&old->addr);
+  uint16_t old_index = get_node_index_from_id(old_id);
+  uint16_t new_id = node_id_from_linkaddr(&new->addr);
+  uint16_t new_index = get_node_index_from_id(new_id);
 
-#endif /* __ORCHESTRA_H__ */
+  if(new_index == old_index) {
+    return;
+  }
+
+  if(old_index != 0xffff) {
+    PRINTF("Orchestra: removing rx link for %u (%u) EB\n", old_id, old_index);
+    /* Stop listening to the old time source's EBs */
+    tsch_schedule_remove_link_from_timeslot(sf_eb, old_index);
+  }
+  if(new_index != 0xffff) {
+    /* Listen to the time source's EBs */
+    PRINTF("Orchestra: adding rx link for %u (%u) EB\n", new_id, new_index);
+    tsch_schedule_add_link(sf_eb,
+        LINK_OPTION_RX,
+        LINK_TYPE_ADVERTISING_ONLY, NULL,
+        new_index, 0);
+  }
+}
+
+void
+orchestra_sf_eb_init()
+{
+  sf_eb = tsch_schedule_add_slotframe(0, ORCHESTRA_EBSF_PERIOD);
+  /* EB link: every neighbor uses its own to avoid contention */
+  tsch_schedule_add_link(sf_eb,
+      LINK_OPTION_TX,
+      LINK_TYPE_ADVERTISING_ONLY, &tsch_broadcast_address,
+      node_index, 0);
+}

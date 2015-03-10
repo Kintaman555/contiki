@@ -29,51 +29,35 @@
  */
 /**
  * \file
- *         Orchestra header file
+ *         Orchestra
  *
  * \author Simon Duquennoy <simonduq@sics.se>
  */
 
-#ifndef __ORCHESTRA_H__
-#define __ORCHESTRA_H__
+#include "contiki.h"
 
+#include "lib/memb.h"
+#include "net/packetbuf.h"
+#include "net/rpl/rpl.h"
 #include "net/mac/tsch/tsch.h"
+#include "net/mac/tsch/tsch-private.h"
 #include "net/mac/tsch/tsch-schedule.h"
+#include "deployment.h"
+#include "net/rime/rime.h"
+#include "tools/orchestra.h"
+#include <stdio.h>
 
-#if ORCHESTRA_CONFIG == ORCHESTRA_MINIMAL_SCHEDULE
+#define DEBUG DEBUG_NONE
+#include "net/ip/uip-debug.h"
 
-#define ORCHESTRA_WITH_COMMON_SHARED              1
-#define ORCHESTRA_COMMON_SHARED_PERIOD            TSCH_SCHEDULE_CONF_DEFAULT_LENGTH
-#define ORCHESTRA_COMMON_SHARED_TYPE              LINK_TYPE_ADVERTISING
-
-#elif ORCHESTRA_CONFIG == ORCHESTRA_RECEIVER_BASED
-
-#define ORCHESTRA_WITH_EBSF                       1
-#define ORCHESTRA_EBSF_PERIOD                     397
-#define ORCHESTRA_WITH_COMMON_SHARED              1
-#define ORCHESTRA_COMMON_SHARED_TYPE              LINK_TYPE_NORMAL
-#define ORCHESTRA_COMMON_SHARED_PERIOD            ORCHESTRA_SHARED_PERIOD
-#define ORCHESTRA_WITH_RBUNICAST                  1
-#define ORCHESTRA_RBUNICAST_PERIOD                ORCHESTRA_UNICAST_PERIOD
-
-#elif ORCHESTRA_CONFIG == ORCHESTRA_SENDER_BASED
-
-#define ORCHESTRA_WITH_EBSF                       1
-#define ORCHESTRA_EBSF_PERIOD                     397
-#define ORCHESTRA_WITH_COMMON_SHARED              1
-#define ORCHESTRA_COMMON_SHARED_TYPE              LINK_TYPE_NORMAL
-#define ORCHESTRA_COMMON_SHARED_PERIOD            ORCHESTRA_SHARED_PERIOD
-#define ORCHESTRA_WITH_SBUNICAST                  1
-#define ORCHESTRA_SBUNICAST_PERIOD                ORCHESTRA_UNICAST_PERIOD
-#ifdef ORCHESTRA_UNICAST_PERIOD2
-#define ORCHESTRA_SBUNICAST_PERIOD2               ORCHESTRA_UNICAST_PERIOD2
-#endif
-
-#endif
-
-void orchestra_init();
-void orchestra_callback_new_time_source(struct tsch_neighbor *old, struct tsch_neighbor *new);
-void orchestra_callback_joining_network();
-int orchestra_callback_do_nack(struct tsch_link *link, linkaddr_t *src, linkaddr_t *dst);
-
-#endif /* __ORCHESTRA_H__ */
+void
+orchestra_sf_common_shared_init()
+{
+  /* Default slotframe: for broadcast or unicast to neighbors we
+   * do not have a link to */
+  struct tsch_slotframe *sf_common = tsch_schedule_add_slotframe(1, ORCHESTRA_COMMON_SHARED_PERIOD);
+  tsch_schedule_add_link(sf_common,
+      LINK_OPTION_RX | LINK_OPTION_TX | LINK_OPTION_SHARED,
+      ORCHESTRA_COMMON_SHARED_TYPE, &tsch_broadcast_address,
+      0, 1);
+}
