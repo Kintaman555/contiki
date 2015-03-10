@@ -35,6 +35,7 @@
 #include "sys/energest.h"
 
 static unsigned char leds;
+void leds_invert(unsigned char ledv);
 /*---------------------------------------------------------------------------*/
 static void
 show_leds(unsigned char changed)
