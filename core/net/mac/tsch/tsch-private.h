@@ -132,16 +132,17 @@
 #define TsTxAckDelay        ((unsigned)US_TO_RTIMERTICKS(4000))
 #define TsTxOffset          ((unsigned)US_TO_RTIMERTICKS(4000))
 #define TsSlotDuration      ((unsigned)US_TO_RTIMERTICKS(15000))
+#define TsShortGT           ((unsigned)US_TO_RTIMERTICKS(400))
 #else
 #define TsCCAOffset         ((unsigned)US_TO_RTIMERTICKS(1800))
 #define TsCCA               ((unsigned)US_TO_RTIMERTICKS(128))
 #define TsTxAckDelay        ((unsigned)US_TO_RTIMERTICKS(1000))
 #define TsTxOffset          ((unsigned)US_TO_RTIMERTICKS(2120))
 #define TsSlotDuration      ((unsigned)US_TO_RTIMERTICKS(10000))
+#define TsShortGT           ((unsigned)US_TO_RTIMERTICKS(200))
 #endif
 
 #define TsLongGT            ((unsigned)US_TO_RTIMERTICKS(TSCH_GUARD_TIME))
-#define TsShortGT           ((unsigned)US_TO_RTIMERTICKS(200))
 
 #define tsRxTx (TsTxOffset - tsCCA - tsCCAOffset)
 #define tsRxWait (2 * TsLongGT)

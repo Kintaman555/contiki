@@ -55,8 +55,9 @@
 
 #define COORDINATOR_ID 2
 #define DEST_ID 2
+#define DEST2_ID 4
 #define SRC_ID 3
-#define WITH_PONG 1
+#define WITH_PONG 0
 
 static struct simple_udp_connection unicast_connection;
 static uint16_t current_cnt = 0;
@@ -81,7 +82,7 @@ receiver(struct simple_udp_connection *c,
   if(data.ping) {
     LOGA((struct app_data *)dataptr, "App: received ping");
 #if WITH_PONG
-    app_send_to(data.src, 0, data.seqno | 0x8000l);
+    app_send_to(UIP_HTONS(data.src), 0, data.seqno | 0x8000l);
 #endif
   } else {
     LOGA((struct app_data *)dataptr, "App: received pong");
@@ -96,9 +97,9 @@ app_send_to(uint16_t id, int ping, uint32_t seqno)
   uip_lladdr_t dest_lladdr;
 
   data.magic = UIP_HTONL(LOG_MAGIC);
-  data.seqno = seqno;
-  data.src = node_id;
-  data.dest = id;
+  data.seqno = UIP_HTONL(seqno);
+  data.src = UIP_HTONS(node_id);
+  data.dest = UIP_HTONS(id);
   data.hop = 0;
   data.ping = ping;
 
@@ -114,152 +115,6 @@ app_send_to(uint16_t id, int ping, uint32_t seqno)
   uip_ds6_nbr_add(&dest_ipaddr, &dest_lladdr, 1, ADDR_MANUAL);
 
   simple_udp_sendto(&unicast_connection, &data, sizeof(data), &dest_ipaddr);
-}
-/*---------------------------------------------------------------------------*/
-/* DEBUG -- TESTING */
-static void
-test_memb(void)
-{
-  /* Struct definitions */
-  /* 14B packed but 20 aligned */
-  struct test_14b {
-    uint16_t a[3]; //3*2
-    uint16_t b; //2
-    uint8_t c; //1
-    uint32_t d; //4
-    uint8_t e; //1
-    linkaddr_t addr;
-  };
-
-  struct test_12b
-  {
-    uint16_t a; //2
-    linkaddr_t addr;
-    uint16_t b[3]; //3*2
-    uint32_t c; //4
-  };
-
-  /* MEMB definitions and init */
-#include "lib/memb.h"
-#define SIZE (3)
-  MEMB(test_14b_memb, struct test_14b, SIZE);
-  MEMB(test_12b_memb, struct test_12b, SIZE);
-  memb_init(&test_14b_memb);
-  memb_init(&test_12b_memb);
-
-  /* Alloc and free tests */
-  struct test_14b *t14b[SIZE];
-  struct test_12b *t12b[SIZE];
-  int i;
-  for(i = 0; i < SIZE; i++) {
-    t14b[i] = memb_alloc(&test_14b_memb);
-    printf("%s @ %p\n%s @ %p\n%s @ %p\n%s @ %p\n%s @ %p\n%s @ %p\n%s @ %p\n",
-        "&a16_arr: 3", &t14b[i]->a,
-        "&a16_arr[0]", t14b[i]->a,
-        "b16", &t14b[i]->b,
-        "c8", &t14b[i]->c,
-        "d32", &t14b[i]->d,
-        "e8", &t14b[i]->e,
-        "addr", &t14b[i]->addr
-        );
-  }
-  for(i = 0; i < SIZE; i++) {
-    memb_free(&test_14b_memb, t14b[i]);
-  }
-
-  for(i = 0; i < SIZE; i++) {
-    t12b[i] = memb_alloc(&test_12b_memb);
-    printf("%s @ %p\n%s @ %p\n%s @ %p\n%s @ %p\n%s @ %p\n",
-        "a16", &t12b[i]->a,
-        "addr", &t12b[i]->addr,
-        "&b16: 3", &t12b[i]->b,
-        "&b16[0]", t12b[i]->b,
-        "c32", &t12b[i]->c
-        );
-  }
-  for(i = 0; i < SIZE; i++) {
-    memb_free(&test_12b_memb, t12b[i]);
-  }
-}
-static void
-w_memcpy(uint8_t* dest, const uint8_t* src, const uint32_t n)
-{
-  uint32_t i;
-  for(i = 0; i < n; i++) {
-    dest[i] = src[i];
-  }
-}
-
-static void
-test_memcpy(void)
-{
-#include <string.h>
-#define BLOCK_SIZE 128
-  struct blocks32 {
-    uint32_t aligned_block1[BLOCK_SIZE/4 + BLOCK_SIZE%4];
-    uint32_t aligned_block2[BLOCK_SIZE/4 + BLOCK_SIZE%4];
-    uint32_t aligned_block3[BLOCK_SIZE/4 + BLOCK_SIZE%4];
-  };
-  struct blocks32 block;
-  uint8_t *p1, *p2, *p3, *src;
-  int i, j;
-
-  p1 = (uint8_t *)block.aligned_block1;
-  p2 = (uint8_t *)block.aligned_block2;
-  p3 = (uint8_t *)block.aligned_block3;
-
-  memset((void *)p1, 0xaa, BLOCK_SIZE);
-  memset((void *)p2, 0xbb, BLOCK_SIZE);
-  memset((void *)p3, 0xcc, BLOCK_SIZE);
-
-  for(i = 1; i < 10; i++) {
-    src = p2 + i;
-    printf("memcpy   i = 0x%x, src: 0x%p, dest: 0x%p\n", i, src, p1 + i);
-    memcpy(p1 + i-1, src, i);
-    for(j = 0; j < BLOCK_SIZE; j++) {
-      printf("%x ", ((uint8_t *)block.aligned_block1)[j]);
-    }
-    printf("\n");
-    printf("w_memcpy i = 0x%x, src: 0x%p, dest: 0x%p\n", i, src, p3 + i);
-    w_memcpy(p3 + i-1, src, i);
-    for(j = 0; j < BLOCK_SIZE; j++) {
-      printf("%x ", ((uint8_t *)block.aligned_block3)[j]);
-    }
-    printf("\n");
-    p1 += i;
-    p2 += i;
-    p3 += i;
-  }
-}
-/* Profiling 64bit mod operation */
-#include "net/mac/tsch/tsch-private.h"
-uint16_t
-test_mod(uint16_t a, uint8_t d)
-{
-  printf("Profiling 64bit mod operation\n");
-  uint16_t c = 0;
-  uint64_t b64 = 0xaaaaaaaaaaaaaaaaULL;
-  uint32_t b32 = 0xbbbbbbbbUL;
-  uint16_t b16 = 0xcccc;
-  uint8_t b8 = 0xdd;
-  rtimer_clock_t t0;
-  t0 = RTIMER_NOW();
-  c = (b64 + d) % a;
-  t0 = RTIMER_NOW() - t0;
-  printf("uint64_t mod uint64_t duration %u ticks = %u us c = %u\n", t0, (uint16_t)RTIMERTICKS_TO_US(t0), c);
-  t0 = RTIMER_NOW();
-  c = (b32 + d) % a;
-  t0 = RTIMER_NOW() - t0;
-  printf("uint64_t mod uint32_t duration %u ticks = %u us c = %u\n", t0, (uint16_t)RTIMERTICKS_TO_US(t0), c);
-  t0 = RTIMER_NOW();
-  c = (b16 + d) % a;
-  t0 = RTIMER_NOW() - t0;
-  printf("uint64_t mod uint16_t duration %u ticks = %u us c = %u\n", t0, (uint16_t)RTIMERTICKS_TO_US(t0), c);
-  t0 = RTIMER_NOW();
-  c = (b8 + d) % a;
-  t0 = RTIMER_NOW() - t0;
-  printf("uint64_t mod uint8_t duration %u ticks = %u us c = %u\n", t0, (uint16_t)RTIMERTICKS_TO_US(t0), c);
-  return c;
 }
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(unicast_sender_process, ev, data)
@@ -281,15 +136,17 @@ PROCESS_THREAD(unicast_sender_process, ev, data)
     PROCESS_EXIT();
   }
 
+  uip_ip6addr(&llprefix, 0xfe80, 0, 0, 0, 0, 0, 0, 0);
   simple_udp_register(&unicast_connection, UDP_PORT,
                       NULL, UDP_PORT, receiver);
 
-  tsch_schedule_create_minimal();
+  orchestra_init();
 
-  if(node_id != DEST_ID) {
+  if(node_id == SRC_ID) {
     etimer_set(&periodic_timer, SEND_INTERVAL);
     while(1) {
-      app_send_to(DEST_ID, 1, ((uint32_t)node_id << 16) + current_cnt);
+      app_send_to(current_cnt % 3 == 0 ? DEST_ID : DEST2_ID , 1, ((uint32_t)node_id << 16) + current_cnt);
+      //app_send_to(DEST_ID, 1, ((uint32_t)node_id << 16) + current_cnt);
       current_cnt++;
 
       PROCESS_WAIT_UNTIL(etimer_expired(&periodic_timer));

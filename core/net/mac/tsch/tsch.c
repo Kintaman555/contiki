@@ -193,9 +193,13 @@ static clock_time_t tsch_current_eb_period;
 static struct ctimer keepalive_timer;
 
 /* Ringbuf for dequeued outgoing packets */
+#ifdef TSCH_CONF_DEQUEUED_ARRAY_SIZE
+#define DEQUEUED_ARRAY_SIZE TSCH_CONF_DEQUEUED_ARRAY_SIZE
+#else
 #define DEQUEUED_ARRAY_SIZE 16
+#endif
 #if DEQUEUED_ARRAY_SIZE < QUEUEBUF_NUM
-#error TSCH_QUEUE_NUM_PER_NEIGHBOR must be greater than QUEUEBUF_NUM
+#error DEQUEUED_ARRAY_SIZE must be greater than QUEUEBUF_NUM
 #endif
 #if (DEQUEUED_ARRAY_SIZE & (DEQUEUED_ARRAY_SIZE-1)) != 0
 #error TSCH_QUEUE_NUM_PER_NEIGHBOR must be power of two
