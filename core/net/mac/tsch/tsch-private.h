@@ -125,14 +125,28 @@
 #define TSCH_ACK_MAX_DURATION  ((unsigned)(TSCH_PACKET_DURATION(TSCH_ACK_LEN) + US_TO_RTIMERTICKS(350)))
 
 /* Timeslot timing */
+
+#if TSCH_CONF_SLOT_DURATION == 15000
 #define TsCCAOffset         ((unsigned)US_TO_RTIMERTICKS(1800))
 #define TsCCA               ((unsigned)US_TO_RTIMERTICKS(128))
-
-#define TsTxOffset          ((unsigned)US_TO_RTIMERTICKS(4000))
 #define TsTxAckDelay        ((unsigned)US_TO_RTIMERTICKS(4000))
-#define TsLongGT            ((unsigned)US_TO_RTIMERTICKS(TSCH_GUARD_TIME))
-#define TsShortGT           ((unsigned)US_TO_RTIMERTICKS(400))
+#define TsTxOffset          ((unsigned)US_TO_RTIMERTICKS(4000))
 #define TsSlotDuration      ((unsigned)US_TO_RTIMERTICKS(15000))
+#else
+#define TsCCAOffset         ((unsigned)US_TO_RTIMERTICKS(1800))
+#define TsCCA               ((unsigned)US_TO_RTIMERTICKS(128))
+#define TsTxAckDelay        ((unsigned)US_TO_RTIMERTICKS(1000))
+#define TsTxOffset          ((unsigned)US_TO_RTIMERTICKS(2120))
+#define TsSlotDuration      ((unsigned)US_TO_RTIMERTICKS(10000))
+#endif
+
+#define TsLongGT            ((unsigned)US_TO_RTIMERTICKS(TSCH_GUARD_TIME))
+#define TsShortGT           ((unsigned)US_TO_RTIMERTICKS(200))
+
+#define tsRxTx (TsTxOffset - tsCCA - tsCCAOffset)
+#define tsRxWait (2 * TsLongGT)
+#define tsAckWait (2 * TsShortGT)
+#define tsRxAckDelay  (TsTxAckDelay - (tsAckWait / 2))
 
 /* The ASN is an absolute slot number over 5 bytes. */
 struct asn_t {
