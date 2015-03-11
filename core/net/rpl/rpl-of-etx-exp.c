@@ -85,10 +85,12 @@ rpl_of_t rpl_of_etx_exp = {
 #define MAX_PATH_COST			100
 
 /*
- * The rank must differ more than 1/PARENT_SWITCH_THRESHOLD_DIV in order
+ * The rank must differ more than RPL_OF_ETX_EXP_CONF_SWITCH_THR in order
  * to switch preferred parent.
  */
-#define PARENT_SWITCH_THRESHOLD_DIV	2
+#ifndef RPL_OF_ETX_EXP_CONF_SWITCH_THR
+#define RPL_OF_ETX_EXP_CONF_SWITCH_THR (RPL_DAG_MC_ETX_DIVISOR/2)
+#endif
 
 typedef uint16_t rpl_path_metric_t;
 
@@ -174,8 +176,7 @@ best_parent(rpl_parent_t *p1, rpl_parent_t *p2)
 
   dag = p1->dag; /* Both parents are in the same DAG. */
 
-  min_diff = RPL_DAG_MC_ETX_DIVISOR /
-             PARENT_SWITCH_THRESHOLD_DIV;
+  min_diff = RPL_OF_ETX_EXP_CONF_SWITCH_THR;
 
   p1_metric = calculate_rank(p1, 0);
   p2_metric = calculate_rank(p2, 0);

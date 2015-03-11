@@ -35,6 +35,7 @@
 #include "sys/stimer.h"
 #include "lib/list.h"
 #include "net/rpl/rpl-conf.h"
+#include "net/nbr-table.h"
 
 void uip_ds6_route_init(void);
 
@@ -166,6 +167,8 @@ uip_ds6_route_t *uip_ds6_route_next(uip_ds6_route_t *);
 #define uip_ds6_route_head() NULL
 #define uip_ds6_route_next(route) NULL
 #endif /* UIP_DS6_ROUTE_NB > 0 */
+
+NBR_TABLE_DECLARE(nbr_routes);
 
 /** @} */
 

@@ -252,7 +252,18 @@ nodex_index_map(uint16_t index)
   return index;
 #endif
 }
-
+/* Returns a node id at random */
+uint16_t
+get_random_node_id()
+{
+  int index = (random_rand() >> 8) % MAX_NODES;
+#if IN_COOJA
+  return index + 1;
+#else
+  return id_mac_list[index].id;
+#endif
+  return 1;
+}
 /* Returns the node's node-id */
 uint16_t
 get_node_id()

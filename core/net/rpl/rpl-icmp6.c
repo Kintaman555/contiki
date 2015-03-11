@@ -57,7 +57,7 @@
 #include <limits.h>
 #include <string.h>
 
-#define DEBUG DEBUG_NONE
+#define DEBUG DEBUG_PRINT
 
 #include "net/ip/uip-debug.h"
 
@@ -401,7 +401,7 @@ dio_input(void)
       PRINTF("RPL: DAG conf:dbl=%d, min=%d red=%d maxinc=%d mininc=%d ocp=%d d_l=%u l_u=%u\n",
              RPL_DIO_INTERVAL_DOUBLINGS, RPL_DIO_INTERVAL_MIN, RPL_DIO_REDUNDANCY,
              RPL_MAX_RANKINC, RPL_MIN_HOPRANKINC, dio.ocp,
-             dio.default_lifetime, RPL_DEFAULT_LIFETIME_UNIT);
+             0/*dio.default_lifetime*/, RPL_DEFAULT_LIFETIME_UNIT);
       break;
     case RPL_OPTION_PREFIX_INFO:
       if(len != 32) {
@@ -757,10 +757,13 @@ dao_input(void)
       }
     }
 
-    LOG("RPL: DAO input from %d, target %d\n",
+    LOG("RPL: no-path DAO input from %d, target %d\n",
         LOG_NODEID_FROM_IPADDR(&dao_sender_addr), LOG_NODEID_FROM_IPADDR(&prefix));
 
     return;
+  } else {
+    LOG("RPL: DAO input from %d, target %d\n",
+            LOG_NODEID_FROM_IPADDR(&dao_sender_addr), LOG_NODEID_FROM_IPADDR(&prefix));
   }
 
   PRINTF("RPL: adding DAO route\n");
@@ -838,6 +841,7 @@ dao_output(rpl_parent_t *parent, uint8_t lifetime)
   dao_output_target(parent, &prefix, lifetime);
 }
 /*---------------------------------------------------------------------------*/
+int curr_dao_lifetime;
 void
 dao_output_target(rpl_parent_t *parent, uip_ipaddr_t *prefix, uint8_t lifetime)
 {
@@ -927,7 +931,9 @@ dao_output_target(rpl_parent_t *parent, uip_ipaddr_t *prefix, uint8_t lifetime)
   		LOG_NODEID_FROM_IPADDR(rpl_get_parent_ipaddr(parent)), LOG_NODEID_FROM_IPADDR(prefix));
 
   if(rpl_get_parent_ipaddr(parent) != NULL) {
+    curr_dao_lifetime = lifetime;
     uip_icmp6_send(rpl_get_parent_ipaddr(parent), ICMP6_RPL, RPL_CODE_DAO, pos);
+    curr_dao_lifetime = 0;
   }
 }
 /*---------------------------------------------------------------------------*/

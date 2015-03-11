@@ -69,6 +69,16 @@
 #define ORCHESTRA_SBUNICAST_PERIOD2               ORCHESTRA_UNICAST_PERIOD2
 #endif
 
+#elif ORCHESTRA_CONFIG == ORCHESTRA_SB_RPL
+
+#define ORCHESTRA_WITH_EBSF                       1
+#define ORCHESTRA_EBSF_PERIOD                     397
+#define ORCHESTRA_WITH_COMMON_SHARED              1
+#define ORCHESTRA_COMMON_SHARED_TYPE              LINK_TYPE_NORMAL
+#define ORCHESTRA_COMMON_SHARED_PERIOD            ORCHESTRA_SHARED_PERIOD
+#define ORCHESTRA_WITH_SB_RPL                     1
+#define ORCHESTRA_SB_RPL_PERIOD                   ORCHESTRA_UNICAST_PERIOD
+
 #endif
 
 void orchestra_init();

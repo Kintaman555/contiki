@@ -29,46 +29,18 @@
  */
 /**
  * \file
- *         Header file for deployment.c
+ *         Orchestra header file
  *
  * \author Simon Duquennoy <simonduq@sics.se>
  */
 
-#ifndef DEPLOYMENT_H
-#define DEPLOYMENT_H
+#ifndef __ORCHESTRA_SF_SB_RPL_UNICAST_H__
+#define __ORCHESTRA_SF_SB_RPL_UNICAST_H__
 
-#if WITH_DEPLOYMENT
+void orchestra_sf_sb_rpl_unicast_init();
+void orchestra_callback_ready_to_send();
+void orchestra_callback_routing_neighbor_added(linkaddr_t *linkaddr);
+void orchestra_callback_routing_neighbor_removed(linkaddr_t *linkaddr);
+void orchestra_sf_rb_rpl_new_time_source(struct tsch_neighbor *old, struct tsch_neighbor *new);
 
-#include "contiki-conf.h"
-#include "deployment-def.h"
-#include "sys/node-id.h"
-#include "net/ip/uip.h"
-#include "net/linkaddr.h"
-
-/* Returns the total number of nodes in the deployment */
-uint16_t get_node_id();
-/* Returns a node-index from a node's linkaddr */
-uint16_t node_index_from_linkaddr(const linkaddr_t *addr);
-/* Returns a node-id from a node's link-layer address */
-uint16_t node_id_from_linkaddr(const linkaddr_t *addr);
-/* Returns a node-id from a node's IPv6 address */
-uint16_t node_id_from_ipaddr(const uip_ipaddr_t *addr);
-/* Returns a node-index from a node-id */
-uint16_t get_node_index_from_id(uint16_t id);
-/* Sets an IPv6 from a link-layer address */
-void set_ipaddr_from_linkaddr(uip_ipaddr_t *ipaddr, const linkaddr_t *lladdr);
-/* Sets an IPv6 from a link-layer address */
-void set_ipaddr_from_id(uip_ipaddr_t *ipaddr, uint16_t id);
-/* Sets an linkaddr from a link-layer address */
-void set_linkaddr_from_id(linkaddr_t *lladdr, uint16_t id);
-/* Initializes global IPv6 and creates DODAG */
-int deployment_init(uip_ipaddr_t *ipaddr, uip_ipaddr_t *br_prefix, int root_id);
-/* Returns a node id at random */
-uint16_t get_random_node_id();
-
-/* Our absolute index in the id_mac table */
-extern uint16_t node_index;
-
-#endif /* WITH_DEPLOYMENT */
-
-#endif /* DEPLOYMENT_H */
+#endif /* __ORCHESTRA_SF_SB_RPL_UNICAST_H__ */

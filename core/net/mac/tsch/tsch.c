@@ -601,22 +601,21 @@ get_packet_and_neighbor_for_link(struct tsch_link *link, struct tsch_neighbor **
 
   /* Is this a Tx link? */
   if(link->link_options & LINK_OPTION_TX) {
-    int is_shared_link = link->link_options & LINK_OPTION_SHARED;
     /* is it for advertisement of EB? */
     if(link->link_type == LINK_TYPE_ADVERTISING || link->link_type == LINK_TYPE_ADVERTISING_ONLY) {
       /* fetch EB packets */
       n = n_eb;
-      p = tsch_queue_get_packet_for_nbr(n, 0);
+      p = tsch_queue_get_packet_for_nbr(n, link);
     }
     if(link->link_type != LINK_TYPE_ADVERTISING_ONLY) {
       /* NORMAL link or no EB to send, pick a data packet */
       if(p == NULL) {
         /* Get neighbor queue associated to the link and get packet from it */
         n = tsch_queue_get_nbr(&link->addr);
-        p = tsch_queue_get_packet_for_nbr(n, is_shared_link);
+        p = tsch_queue_get_packet_for_nbr(n, link);
         /* if it is a broadcast slot and there were no broadcast packets, pick any unicast packet */
         if(p == NULL && n == n_broadcast) {
-          p = tsch_queue_get_unicast_packet_for_any(&n, is_shared_link);
+          p = tsch_queue_get_unicast_packet_for_any(&n, link);
         }
       }
     }

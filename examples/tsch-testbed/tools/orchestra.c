@@ -72,6 +72,10 @@ orchestra_callback_new_time_source(struct tsch_neighbor *old, struct tsch_neighb
 #if ORCHESTRA_WITH_RBUNICAST
   orchestra_sf_rb_unicast_new_time_source(old, new);
 #endif
+
+#if ORCHESTRA_WITH_SB_RPL
+  orchestra_sf_rb_rpl_new_time_source(old, new);
+#endif
 }
 
 void
@@ -91,5 +95,9 @@ orchestra_init()
 
 #if ORCHESTRA_WITH_SBUNICAST
   orchestra_sf_sb_unicast_init();
+#endif
+
+#if ORCHESTRA_WITH_SB_RPL
+  orchestra_sf_sb_rpl_unicast_init();
 #endif
 }

@@ -67,6 +67,7 @@
 #include "net/ipv6/uip-ds6.h"
 #include "net/rime/rime.h"
 #include "net/ipv6/sicslowpan.h"
+#include "net/ipv6/uip-icmp6.h"
 #include "net/netstack.h"
 
 #include <stdio.h>
@@ -1354,6 +1355,10 @@ send_packet(linkaddr_t *dest)
     packetbuf_set_attr(PACKETBUF_ATTR_RELIABLE, 1);
 #endif
 
+#ifdef NETSTACK_CONF_READY_TO_SEND_CALLBACK
+    NETSTACK_CONF_READY_TO_SEND_CALLBACK();
+#endif
+
   /* Provide a callback function to receive the result of
      a packet transmission. */
   NETSTACK_LLSEC.send(&packet_sent, NULL);
@@ -1421,6 +1426,14 @@ output(const uip_lladdr_t *localdest)
 #endif /* UIP_CONF_TCP */
   packetbuf_set_attr(PACKETBUF_ATTR_PROTO,
       UIP_IP_BUF->proto);
+  extern int curr_dao_lifetime;
+  if(UIP_IP_BUF->proto == UIP_PROTO_ICMP6) {
+    if(UIP_ICMP_BUF->type == ICMP6_RPL) {
+      packetbuf_set_attr(PACKETBUF_ATTR_RPL_DAO_LIFETIME,
+                curr_dao_lifetime);
+    }
+  }
+
   /*
    * The destination address will be tagged to each outbound
    * packet. If the argument localdest is NULL, we are sending a
@@ -1630,11 +1643,12 @@ input(void)
 
   LOG_INC_HOPCOUNT_FROM_PACKETBUF();
 
-  LOGP("6LoWPAN: %s input from %d (%u bytes)",
+  LOGP("6LoWPAN: %s input from %d (%u bytes) type %u %u",
       linkaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER), &linkaddr_null) ? "bc" : "uc",
           LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)),
-          packetbuf_datalen()
-  );
+          packetbuf_datalen(), UIP_IP_BUF->proto,
+          (UIP_IP_BUF->proto == UIP_PROTO_ICMP6 && UIP_ICMP_BUF->type == ICMP6_RPL) ? UIP_ICMP_BUF->icode : 0
+    );
 
   /* Save the RSSI of the incoming packet in case the upper layer will
      want to query us for it later. */
