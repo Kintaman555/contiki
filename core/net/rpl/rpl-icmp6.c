@@ -668,7 +668,7 @@ dao_input(void)
     if(parent != NULL &&
        DAG_RANK(parent->rank, instance) < DAG_RANK(dag->rank, instance)) {
       PRINTF("RPL: Loop detected when receiving a unicast DAO from a node with a lower rank! (%u < %u)\n",
-          DAG_RANK(parent->rank, instance), DAG_RANK(dag->rank, instance));
+          parent->rank, dag->rank);
       parent->rank = INFINITE_RANK;
       parent->flags |= RPL_PARENT_FLAG_UPDATED;
       return;
