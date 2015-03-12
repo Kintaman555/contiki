@@ -1426,6 +1426,7 @@ output(const uip_lladdr_t *localdest)
 #endif /* UIP_CONF_TCP */
   packetbuf_set_attr(PACKETBUF_ATTR_PROTO,
       UIP_IP_BUF->proto);
+#if WITH_RPL
   extern int curr_dao_lifetime;
   if(UIP_IP_BUF->proto == UIP_PROTO_ICMP6) {
     if(UIP_ICMP_BUF->type == ICMP6_RPL) {
@@ -1433,6 +1434,7 @@ output(const uip_lladdr_t *localdest)
                 curr_dao_lifetime);
     }
   }
+#endif
 
   /*
    * The destination address will be tagged to each outbound

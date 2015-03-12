@@ -57,8 +57,10 @@
 #include "sys/process.h"
 #include "sys/rtimer.h"
 /* TODO: remove dependencies to RPL */
+#if WITH_RPL
 #include "net/rpl/rpl.h"
 #include "net/rpl/rpl-private.h"
+#endif
 #include <string.h>
 
 /* TODO: move platform-specific code away from core */
