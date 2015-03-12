@@ -48,8 +48,8 @@
 #include "tools/orchestra.h"
 #include <stdio.h>
 
-#define SEND_INTERVAL   (1*CLOCK_SECOND)
-#define WITH_PONG 0
+#define SEND_INTERVAL   (2*CLOCK_SECOND)
+#define WITH_PONG 1
 #define UDP_PORT 1234
 
 static struct simple_udp_connection unicast_connection;

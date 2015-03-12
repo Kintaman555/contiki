@@ -658,31 +658,6 @@ dao_input(void)
   learned_from = uip_is_addr_mcast(&dao_sender_addr) ?
                  RPL_ROUTE_FROM_MULTICAST_DAO : RPL_ROUTE_FROM_UNICAST_DAO;
 
-  PRINTF("RPL: DAO from %s\n",
-         learned_from == RPL_ROUTE_FROM_UNICAST_DAO? "unicast": "multicast");
-  if(learned_from == RPL_ROUTE_FROM_UNICAST_DAO) {
-    /* Check whether this is a DAO forwarding loop. */
-    parent = rpl_find_parent(dag, &dao_sender_addr);
-    /* check if this is a new DAO registration with an "illegal" rank */
-    /* if we already route to this node it is likely */
-    if(parent != NULL &&
-       DAG_RANK(parent->rank, instance) < DAG_RANK(dag->rank, instance)) {
-      PRINTF("RPL: Loop detected when receiving a unicast DAO from a node with a lower rank! (%u < %u)\n",
-          parent->rank, dag->rank);
-      parent->rank = INFINITE_RANK;
-      parent->flags |= RPL_PARENT_FLAG_UPDATED;
-      return;
-    }
-
-    /* If we get the DAO from our parent, we also have a loop. */
-    if(parent != NULL && parent == dag->preferred_parent) {
-      PRINTF("RPL: Loop detected when receiving a unicast DAO from our parent\n");
-      parent->rank = INFINITE_RANK;
-      parent->flags |= RPL_PARENT_FLAG_UPDATED;
-      return;
-    }
-  }
-
   /* Check if there are any RPL options present. */
   for(i = pos; i < buffer_length; i += len) {
     subopt_type = buffer[i];
@@ -707,6 +682,31 @@ dao_input(void)
       lifetime = buffer[i + 5];
       /* The parent address is also ignored. */
       break;
+    }
+  }
+
+  PRINTF("RPL: DAO from %s\n",
+         learned_from == RPL_ROUTE_FROM_UNICAST_DAO? "unicast": "multicast");
+  if(lifetime != RPL_ZERO_LIFETIME && learned_from == RPL_ROUTE_FROM_UNICAST_DAO) {
+    /* Check whether this is a DAO forwarding loop. */
+    parent = rpl_find_parent(dag, &dao_sender_addr);
+    /* check if this is a new DAO registration with an "illegal" rank */
+    /* if we already route to this node it is likely */
+    if(parent != NULL &&
+       DAG_RANK(parent->rank, instance) < DAG_RANK(dag->rank, instance)) {
+      PRINTF("RPL: Loop detected when receiving a unicast DAO from a node with a lower rank! (%u < %u)\n",
+          parent->rank, dag->rank);
+      parent->rank = INFINITE_RANK;
+      parent->flags |= RPL_PARENT_FLAG_UPDATED;
+      return;
+    }
+
+    /* If we get the DAO from our parent, we also have a loop. */
+    if(parent != NULL && parent == dag->preferred_parent) {
+      PRINTF("RPL: Loop detected when receiving a unicast DAO from our parent\n");
+      parent->rank = INFINITE_RANK;
+      parent->flags |= RPL_PARENT_FLAG_UPDATED;
+      return;
     }
   }
 
@@ -927,8 +927,9 @@ dao_output_target(rpl_parent_t *parent, uip_ipaddr_t *prefix, uint8_t lifetime)
   PRINT6ADDR(rpl_get_parent_ipaddr(parent));
   PRINTF("\n");
 
-  LOG("RPL: DAO ouptut to %d, target %d\n",
-  		LOG_NODEID_FROM_IPADDR(rpl_get_parent_ipaddr(parent)), LOG_NODEID_FROM_IPADDR(prefix));
+  LOG("RPL: DAO output to %d, target %d, lifetime %u\n",
+  		LOG_NODEID_FROM_IPADDR(rpl_get_parent_ipaddr(parent)),
+  		LOG_NODEID_FROM_IPADDR(prefix), lifetime);
 
   if(rpl_get_parent_ipaddr(parent) != NULL) {
     curr_dao_lifetime = lifetime;
@@ -971,7 +972,7 @@ dao_ack_output(rpl_instance_t *instance, uip_ipaddr_t *dest, uint8_t sequence)
   PRINT6ADDR(dest);
   PRINTF("\n");
 
-  LOG("RPL: DAO-ACK ouptut to %d, sequence %d\n", LOG_NODEID_FROM_IPADDR(dest), sequence);
+  LOG("RPL: DAO-ACK output to %d, sequence %d\n", LOG_NODEID_FROM_IPADDR(dest), sequence);
 
   buffer = UIP_ICMP_PAYLOAD;
 
