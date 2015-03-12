@@ -42,6 +42,7 @@
 #include "net/netstack.h"
 #include "net/mac/tsch/tsch-schedule.h"
 #include "net/ipv6/uip-ds6-nbr.h"
+#include "net/ipv6/uip-ds6-route.h"
 #include "net/mac/tsch/tsch.h"
 #include "net/ip/uip-debug.h"
 #include "lib/random.h"
@@ -63,6 +64,13 @@ static struct simple_udp_connection unicast_connection;
 static uint16_t current_cnt = 0;
 static uip_ipaddr_t llprefix;
 
+/* TODO: Disable RPL, and implement static routing.
+ * Use the option:
+ * CONTIKI_WITH_RPL=0 in Makefile
+ * WITH_RPL 0 in project-conf
+ * to add a default route use the function :
+ * uip_ds6_defrt_t* uip_ds6_defrt_add(uip_ipaddr_t *ipaddr, unsigned long interval)
+ *  */
 /*---------------------------------------------------------------------------*/
 PROCESS(unicast_sender_process, "No-RPL Unicast Application");
 AUTOSTART_PROCESSES(&unicast_sender_process);
@@ -113,7 +121,6 @@ app_send_to(uint16_t id, int ping, uint32_t seqno)
   memcpy(&dest_ipaddr, &llprefix, 8);
   set_linkaddr_from_id((linkaddr_t *)&dest_lladdr, id);
   uip_ds6_nbr_add(&dest_ipaddr, &dest_lladdr, 1, ADDR_MANUAL);
-
   simple_udp_sendto(&unicast_connection, &data, sizeof(data), &dest_ipaddr);
 }
 /*---------------------------------------------------------------------------*/
@@ -140,7 +147,16 @@ PROCESS_THREAD(unicast_sender_process, ev, data)
   simple_udp_register(&unicast_connection, UDP_PORT,
                       NULL, UDP_PORT, receiver);
 
+#if WITH_ORCHESTRA
   orchestra_init();
+#else
+  tsch_schedule_create_minimal();
+#endif
+
+  /* Setup default route */
+  uip_ipaddr_t defrt_ipaddr;
+  set_ipaddr_from_id(&defrt_ipaddr, COORDINATOR_ID);
+  uip_ds6_defrt_add(&defrt_ipaddr, 0 /* route timeout: never */);
 
   if(node_id == SRC_ID) {
     etimer_set(&periodic_timer, SEND_INTERVAL);

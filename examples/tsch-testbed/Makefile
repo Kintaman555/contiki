@@ -1,4 +1,4 @@
-CONTIKI_PROJECT = app-rpl-collect-only
+CONTIKI_PROJECT = app-no-rpl-unicast
 CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
 TARGET ?= sky
 
@@ -20,7 +20,7 @@ CONFIG=$(CONFIG_TSCH)
 PANID ?= 0xABCD
 
 CONTIKI_WITH_IPV6 = 1
-CONTIKI_WITH_RPL = 1
+CONTIKI_WITH_RPL = 0
 CFLAGS+= -DCONFIG_NULLRDC=$(CONFIG_NULLRDC)
 CFLAGS+= -DCONFIG_CONTIKIMAC=$(CONFIG_CONTIKIMAC)
 CFLAGS+= -DCONFIG_TSCH=$(CONFIG_TSCH)
@@ -43,9 +43,10 @@ CFLAGS+= -DWITHOUT_ATTR_TIMESTAMP
 CFLAGS+= -DWITHOUT_ATTR_FRAME_TYPE
 
 PROJECTDIRS += tools
-PROJECT_SOURCEFILES += node-id.c orchestra.c orchestra-sf-eb.c \
-  orchestra-sf-common-shared.c orchestra-sf-rb-unicast.c \
-  orchestra-sf-sb-unicast.c orchestra-sf-sb-rpl-unicast.c
+PROJECT_SOURCEFILES += node-id.c
+#PROJECT_SOURCEFILES += orchestra.c orchestra-sf-eb.c \
+#  orchestra-sf-common-shared.c orchestra-sf-rb-unicast.c \
+#  orchestra-sf-sb-unicast.c orchestra-sf-sb-rpl-unicast.c
 
 ifneq ($(TARGET),jn5168)
 PROJECT_SOURCEFILES += uart1-putchar.c
