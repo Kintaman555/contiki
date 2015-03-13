@@ -51,13 +51,13 @@
 #include <stdio.h>
 #include <string.h>
 
-#define SEND_INTERVAL   (5 * CLOCK_SECOND)
+#define SEND_INTERVAL   (1 * CLOCK_SECOND)
 #define UDP_PORT 1234
 
-#define COORDINATOR_ID 2
-#define DEST_ID 2
-#define DEST2_ID 4
-#define SRC_ID 3
+#define COORDINATOR_ID 1
+#define DEST_ID COORDINATOR_ID
+//#define DEST2_ID 4
+//#define SRC_ID 3
 #define WITH_PONG 0
 
 static struct simple_udp_connection unicast_connection;
@@ -118,10 +118,119 @@ app_send_to(uint16_t id, int ping, uint32_t seqno)
   }
   set_ipaddr_from_id(&dest_ipaddr, id);
   /* Convert global address into link-local */
-  memcpy(&dest_ipaddr, &llprefix, 8);
-  set_linkaddr_from_id((linkaddr_t *)&dest_lladdr, id);
-  uip_ds6_nbr_add(&dest_ipaddr, &dest_lladdr, 1, ADDR_MANUAL);
+  //memcpy(&dest_ipaddr, &llprefix, 8);
   simple_udp_sendto(&unicast_connection, &data, sizeof(data), &dest_ipaddr);
+}
+
+typedef struct {
+  uint8_t node_id;
+  uint16_t sf_handle;
+  uint16_t size;
+} node_sf_t;
+
+typedef struct {
+  uint16_t sf_handle;
+  uint16_t link_index;
+  uint8_t time_slot;
+} sf_link_t;
+
+typedef struct {
+  uint16_t node_id;
+  /* MAC address of neighbor */
+  uint16_t nbr_id;
+  /* Slotframe identifier */
+  uint16_t slotframe_handle;
+  /* Timeslot for this link */
+  uint16_t timeslot;
+  /* Channel offset for this link */
+  uint16_t channel_offset;
+  /* A bit string that defines
+   * b0 = Transmit, b1 = Receive, b2 = Shared, b3 = Timekeeping, b4 = reserved */
+  uint8_t link_options;
+  /* Type of link. NORMAL = 0. ADVERTISING = 1, and indicates
+     the link may be used to send an Enhanced beacon. */
+  enum link_type link_type;
+} link_t;
+
+void
+app_make_schedule()
+{
+  node_sf_t n_sf[] = {
+                        {1, 10, 11},
+                        {2, 10, 11},
+                        {3, 10, 11},
+                      };
+
+  link_t links[] = {
+      {2, 1, 10, 3, 1, LINK_OPTION_TX | LINK_OPTION_TIME_KEEPING, LINK_TYPE_NORMAL},
+      {1, 2, 10, 3, 1, LINK_OPTION_RX, LINK_TYPE_NORMAL},
+      {2, 1, 10, 2, 1, LINK_OPTION_TX, LINK_TYPE_NORMAL},
+      {1, 2, 10, 2, 1, LINK_OPTION_RX, LINK_TYPE_NORMAL},
+      {3, 2, 10, 1, 1, LINK_OPTION_TX | LINK_OPTION_TIME_KEEPING, LINK_TYPE_NORMAL},
+      {2, 3, 10, 1, 1, LINK_OPTION_RX, LINK_TYPE_NORMAL}
+  };
+
+  int i;
+  /* add slotframes */
+  for(i = 0; i < 3; i++) {
+    node_sf_t nsf = n_sf[i];
+    if(nsf.node_id == node_id) {
+      tsch_schedule_add_slotframe(nsf.sf_handle, nsf.size);
+    }
+  }
+
+  linkaddr_t addr;
+  /* add links */
+  for(i = 0; i < 6; i++) {
+    link_t l = links[i];
+    if(l.node_id == node_id) {
+      struct tsch_slotframe * sf = tsch_schedule_get_slotframe_from_handle(l.slotframe_handle);
+      if(sf != NULL) {
+        set_linkaddr_from_id(&addr, l.nbr_id);
+        tsch_schedule_add_link(sf, l.link_options, l.link_type, &addr, l.timeslot, l.channel_offset);
+        if((l.link_options & LINK_OPTION_TIME_KEEPING)
+            && !linkaddr_cmp(&addr, &tsch_broadcast_address)
+            && !linkaddr_cmp(&addr, &tsch_eb_address)) {
+          /* Setup default route */
+          uip_ipaddr_t defrt_ipaddr;
+          set_ipaddr_from_id(&defrt_ipaddr, l.nbr_id);
+          /* Convert global address into link-local */
+          memcpy(&defrt_ipaddr, &llprefix, 8);
+          uip_ds6_nbr_add(&defrt_ipaddr, &addr, 1, ADDR_MANUAL);
+          uip_ds6_defrt_add(&defrt_ipaddr, 0 /* route timeout: never */);
+
+        }
+      }
+    }
+  }
+
+  static struct tsch_slotframe *sf_min;
+  /* Build 6TiSCH minimal schedule.
+   * We pick a slotframe length of TSCH_SCHEDULE_DEFAULT_LENGTH */
+  sf_min = tsch_schedule_add_slotframe(100, 101);
+  /* Add a single Tx|Rx|Shared slot using broadcast address (i.e. usable for unicast and broadcast).
+   * We set the link type to advertising, which is not compliant with 6TiSCH minimal schedule
+   * but is required according to 802.15.4e if also used for EB transmission.
+   * Timeslot: 0, channel offset: 0. */
+  tsch_schedule_add_link(sf_min,
+      LINK_OPTION_RX | LINK_OPTION_TX | LINK_OPTION_SHARED,
+      LINK_TYPE_ADVERTISING_ONLY, &tsch_eb_address,
+      0, 0);
+
+  tsch_schedule_print();
+
+  unsigned asn_val;
+  for(asn_val = 0; asn_val < 20; asn_val++) {
+    struct asn_t asn;
+    ASN_INIT(asn, 0, asn_val);
+    struct tsch_link *l = tsch_schedule_get_link_from_asn(&asn);
+    if(l != NULL) {
+      printf("asn %u: timeslot %u, channel offset %u (schedule handle %u)\n",
+          asn_val, l->timeslot, l->channel_offset, l->slotframe_handle);
+    } else {
+      printf("asn %u: no link\n", asn_val);
+    }
+  }
 }
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(unicast_sender_process, ev, data)
@@ -150,23 +259,22 @@ PROCESS_THREAD(unicast_sender_process, ev, data)
 #if WITH_ORCHESTRA
   orchestra_init();
 #else
-  tsch_schedule_create_minimal();
+  app_make_schedule();
 #endif
 
-  /* Setup default route */
-  uip_ipaddr_t defrt_ipaddr;
-  set_ipaddr_from_id(&defrt_ipaddr, COORDINATOR_ID);
-  uip_ds6_defrt_add(&defrt_ipaddr, 0 /* route timeout: never */);
-
-  if(node_id == SRC_ID) {
+  if(node_id != DEST_ID) {
     etimer_set(&periodic_timer, SEND_INTERVAL);
     while(1) {
-      app_send_to(current_cnt % 3 == 0 ? DEST_ID : DEST2_ID , 1, ((uint32_t)node_id << 16) + current_cnt);
-      //app_send_to(DEST_ID, 1, ((uint32_t)node_id << 16) + current_cnt);
+      //app_send_to(current_cnt % 3 == 0 ? DEST_ID : DEST2_ID , 1, ((uint32_t)node_id << 16) + current_cnt);
+      app_send_to(DEST_ID, 1, ((uint32_t)node_id << 16) + current_cnt);
       current_cnt++;
 
       PROCESS_WAIT_UNTIL(etimer_expired(&periodic_timer));
       etimer_reset(&periodic_timer);
+    }
+  } else {
+    while(1) {
+      PROCESS_YIELD();
     }
   }
 
