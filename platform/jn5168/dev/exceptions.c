@@ -69,7 +69,7 @@
 
 /** Define to dump the stack on exception */
 #ifndef EXC_DUMP_STACK
-//#define EXC_DUMP_STACK
+#define EXC_DUMP_STACK
 #endif /* EXC_DUMP_STACK */
 
 /** Define to dump registers on exception */
@@ -411,6 +411,7 @@ PRIVATE void vExceptionHandler(uint32 *pu32Stack, eExceptionType eType)
   while(1) {};
 #else /* EXCEPTION_STALLS_SYSTEM */
 	/* Software reset */
+	vAHI_WatchdogException(0);
 	vAHI_SwReset();
 #endif /* EXCEPTION_STALLS_SYSTEM */
 }
