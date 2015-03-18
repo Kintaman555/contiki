@@ -72,8 +72,9 @@ receiver(struct simple_udp_connection *c,
   appdata_copy((void *)&data, (void *)dataptr);
   if(data.ping) {
 #if WITH_PONG
+    uint32_t seqno = (UIP_HTONL(data.seqno) & 0x00ffffff) | (((uint32_t)node_id << 24) & 0xff000000);
     LOGA((struct app_data *)dataptr, "App: received ping");
-    app_send_to(UIP_HTONS(data.src), data.seqno | 0x8000l, 0);
+    app_send_to(UIP_HTONS(data.src), seqno, 0);
 #else
     LOGA((struct app_data *)dataptr, "App: received");
 #endif
@@ -127,7 +128,7 @@ PROCESS_THREAD(unicast_sender_process, ev, data)
 {
   static struct etimer periodic_timer;
   uip_ipaddr_t global_ipaddr;
-  static unsigned int cnt;
+  static uint32_t cnt = 0;
   static unsigned int to_send_cnt;
   static uint32_t seqno;
 
@@ -159,10 +160,9 @@ PROCESS_THREAD(unicast_sender_process, ev, data)
           target_id = get_random_node_id();
           set_ipaddr_from_id(&target_ipaddr, target_id);
         } while(target_id == node_id || !can_send_to(&target_ipaddr));
-        seqno = ((uint32_t)node_id << 16) + cnt;
+        seqno = (((uint32_t)node_id << 24) & 0xff000000) | (cnt & 0x00ffffff);
         app_send_to(target_id, seqno, 1);
         cnt++;
-
       } else {
         LOG("App: no DODAG or not enough routes (%u <= %u)\n", uip_ds6_route_num_routes(), MAX_NODES/2);
       }
