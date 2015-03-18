@@ -237,7 +237,7 @@ list_pop(list_t list)
  */
 /*---------------------------------------------------------------------------*/
 void
-list_remove(list_t list, void *item)
+_list_remove_(list_t list, void *item)
 {
   struct list *l, *r;
   

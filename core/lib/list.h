@@ -141,7 +141,10 @@ void   list_push(list_t list, void *item);
 void * list_chop(list_t list);
 
 void   list_add(list_t list, void *item);
-void   list_remove(list_t list, void *item);
+void   _list_remove_(list_t list, void *item);
+#define list_remove(l,i) \
+    { debug_file_line(__FILE__,__LINE__); \
+    _list_remove_(l,i); }
 
 int    list_length(list_t list);
 
