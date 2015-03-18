@@ -53,6 +53,30 @@
 #include <string.h>
 #include "static-schedules.h"
 
+typedef struct {
+  uint8_t node_id;
+  uint16_t sf_handle;
+  uint16_t size;
+} node_sf_t;
+
+typedef struct {
+  uint16_t node_id;
+  /* MAC address of neighbor */
+  uint16_t nbr_id;
+  /* Slotframe identifier */
+  uint16_t slotframe_handle;
+  /* Timeslot for this link */
+  uint16_t timeslot;
+  /* Channel offset for this link */
+  uint16_t channel_offset;
+  /* A bit string that defines
+   * b0 = Transmit, b1 = Receive, b2 = Shared, b3 = Timekeeping, b4 = reserved */
+  uint8_t link_options;
+  /* Type of link. NORMAL = 0. ADVERTISING = 1, and indicates
+     the link may be used to send an Enhanced beacon. */
+  enum link_type link_type;
+} link_t;
+
 #define SEND_INTERVAL   (1 * CLOCK_SECOND)
 #define UDP_PORT 1234
 
@@ -66,13 +90,6 @@ static struct simple_udp_connection unicast_connection;
 static uint16_t current_cnt = 0;
 static uip_ipaddr_t llprefix;
 
-/* TODO: Disable RPL, and implement static routing.
- * Use the option:
- * CONTIKI_WITH_RPL=0 in Makefile
- * WITH_RPL 0 in project-conf
- * to add a default route use the function :
- * uip_ds6_defrt_t* uip_ds6_defrt_add(uip_ipaddr_t *ipaddr, unsigned long interval)
- *  */
 /*---------------------------------------------------------------------------*/
 PROCESS(unicast_sender_process, "No-RPL Unicast Application");
 AUTOSTART_PROCESSES(&unicast_sender_process);
@@ -124,49 +141,11 @@ app_send_to(uint16_t id, int ping, uint32_t seqno)
   simple_udp_sendto(&unicast_connection, &data, sizeof(data), &dest_ipaddr);
 }
 
-typedef struct {
-  uint8_t node_id;
-  uint16_t sf_handle;
-  uint16_t size;
-} node_sf_t;
-
-typedef struct {
-  uint16_t node_id;
-  /* MAC address of neighbor */
-  uint16_t nbr_id;
-  /* Slotframe identifier */
-  uint16_t slotframe_handle;
-  /* Timeslot for this link */
-  uint16_t timeslot;
-  /* Channel offset for this link */
-  uint16_t channel_offset;
-  /* A bit string that defines
-   * b0 = Transmit, b1 = Receive, b2 = Shared, b3 = Timekeeping, b4 = reserved */
-  uint8_t link_options;
-  /* Type of link. NORMAL = 0. ADVERTISING = 1, and indicates
-     the link may be used to send an Enhanced beacon. */
-  enum link_type link_type;
-} link_t;
-
 void
 app_make_schedule()
 {
-//  node_sf_t n_sf[] = {
-//                        {1, 10, 11},
-//                        {2, 10, 11},
-//                        {3, 10, 11},
-//                      };
-//
-//  link_t links[] = {
-//      {2, 1, 10, 3, 1, LINK_OPTION_TX | LINK_OPTION_TIME_KEEPING, LINK_TYPE_NORMAL},
-//      {1, 2, 10, 3, 1, LINK_OPTION_RX, LINK_TYPE_NORMAL},
-//      {2, 1, 10, 2, 1, LINK_OPTION_TX, LINK_TYPE_NORMAL},
-//      {1, 2, 10, 2, 1, LINK_OPTION_RX, LINK_TYPE_NORMAL},
-//      {3, 2, 10, 1, 1, LINK_OPTION_TX | LINK_OPTION_TIME_KEEPING, LINK_TYPE_NORMAL},
-//      {2, 3, 10, 1, 1, LINK_OPTION_RX, LINK_TYPE_NORMAL}
-//  };
-  static node_sf_t n_sf[] = STATIC_SLOTFRAMES;
-  static link_t links[] = STATIC_LINKS;
+  node_sf_t n_sf[] = STATIC_SLOTFRAMES;
+  link_t links[] = STATIC_LINKS;
   int i;
   /* add slotframes */
   for(i = 0; i < NUMBER_OF_SLOTFRAMES; i++) {
@@ -264,7 +243,6 @@ PROCESS_THREAD(unicast_sender_process, ev, data)
   if(node_id != DEST_ID) {
     etimer_set(&periodic_timer, SEND_INTERVAL);
     while(1) {
-      //app_send_to(current_cnt % 3 == 0 ? DEST_ID : DEST2_ID , 1, ((uint32_t)node_id << 16) + current_cnt);
       app_send_to(DEST_ID, 1, ((uint32_t)node_id << 16) + current_cnt);
       current_cnt++;
 
