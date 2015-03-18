@@ -151,24 +151,25 @@ typedef struct {
 void
 app_make_schedule()
 {
-  node_sf_t n_sf[] = {
-                        {1, 10, 11},
-                        {2, 10, 11},
-                        {3, 10, 11},
-                      };
-
-  link_t links[] = {
-      {2, 1, 10, 3, 1, LINK_OPTION_TX | LINK_OPTION_TIME_KEEPING, LINK_TYPE_NORMAL},
-      {1, 2, 10, 3, 1, LINK_OPTION_RX, LINK_TYPE_NORMAL},
-      {2, 1, 10, 2, 1, LINK_OPTION_TX, LINK_TYPE_NORMAL},
-      {1, 2, 10, 2, 1, LINK_OPTION_RX, LINK_TYPE_NORMAL},
-      {3, 2, 10, 1, 1, LINK_OPTION_TX | LINK_OPTION_TIME_KEEPING, LINK_TYPE_NORMAL},
-      {2, 3, 10, 1, 1, LINK_OPTION_RX, LINK_TYPE_NORMAL}
-  };
-
+//  node_sf_t n_sf[] = {
+//                        {1, 10, 11},
+//                        {2, 10, 11},
+//                        {3, 10, 11},
+//                      };
+//
+//  link_t links[] = {
+//      {2, 1, 10, 3, 1, LINK_OPTION_TX | LINK_OPTION_TIME_KEEPING, LINK_TYPE_NORMAL},
+//      {1, 2, 10, 3, 1, LINK_OPTION_RX, LINK_TYPE_NORMAL},
+//      {2, 1, 10, 2, 1, LINK_OPTION_TX, LINK_TYPE_NORMAL},
+//      {1, 2, 10, 2, 1, LINK_OPTION_RX, LINK_TYPE_NORMAL},
+//      {3, 2, 10, 1, 1, LINK_OPTION_TX | LINK_OPTION_TIME_KEEPING, LINK_TYPE_NORMAL},
+//      {2, 3, 10, 1, 1, LINK_OPTION_RX, LINK_TYPE_NORMAL}
+//  };
+  static node_sf_t n_sf[] = STATIC_SLOTFRAMES;
+  static link_t links[] = STATIC_LINKS;
   int i;
   /* add slotframes */
-  for(i = 0; i < 3; i++) {
+  for(i = 0; i < NUMBER_OF_SLOTFRAMES; i++) {
     node_sf_t nsf = n_sf[i];
     if(nsf.node_id == node_id) {
       tsch_schedule_add_slotframe(nsf.sf_handle, nsf.size);
@@ -177,7 +178,7 @@ app_make_schedule()
 
   linkaddr_t addr;
   /* add links */
-  for(i = 0; i < 6; i++) {
+  for(i = 0; i < NUMBER_OF_LINKS; i++) {
     link_t l = links[i];
     if(l.node_id == node_id) {
       struct tsch_slotframe * sf = tsch_schedule_get_slotframe_from_handle(l.slotframe_handle);
