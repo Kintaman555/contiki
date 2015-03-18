@@ -137,10 +137,11 @@
 #define RPL_CALLBACK_NEW_DIO_INTERVAL tsch_rpl_callback_new_dio_interval
 #endif
 
-#define TSCH_CONF_GUARD_TIME 600
 #if CONTIKI_TARGET_JN5168
+#define TSCH_CONF_GUARD_TIME 250
 #define TSCH_CONF_SLOT_DURATION 10000
 #else
+#define TSCH_CONF_GUARD_TIME 600
 #define TSCH_CONF_SLOT_DURATION 15000
 #endif
 
