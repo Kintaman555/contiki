@@ -89,11 +89,13 @@ orchestra_callback_ready_to_send()
 {
   linkaddr_t *dest = packetbuf_addr(PACKETBUF_ADDR_RECEIVER);
   int has_uc_link = neighbor_has_uc_link(dest);
+#if WITH_TSCH_SLOTFRAME_SELECTOR
   if(has_uc_link) {
     packetbuf_set_attr(PACKETBUF_ATTR_TSCH_SLOTFRAME, 2);
   } else {
     packetbuf_set_attr(PACKETBUF_ATTR_TSCH_SLOTFRAME, 1);
   }
+#endif
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -104,6 +106,7 @@ orchestra_packet_received(void)
 static void
 orchestra_packet_sent(int mac_status)
 {
+#ifdef WITH_ATTR_RPL_DAO_LIFETIME
   if(mac_status == MAC_TX_OK
       && packetbuf_attr(PACKETBUF_ATTR_PROTO) == UIP_PROTO_ICMP6
       && packetbuf_attr(PACKETBUF_ATTR_RPL_DAO_LIFETIME) > 0
@@ -115,6 +118,7 @@ orchestra_packet_sent(int mac_status)
       PRINTF("Orchestra: preferred parent confirmed %d\n", LOG_NODEID_FROM_LINKADDR(&curr_parent_linkaddr));
     }
   }
+#endif
 }
 /*---------------------------------------------------------------------------*/
 static uint16_t
@@ -141,7 +145,13 @@ rx_neighbor_rm(linkaddr_t *linkaddr) {
   if(l == NULL) {
     return;
   }
-  /* Does any other neighbor need this timeslot? */
+  /* Does our current parent need this timeslot? */
+  if(timeslot == get_node_timeslot(&curr_parent_linkaddr)) {
+    /* Yes, this timeslot is being used, return */
+    return;
+  }
+  /* Does any other child need this timeslot?
+   * (lookup all route next hops) */
   nbr_table_item_t *item = nbr_table_head(nbr_routes);
   while(item != NULL) {
     linkaddr_t *addr = nbr_table_get_lladdr(nbr_routes, item);
