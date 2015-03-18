@@ -1272,7 +1272,12 @@ PT_THREAD(tsch_associate(struct pt *pt))
 
           if(n != NULL) {
             tsch_queue_update_time_source(&source_address);
-
+            TSCH_LOG_ADD(tsch_log_message,
+                  snprintf(log->message, sizeof(log->message),
+                      "Joining EB %u, TS %u\n",
+                      LOG_NODEID_FROM_LINKADDR(&source_address),
+                      LOG_NODEID_FROM_LINKADDR(&tsch_queue_get_time_source()->addr));
+            );
             /* Use this ASN as "last synchronization ASN" */
             last_sync_asn = current_asn;
             tsch_schedule_keepalive();
