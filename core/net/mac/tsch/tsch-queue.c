@@ -61,6 +61,9 @@ void TSCH_CALLBACK_NEW_TIME_SOURCE(struct tsch_neighbor *old, struct tsch_neighb
 #define DEBUG DEBUG_NONE
 #include "net/ip/uip-debug.h"
 
+/* when locked, timesource will not be updated */
+static int tsch_timesource_locked = 0;
+
 /* We have as many packets are there are queuebuf in the system */
 MEMB(packet_memb, struct tsch_packet, QUEUEBUF_NUM);
 MEMB(neighbor_memb, struct tsch_neighbor, TSCH_QUEUE_MAX_NEIGHBOR_QUEUES);
@@ -154,11 +157,17 @@ tsch_queue_get_time_source()
   return NULL;
 }
 
+void
+tsch_queue_lock_time_source(int en)
+{
+  tsch_timesource_locked = en;
+}
+
 /* Update TSCH time source */
 int
 tsch_queue_update_time_source(const linkaddr_t *new_addr)
 {
-  if(!tsch_is_locked()) {
+  if(!tsch_is_locked() && !tsch_timesource_locked) {
     if(!tsch_is_coordinator) {
       struct tsch_neighbor *old_time_src = tsch_queue_get_time_source();
       struct tsch_neighbor *new_time_src = new_addr ? tsch_queue_add_nbr(new_addr) : NULL;

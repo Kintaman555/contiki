@@ -105,6 +105,8 @@ struct tsch_neighbor *tsch_queue_get_nbr(const linkaddr_t *addr);
 struct tsch_neighbor *tsch_queue_get_time_source();
 /* Update TSCH time source */
 int tsch_queue_update_time_source(const linkaddr_t *new_addr);
+/* Prevent changing timesource */
+void tsch_queue_lock_time_source(int en);
 /* Add packet to neighbor queue. Use same lockfree implementation as ringbuf.c (put is atomic) */
 int tsch_queue_add_packet(const linkaddr_t *addr, mac_callback_t sent, void *ptr);
 /* Returns the number of packets currently in the queue */

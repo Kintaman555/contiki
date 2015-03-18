@@ -36,6 +36,7 @@
  *         Can be deployed in the Indriya or Twist testbeds.
  *
  * \author Simon Duquennoy <simonduq@sics.se>
+ *         Beshr Al Nahas <beshr@chalmers.se>
  */
 
 #include "contiki-conf.h"
@@ -50,6 +51,7 @@
 #include "simple-udp.h"
 #include <stdio.h>
 #include <string.h>
+#include "static-schedules.h"
 
 #define SEND_INTERVAL   (1 * CLOCK_SECOND)
 #define UDP_PORT 1234
@@ -129,12 +131,6 @@ typedef struct {
 } node_sf_t;
 
 typedef struct {
-  uint16_t sf_handle;
-  uint16_t link_index;
-  uint8_t time_slot;
-} sf_link_t;
-
-typedef struct {
   uint16_t node_id;
   /* MAC address of neighbor */
   uint16_t nbr_id;
@@ -198,11 +194,13 @@ app_make_schedule()
           memcpy(&defrt_ipaddr, &llprefix, 8);
           uip_ds6_nbr_add(&defrt_ipaddr, &addr, 1, ADDR_MANUAL);
           uip_ds6_defrt_add(&defrt_ipaddr, 0 /* route timeout: never */);
-
+          /* setup as timesource */
+          tsch_queue_update_time_source(&addr);
         }
       }
     }
   }
+  tsch_queue_lock_time_source(1);
 
   static struct tsch_slotframe *sf_min;
   /* Build 6TiSCH minimal schedule.
