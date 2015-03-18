@@ -142,9 +142,13 @@ void * list_chop(list_t list);
 
 void   list_add(list_t list, void *item);
 void   _list_remove_(list_t list, void *item);
+#if CONTIKI_TARGET_JN5168
 #define list_remove(l,i) \
     { debug_file_line(__FILE__,__LINE__); \
     _list_remove_(l,i); }
+#else
+#define list_remove _list_remove_
+#endif
 
 int    list_length(list_t list);
 

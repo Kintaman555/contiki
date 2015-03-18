@@ -54,7 +54,11 @@
 #define ORCHESTRA_SBUNICAST_PERIOD 17
 #endif
 
+#ifdef ORCHESTRA_SBUNICAST_PERIOD2
+#define ORCHESTRA_SBUNICAST_SHARED    0
+#else
 #define ORCHESTRA_SBUNICAST_SHARED    (ORCHESTRA_SBUNICAST_PERIOD < MAX_NODES)
+#endif
 
 static struct tsch_slotframe *sf_sb;
 static struct tsch_slotframe *sf_sb2;
