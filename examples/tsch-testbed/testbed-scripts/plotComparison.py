@@ -73,6 +73,8 @@ def plotStat(all_res, metric, filename, ylabel, legendPos="lower right", legendB
       y = all_res[conf['mac']][metric]['stats']["avg"]
       e = all_res[conf['mac']][metric]['stats']["stdev"]
       ax.bar(x, y, w, yerr=e, color=conf['color'], ecolor=conf['color'], edgecolor=linecolor)
+      if metric == "End-to-end Delivery Ratio":
+          print conf["mac"], y
   
   macs = map(lambda x: x["mac"], configs)
   xlabels = map(lambda x: x["l"], configs)

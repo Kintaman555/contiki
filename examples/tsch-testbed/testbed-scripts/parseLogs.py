@@ -262,9 +262,9 @@ def parseTsch(line, time, id, log, packetInfo, asnInfo):
         hop = packetInfo['hop']
         src = packetInfo['src']
         dst = packetInfo['dst']
-    else:
-        if asnInfo != None:
-            return None
+    #else:
+        #if asnInfo != None:
+            #return None
     
     if asnInfo != None:
         asn = asnInfo['asn'] 
