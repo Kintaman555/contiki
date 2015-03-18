@@ -1121,7 +1121,7 @@ PT_THREAD(tsch_link_operation(struct rtimer *t, void *ptr))
     if(!tsch_is_coordinator && (ASN_DIFF(current_asn, last_sync_asn) > TSCH_CLOCK_TO_SLOTS(TSCH_DESYNC_THRESHOLD))) {
       TSCH_LOG_ADD(tsch_log_message,
             snprintf(log->message, sizeof(log->message),
-                "! leaving the network, last sync %u\n",
+                "! leaving. Last sync %u\n",
                           (unsigned)ASN_DIFF(current_asn, last_sync_asn));
       );
       associated = 0;
