@@ -165,6 +165,7 @@ app_make_schedule()
         set_linkaddr_from_id(&addr, l.nbr_id);
         tsch_schedule_add_link(sf, l.link_options, l.link_type, &addr, l.timeslot, l.channel_offset);
         if((l.link_options & LINK_OPTION_TIME_KEEPING)
+            && l.link_type != LINK_TYPE_ADVERTISING_ONLY
             && !linkaddr_cmp(&addr, &tsch_broadcast_address)
             && !linkaddr_cmp(&addr, &tsch_eb_address)) {
           /* Setup default route */
@@ -182,6 +183,7 @@ app_make_schedule()
   }
   tsch_queue_lock_time_source(1);
 
+#if 0 /* should we create a minimum schedule too? */
   static struct tsch_slotframe *sf_min;
   /* Build 6TiSCH minimal schedule.
    * We pick a slotframe length of TSCH_SCHEDULE_DEFAULT_LENGTH */
@@ -194,6 +196,7 @@ app_make_schedule()
       LINK_OPTION_RX | LINK_OPTION_TX | LINK_OPTION_SHARED,
       LINK_TYPE_ADVERTISING_ONLY, &tsch_eb_address,
       0, 0);
+#endif
 
   tsch_schedule_print();
 

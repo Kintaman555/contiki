@@ -35,13 +35,17 @@ target = []; %to all nodes
 %      the link may be used to send an Enhanced beacon. */
 %   enum link_type link_type;
 % } link_t;
-
+%% Global parameters
+ts_cnt = 0;
+sfHandle = 7;
+ebSfHandle = 100;
+chOffset = 0;
+ebChOffset = 1;
+numNodes = length(myNetwork);
+tsDuration = 15.0/1000; 
 %% generating links
 linkTable = {};
 % linkTableStr = '';
-ts_cnt = 0;
-sfHandle = 7;
-chOffset = 0;
 for i=2:length(paths)
     str='';
     link = '';
@@ -73,16 +77,31 @@ for i=2:length(paths)
     %linkTableStr = sprintf('%s%s\n%s',linkTable, str, link);
 end
 
-%% slotframes
-latencyGoal = 0.5;
-tsDuration = 15.0/1000; 
-sfLength = max(ts_cnt, floor(latencyGoal/tsDuration));
-numNodes = length(myNetwork);
-slotframeTable = zeros(numNodes, 3);
+%% EB links
+ebPeriod = 2;
+ebSfLength = floor(ebPeriod/tsDuration);
+ebTsCnt = 0;
 for i = 1:numNodes
-    slotframeTable(i, :) = [i, sfHandle, sfLength];
+    ebTsCnt = ebTsCnt + 1;
+    node = i;
+    nbr = 0;
+    lopt = 'LINK_OPTION_TX'; 
+    ltyp = 'LINK_TYPE_ADVERTISING_ONLY';
+    % link1 = sprintf('{%d, %d, %d, %d, %d, %s, %s},\n', node, nbr, sfHandle, ts, chOffset, lopt, ltyp);
+    linkCell = {node, nbr, ebSfHandle, ebTsCnt, ebChOffset, lopt, ltyp};
+    linkTable = [linkTable; linkCell];
 end
 
+%% slotframes
+latencyGoal = 0.5;
+sfLength = max(ts_cnt, floor(latencyGoal/tsDuration));
+slotframeTable = zeros(2*numNodes, 3);
+for i = 1:numNodes
+    % sf for data
+    slotframeTable(i, :) = [i, sfHandle, sfLength];
+    % sf for EB
+    slotframeTable(i+numNodes, :) = [i, ebSfHandle, ebSfLength];
+end
 %% printing 
 slotframeTableStr = sprintf('#define STATIC_SLOTFRAMES { \\ \n');
 for i = 1:size(slotframeTable, 1)
