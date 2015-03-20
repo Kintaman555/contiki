@@ -103,16 +103,16 @@ for i = 1:numNodes
     slotframeTable(i+numNodes, :) = [i, ebSfHandle, ebSfLength];
 end
 %% printing 
-slotframeTableStr = sprintf('#define STATIC_SLOTFRAMES { \\ \n');
+slotframeTableStr = sprintf('#define STATIC_SLOTFRAMES { \\\n');
 for i = 1:size(slotframeTable, 1)
-    slotframeTableStr = sprintf('%s\t{%d, %d, %d}, \\ \n', slotframeTableStr, slotframeTable(i, 1), slotframeTable(i, 2), slotframeTable(i, 3));
+    slotframeTableStr = sprintf('%s\t{%d, %d, %d}, \\\n', slotframeTableStr, slotframeTable(i, 1), slotframeTable(i, 2), slotframeTable(i, 3));
 end
 slotframeTableStr = sprintf('%s}\n\n', slotframeTableStr);
 slotframeTableSize = sprintf('#define NUMBER_OF_SLOTFRAMES %d\n', size(slotframeTable, 1));
 
-linksTableStr = sprintf('#define STATIC_LINKS { \\ \n');
+linksTableStr = sprintf('#define STATIC_LINKS { \\\n');
 for i = 1:length(linkTable)
-    linksTableStr = sprintf('%s\t{%d, %d, %d, %d, %d, %s, %s}, \\ \n', linksTableStr, linkTable{i, 1}, linkTable{i, 2}, linkTable{i, 3}, linkTable{i, 4}, linkTable{i, 5}, linkTable{i, 6}, linkTable{i, 7});
+    linksTableStr = sprintf('%s\t{%d, %d, %d, %d, %d, %s, %s}, \\\n', linksTableStr, linkTable{i, 1}, linkTable{i, 2}, linkTable{i, 3}, linkTable{i, 4}, linkTable{i, 5}, linkTable{i, 6}, linkTable{i, 7});
 end
 linksTableStr = sprintf('%s}\n\n', linksTableStr);
 linkTableSize = sprintf('#define NUMBER_OF_LINKS %d\n', length(linkTable));
