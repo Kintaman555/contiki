@@ -398,10 +398,10 @@ send_packet(mac_callback_t sent, void *ptr)
             return;
           }
           memb_free(&metadata_memb, q->ptr);
-          LOGP("csma: could not allocate queuebuf, dropping packet\n");
+          LOGP("csma: could not allocate queuebuf, dropping packet");
         }
         memb_free(&packet_memb, q);
-        LOGP("csma: could not allocate queuebuf, dropping packet\n");
+        LOGP("csma: could not allocate queuebuf, dropping packet");
       }
       /* The packet allocation failed. Remove and free neighbor entry if empty. */
       if(list_length(n->queued_packet_list) == 0) {
@@ -411,9 +411,9 @@ send_packet(mac_callback_t sent, void *ptr)
     } else {
       LOGP("csma: Neighbor queue full\n");
     }
-    LOGP("csma: could not allocate packet, dropping packet\n");
+    LOGP("csma: could not allocate packet, dropping packet");
   } else {
-    LOGP("csma: could not allocate neighbor, dropping packet\n");
+    LOGP("csma: could not allocate neighbor, dropping packet");
   }
   mac_call_sent_callback(sent, ptr, MAC_TX_ERR, 1);
 }
