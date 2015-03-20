@@ -131,6 +131,7 @@ send_one_packet(mac_callback_t sent, void *ptr)
 {
   int ret;
   int last_sent_ok = 0;
+  int is_broadcast;
 
   packetbuf_set_addr(PACKETBUF_ADDR_SENDER, &linkaddr_node_addr);
 #if NULLRDC_802154_AUTOACK || NULLRDC_802154_AUTOACK_HW
@@ -148,7 +149,6 @@ send_one_packet(mac_callback_t sent, void *ptr)
 #endif /* NETSTACK_ENCRYPT */
 
 #if NULLRDC_802154_AUTOACK
-    int is_broadcast;
     uint8_t dsn;
     dsn = ((uint8_t *)packetbuf_hdrptr())[2] & 0xff;
 
@@ -253,6 +253,13 @@ send_one_packet(mac_callback_t sent, void *ptr)
     last_sent_ok = 1;
   }
   mac_call_sent_callback(sent, ptr, ret, 1);
+
+  LOGP("Nullrdc: %s %u tx %d, st %d",
+        is_broadcast ? "bc" : "uc",
+            packetbuf_datalen(),
+            LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_RECEIVER)),
+            ret);
+
   return last_sent_ok;
 }
 /*---------------------------------------------------------------------------*/
