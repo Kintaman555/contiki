@@ -121,7 +121,6 @@ app_send_to(uint16_t id, int ping, uint32_t seqno)
 {
   struct app_data data;
   uip_ipaddr_t dest_ipaddr;
-  uip_lladdr_t dest_lladdr;
 
   data.magic = UIP_HTONL(LOG_MAGIC);
   data.seqno = UIP_HTONL(seqno);
@@ -137,6 +136,7 @@ app_send_to(uint16_t id, int ping, uint32_t seqno)
   }
   set_ipaddr_from_id(&dest_ipaddr, id);
   /* Convert global address into link-local */
+  //uip_lladdr_t dest_lladdr;
   //memcpy(&dest_ipaddr, &llprefix, 8);
   simple_udp_sendto(&unicast_connection, &data, sizeof(data), &dest_ipaddr);
 }
@@ -173,7 +173,7 @@ app_make_schedule()
           set_ipaddr_from_id(&defrt_ipaddr, l.nbr_id);
           /* Convert global address into link-local */
           memcpy(&defrt_ipaddr, &llprefix, 8);
-          uip_ds6_nbr_add(&defrt_ipaddr, &addr, 1, ADDR_MANUAL);
+          uip_ds6_nbr_add(&defrt_ipaddr, (const uip_lladdr_t *)&addr, 1, ADDR_MANUAL);
           uip_ds6_defrt_add(&defrt_ipaddr, 0 /* route timeout: never */);
           /* setup as timesource */
           tsch_queue_update_time_source(&addr);
