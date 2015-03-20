@@ -393,7 +393,7 @@ micromac_radio_transmit(unsigned short payload_len)
   }
   ENERGEST_ON(ENERGEST_TYPE_TRANSMIT);
   vMMAC_StartPhyTransmit(&tx_frame_buffer,
-      E_MMAC_TX_START_NOW | MMAC_TX_AUTO_ACK_CONF | E_MMAC_TX_NO_CCA);
+      E_MMAC_TX_START_NOW | E_MMAC_TX_NO_CCA);
   /* TODO should this be removed? */
   BUSYWAIT_UNTIL(u32MMAC_PollInterruptSource(E_MMAC_INT_TX_COMPLETE),
       MAX_PACKET_DURATION);
@@ -769,6 +769,11 @@ micromac_radio_interrupt(uint32 mac_event)
           radio_last_correlation = micromac_radio_last_lqi;
           /* put the index to the received frame */
           ringbufindex_put(&input_ringbuf);
+
+          int16_t read_index;
+          if((read_index = ringbufindex_peek_get(&input_ringbuf)) != -1) {
+            input_frame_buffer = &input_array[read_index];
+          }
           //XXX disable process-poll to fill ringbuf and to stress-test it
 #if !STRESS_TEST
           process_poll(&micromac_radio_process);
