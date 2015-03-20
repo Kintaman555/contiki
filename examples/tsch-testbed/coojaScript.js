@@ -18,7 +18,7 @@
   var numberOfNodes=5;
   var i=0;
   var j=0;
-  myNetwork=[0, 10000, 10000, 10000, 10000, 2, 0, 2, 10000, 10000, 2, 2, 0, 10000, 10000, 10, 3, 4, 0, 3, 10, 4, 3, 3, 0];
+  myNetwork=[0, 1, 1, 1, 1, 2, 0, 2, 1, 1, 2, 2, 0, 1, 1, 10, 3, 4, 0, 3, 10, 4, 3, 3, 0];
   
   //printEdges();          
   radioMedium = sim.getRadioMedium();
