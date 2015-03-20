@@ -43,7 +43,9 @@ CFLAGS+= -DWITHOUT_ATTR_TIMESTAMP
 CFLAGS+= -DWITHOUT_ATTR_FRAME_TYPE
 
 PROJECTDIRS += tools
-PROJECT_SOURCEFILES += node-id.c
+PROJECT_SOURCEFILES += node-id.c 
+# to recompile on changes to schedules: 
+PROJECT_LIBRARIES += static-schedules.h
 #PROJECT_SOURCEFILES += orchestra.c orchestra-sf-eb.c \
 #  orchestra-sf-common-shared.c orchestra-sf-rb-unicast.c \
 #  orchestra-sf-sb-unicast.c orchestra-sf-sb-rpl-unicast.c
