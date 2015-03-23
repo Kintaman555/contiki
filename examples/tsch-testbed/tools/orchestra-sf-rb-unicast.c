@@ -34,6 +34,8 @@
  * \author Simon Duquennoy <simonduq@sics.se>
  */
 
+#if WITH_ORCHESTRA
+
 #include "contiki.h"
 
 #include "lib/memb.h"
@@ -109,3 +111,4 @@ orchestra_sf_rb_unicast_init()
       LINK_TYPE_NORMAL, &tsch_broadcast_address,
       node_index % ORCHESTRA_RBUNICAST_PERIOD, 2);
 }
+#endif /* WITH_ORCHESTRA */

@@ -34,6 +34,7 @@
  * \author Simon Duquennoy <simonduq@sics.se>
  */
 
+#if WITH_ORCHESTRA
 #include "contiki.h"
 
 #include "lib/memb.h"
@@ -61,3 +62,4 @@ orchestra_sf_common_shared_init()
       ORCHESTRA_COMMON_SHARED_TYPE, &tsch_broadcast_address,
       0, 1);
 }
+#endif /* WITH_ORCHESTRA */

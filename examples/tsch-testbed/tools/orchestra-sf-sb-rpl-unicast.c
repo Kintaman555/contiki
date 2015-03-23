@@ -34,6 +34,8 @@
  * \author Simon Duquennoy <simonduq@sics.se>
  */
 
+#if (WITH_ORCHESTRA && (ORCHESTRA_CONFIG == ORCHESTRA_SB_RPL))
+
 #include "contiki.h"
 
 #include "lib/memb.h"
@@ -208,3 +210,5 @@ orchestra_sf_sb_rpl_unicast_init()
             timeslot, 2);
   PRINTF("Orchestra: adding Tx link at %u\n", timeslot);
 }
+
+#endif /* WITH_ORCHESTRA && (ORCHESTRA_CONFIG == ORCHESTRA_SB_RPL) */

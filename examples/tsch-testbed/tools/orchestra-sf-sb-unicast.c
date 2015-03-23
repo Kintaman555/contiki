@@ -33,7 +33,7 @@
  *
  * \author Simon Duquennoy <simonduq@sics.se>
  */
-
+#if WITH_ORCHESTRA
 #include "contiki.h"
 
 #include "lib/memb.h"
@@ -284,3 +284,4 @@ orchestra_sf_sb_unicast_init()
   /* Tx links (with lease time) will be added upon transmitting unicast (if ack received) */
   rime_sniffer_add(&orhcestra_sniffer);
 }
+#endif /* WITH_ORCHESTRA */

@@ -34,6 +34,8 @@
  * \author Simon Duquennoy <simonduq@sics.se>
  */
 
+#if WITH_ORCHESTRA
+
 #include "contiki.h"
 
 #include "lib/memb.h"
@@ -94,3 +96,4 @@ orchestra_sf_eb_init()
       LINK_TYPE_ADVERTISING_ONLY, &tsch_broadcast_address,
       node_index, 0);
 }
+#endif /* WITH_ORCHESTRA */
