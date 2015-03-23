@@ -16,7 +16,7 @@ MIN_TIME = 0 # start counting only after 10 minutes (except for timeline)
 MAX_TIME = 999999
 EDC_DIVISOR = 128
 #SINK_ID = 2
-SINK_ID = 2
+SINK_ID = 1
 #SINK_ID = 272
 plotIndex = 0
 

@@ -1,4 +1,4 @@
-  function printEdges() {   
+function printEdges() {   
       radioMedium = sim.getRadioMedium();
 	  if(radioMedium != null) {  
 	    radios = radioMedium.getRegisteredRadios();
@@ -13,17 +13,18 @@
     }
   }
   log.log("Script started.\n");
+  //sim.stopSimulation();
   //var myNetwork = new java.lang.Array();
   //  means no link. 0 means 0 etx
   var numberOfNodes=5;
   var i=0;
   var j=0;
-  myNetwork=[0, 1, 1, 1, 1, 2, 0, 2, 1, 1, 2, 2, 0, 1, 1, 10, 3, 4, 0, 3, 10, 4, 3, 3, 0];
+myNetwork=[0, 0.9, 0.9, 0.1, 0.1, 0.9, 0, 0.9, 0.8, 0.8, 0.9, 0.9, 0, 0.8, 0.8, 0.1, 0.8, 0.75, 0, 0.8, 0.1, 0.75, 0.8, 0.8, 0];
+  
   
   //printEdges();          
   radioMedium = sim.getRadioMedium();
   if(radioMedium != null) {  
-    sim.stopSimulation();
     radioMedium.clearEdges();
    
     for(i=0; i<numberOfNodes; i++) {
@@ -33,7 +34,7 @@
 	      if(i==j || weight == 0) {
           continue;
 	      }
-	      var ratio = 1.0/weight;
+	      var ratio = weight;
 	      var dstRadio = sim.getMoteWithID(j+1).getInterfaces().getRadio();
 	      var superDest = new org.contikios.cooja.radiomediums.DGRMDestinationRadio(dstRadio);
 	      superDest.ratio = ratio;
@@ -41,8 +42,33 @@
 	      radioMedium.addEdge(edge);
     	}
     }
-    sim.startSimulation();
     
     printEdges();
-    log.log("Script finished.\n"); 
+    log.log("Script finished setting weights.\n"); 
   }
+//sim.startSimulation();  
+ TIMEOUT(3600000);
+ //import Java Package to JavaScript
+ importPackage(java.io);
+ date = new java.util.Date();
+ // Use JavaScript object as an associative array
+ path = sim.getCooja().getLastOpenedFile().getParent();
+ outputFile = new FileWriter(path + "\/log_" + date.toString().replace(":", ".").replace(" ", "_") +".txt");
+
+ while (true) {
+ logMsg = time + "\tID:" + id + "\t" + msg + "\n";
+    //Write to file.
+    outputFile.write(logMsg);
+    //log.log(logMsg);
+    try{
+        //This is the tricky part. The Script is terminated using
+        // an exception. This needs to be caught.
+        YIELD();
+    } catch (e) {
+        //Close files.
+        outputFile.close();
+        //Rethrow exception again, to end the script.
+        throw('test script finished ' + time);
+    }
+ }
+ 

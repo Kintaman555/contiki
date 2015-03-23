@@ -2,20 +2,21 @@
 clear all;
 clc;
 
+myNetworkPRR=[0, 0.9, 0.9, 0.1, 0.1; 
+    0.9, 0, 0.9, 0.8, 0.8;
+    0.9, 0.9, 0, 0.8, 0.8;
+    0.1, 0.8, 0.75, 0, 0.8;
+    0.1, 0.75, 0.8, 0.8, 0];
 
-myNetwork=[0, Inf, Inf, Inf, Inf;
-2, 0, 2, Inf, Inf;
-2, 2, 0, Inf, Inf;
-10, 3, 4, 0, 3;
-10, 4, 3, 3, 0];
-
+myNetwork=1./myNetworkPRR;
+disp(myNetwork.^2)
 %% calculating routes
 sink = 1;
 target = []; %to all nodes
 %note the transpose! We want to calculate the paths FROM every node TO
 %sink, however, the function calculates the paths FROM the sink TO
 %everynode... that's why we reverse/transpose the weights
-[distances, paths] = dijkstra(myNetwork',sink, target);
+[distances, paths] = dijkstra(myNetwork'.^2,sink, target);
 
 %{2, 1, 10, 3, 1, LINK_OPTION_TX | LINK_OPTION_TIME_KEEPING, LINK_TYPE_NORMAL}
 % typedef struct {
@@ -52,7 +53,7 @@ for i=2:length(paths)
     for j=length(paths{i}):-1:2
        src = paths{i}(j);
        dst = paths{i}(j-1);
-       etx = myNetwork(src, dst);
+       etx = ceil(2*myNetwork(src, dst));
        ss = sprintf('(%d, %d)x%d ', src, dst, etx); 
        for k=1:etx
            ts_cnt = ts_cnt + 1;
