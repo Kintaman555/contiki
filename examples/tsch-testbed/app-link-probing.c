@@ -42,6 +42,7 @@
 #include "net/netstack.h"
 #include "net/ipv6/uip-ds6-nbr.h"
 #include "net/mac/tsch/tsch.h"
+#include "net/mac/tsch/tsch-private.h"
 #include "net/mac/tsch/tsch-schedule.h"
 #include "lib/random.h"
 #include "deployment.h"
@@ -50,7 +51,14 @@
 #include "lib/ringbufindex.h"
 #include <stdio.h>
 
+#if WITH_TSCH && WITH_OFFLINE_SCHEDULE_DEDICATED_PROBING
+#define PROBE_LENGTH 10
+#define SF_LENGTH (PROBE_LENGTH * MAX_NODES)
+#define SEND_INTERVAL   (1 * (CLOCK_SECOND * SF_LENGTH * TSCH_CONF_SLOT_DURATION/1000) / 1000)
+#else
 #define SEND_INTERVAL   (60 * CLOCK_SECOND)
+#endif /* WITH_TSCH && WITH_OFFLINE_SCHEDULE_DEDICATED_PROBING */
+
 #define UDP_PORT 1234
 
 #define COORDINATOR_ID ROOT_ID
@@ -178,12 +186,18 @@ PROCESS_THREAD(broadcast_sender_process, ev, data)
                       receiver);
 #if WITH_TSCH
 #if WITH_OFFLINE_SCHEDULE_DEDICATED_PROBING
-  /* 1: dedicated tx slot for each */
-  struct tsch_slotframe *sf1 = tsch_schedule_add_slotframe(1, 103);
-  tsch_schedule_add_link(sf1,
-      LINK_OPTION_TX,
-      LINK_TYPE_ADVERTISING, &tsch_broadcast_address,
-      (node_index*5)%103, 0);
+  /* 1: PROBE_LENGTH dedicated tx slot for each */
+  struct tsch_slotframe *sf1 = tsch_schedule_add_slotframe(1, SF_LENGTH);
+  int i, ts;
+  int node_idx = get_node_index_from_id(get_node_id());
+  for(i = 0; i < PROBE_LENGTH; i++) {
+    ts = (node_idx * PROBE_LENGTH + i) % SF_LENGTH;
+    tsch_schedule_add_link(sf1,
+        LINK_OPTION_TX,
+        LINK_TYPE_ADVERTISING, &tsch_broadcast_address,
+        ts, 0);
+    printf("App: adding link %d of %d\n", ts, SF_LENGTH);
+  }
   /* 2: wakeup at every slot */
   struct tsch_slotframe *sf2 = tsch_schedule_add_slotframe(2, 1);
   tsch_schedule_add_link(sf2,
@@ -212,11 +226,14 @@ PROCESS_THREAD(broadcast_sender_process, ev, data)
   process_start(&pending_events_process, NULL);
   etimer_set(&periodic_timer, SEND_INTERVAL);
   while(1) {
-    etimer_set(&send_timer, random_rand() % (SEND_INTERVAL));
-    PROCESS_WAIT_UNTIL(etimer_expired(&send_timer));
-
-    app_send_broadcast();
-
+//    etimer_set(&send_timer, random_rand() % (SEND_INTERVAL));
+//    PROCESS_WAIT_UNTIL(etimer_expired(&send_timer));
+#if WITH_TSCH && WITH_OFFLINE_SCHEDULE_DEDICATED_PROBING
+    for(i = 0; i < PROBE_LENGTH - 1; i++)
+#endif
+    {
+      app_send_broadcast();
+    }
     PROCESS_WAIT_UNTIL(etimer_expired(&periodic_timer));
     etimer_reset(&periodic_timer);
   }
