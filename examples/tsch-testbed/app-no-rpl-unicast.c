@@ -51,7 +51,12 @@
 #include "simple-udp.h"
 #include <stdio.h>
 #include <string.h>
+
+#if WITH_ORCHESTRA
+#include "tools/orchestra.h"
+#else
 #include "static-schedules.h"
+#endif
 
 typedef struct {
   uint8_t node_id;
@@ -140,7 +145,7 @@ app_send_to(uint16_t id, int ping, uint32_t seqno)
   //memcpy(&dest_ipaddr, &llprefix, 8);
   simple_udp_sendto(&unicast_connection, &data, sizeof(data), &dest_ipaddr);
 }
-
+#if !WITH_ORCHESTRA
 void
 app_make_schedule()
 {
@@ -168,6 +173,7 @@ app_make_schedule()
             && l.link_type != LINK_TYPE_ADVERTISING_ONLY
             && !linkaddr_cmp(&addr, &tsch_broadcast_address)
             && !linkaddr_cmp(&addr, &tsch_eb_address)) {
+#if !WITH_RPL
           /* Setup default route */
           uip_ipaddr_t defrt_ipaddr;
           set_ipaddr_from_id(&defrt_ipaddr, l.nbr_id);
@@ -175,6 +181,7 @@ app_make_schedule()
           memcpy(&defrt_ipaddr, &llprefix, 8);
           uip_ds6_nbr_add(&defrt_ipaddr, (const uip_lladdr_t *)&addr, 1, ADDR_MANUAL);
           uip_ds6_defrt_add(&defrt_ipaddr, 0 /* route timeout: never */);
+#endif /* !WITH_RPL */
           /* setup as timesource */
           tsch_queue_update_time_source(&addr);
         }
@@ -213,6 +220,7 @@ app_make_schedule()
     }
   }
 }
+#endif /* !WITH_ORCHESTRA */
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(unicast_sender_process, ev, data)
 {

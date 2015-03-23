@@ -1119,11 +1119,11 @@ PT_THREAD(tsch_link_operation(struct rtimer *t, void *ptr))
 
     /* Do we need to resynchronize? i.e., wait for EB again */
     if(!tsch_is_coordinator && (ASN_DIFF(current_asn, last_sync_asn) > TSCH_CLOCK_TO_SLOTS(TSCH_DESYNC_THRESHOLD))) {
-      TSCH_LOG_ADD(tsch_log_message,
+      /*TSCH_LOG_ADD(tsch_log_message,
             snprintf(log->message, sizeof(log->message),
                 "! leaving. Last sync %u\n",
                           (unsigned)ASN_DIFF(current_asn, last_sync_asn));
-      );
+      );*/
       associated = 0;
       process_post(&tsch_process, PROCESS_EVENT_POLL, NULL);
     } else {
@@ -1272,12 +1272,12 @@ PT_THREAD(tsch_associate(struct pt *pt))
 
           if(n != NULL) {
             tsch_queue_update_time_source(&source_address);
-            TSCH_LOG_ADD(tsch_log_message,
+            /* TSCH_LOG_ADD(tsch_log_message,
                   snprintf(log->message, sizeof(log->message),
                       "Joining EB %u, TS %u\n",
                       LOG_NODEID_FROM_LINKADDR(&source_address),
                       LOG_NODEID_FROM_LINKADDR(&tsch_queue_get_time_source()->addr));
-            );
+            ); */
             /* Use this ASN as "last synchronization ASN" */
             last_sync_asn = current_asn;
             tsch_schedule_keepalive();

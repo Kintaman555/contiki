@@ -156,13 +156,13 @@ tsch_queue_get_time_source()
   }
   return NULL;
 }
-
+#if !WITH_ORCHESTRA
 void
 tsch_queue_lock_time_source(int en)
 {
   tsch_timesource_locked = en;
 }
-
+#endif /* !WITH_ORCHESTRA */
 /* Update TSCH time source */
 int
 tsch_queue_update_time_source(const linkaddr_t *new_addr)
@@ -463,6 +463,7 @@ tsch_queue_init(void)
   n_eb = tsch_queue_add_nbr(&tsch_eb_address);
   n_broadcast = tsch_queue_add_nbr(&tsch_broadcast_address);
 }
+#if !WITH_ORCHESTRA
 /* Testing the module */
 int
 tsch_queue_test(int num_nbr)
@@ -583,3 +584,4 @@ tsch_queue_dump_nbrs()
     printf("TSCH Queue dump-nbrs: LOCKED\n");
   }
 }
+#endif /* !WITH_ORCHESTRA */

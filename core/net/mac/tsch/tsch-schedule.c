@@ -373,6 +373,7 @@ tsch_schedule_get_next_active_link(struct asn_t *asn, uint16_t *time_offset)
   }
   return curr_earliest_link;
 }
+#if !WITH_ORCHESTRA
 void
 tsch_schedule_print()
 {
@@ -444,6 +445,7 @@ tsch_schedule_test()
     }
   }
 }
+#endif /* !WITH_ORCHESTRA */
 /* Initialization. Return 1 is success, 0 if failure. */
 int
 tsch_schedule_init()

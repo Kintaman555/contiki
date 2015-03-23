@@ -21,6 +21,7 @@ PANID ?= 0xABCD
 
 CONTIKI_WITH_IPV6 = 1
 CONTIKI_WITH_RPL = 0
+CFLAGS+= -DCONTIKI_WITH_RPL=$(CONTIKI_WITH_RPL)
 CFLAGS+= -DCONFIG_NULLRDC=$(CONFIG_NULLRDC)
 CFLAGS+= -DCONFIG_CONTIKIMAC=$(CONFIG_CONTIKIMAC)
 CFLAGS+= -DCONFIG_TSCH=$(CONFIG_TSCH)
@@ -46,9 +47,9 @@ PROJECTDIRS += tools
 PROJECT_SOURCEFILES += node-id.c 
 # to recompile on changes to schedules: 
 PROJECT_LIBRARIES += static-schedules.h
-#PROJECT_SOURCEFILES += orchestra.c orchestra-sf-eb.c \
-#  orchestra-sf-common-shared.c orchestra-sf-rb-unicast.c \
-#  orchestra-sf-sb-unicast.c orchestra-sf-sb-rpl-unicast.c
+PROJECT_SOURCEFILES += orchestra.c orchestra-sf-eb.c \
+  orchestra-sf-common-shared.c orchestra-sf-rb-unicast.c \
+  orchestra-sf-sb-unicast.c orchestra-sf-sb-rpl-unicast.c
 
 ifneq ($(TARGET),jn5168)
 PROJECT_SOURCEFILES += uart1-putchar.c
