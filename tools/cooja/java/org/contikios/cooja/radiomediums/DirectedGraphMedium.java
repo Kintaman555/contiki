@@ -296,10 +296,17 @@ public class DirectedGraphMedium extends AbstractRadioMedium {
          }        
          continue;
       }
-            
-      if (dest.ratio < 1.0 && random.nextDouble() > dest.ratio) {
+      int packetLength = 0;
+      try {
+    	  packetLength = source.getLastPacketTransmitted().getPacketData().length;      
+      } catch (Exception e) {
+    	  
+      }
+      final int maximumPacketLength = 128;
+      double failureChance =  1 - ((double)packetLength/maximumPacketLength);
+      if (dest.ratio < 1.0 && random.nextDouble() > dest.ratio && random.nextDouble() > failureChance) {
     	/* Fail: Reception ratio */
-        /*logger.info(source + ": Fail, randomly");*/
+        //logger.info(source + ": Fail, randomly. " + failureChance + " > " + dest.ratio + "Packet len: " + packetLength);
         newConn.addInterfered(dest.radio);
         continue;
       }
