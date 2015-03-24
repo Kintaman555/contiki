@@ -34,13 +34,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.Map.Entry;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.WeakHashMap;
 
 import org.apache.log4j.Logger;
-
 import org.contikios.cooja.Mote;
 import org.contikios.cooja.RadioConnection;
 import org.contikios.cooja.RadioMedium;
@@ -223,6 +223,7 @@ public abstract class AbstractRadioMedium extends RadioMedium {
 	 * new transmissions.
 	 */
 	private Observer radioEventsObserver = new Observer() {
+	    private int bytesCounter = 0;
 		public void update(Observable obs, Object obj) {
 			if (!(obs instanceof Radio)) {
 				logger.fatal("Radio event dispatched by non-radio object");
@@ -251,6 +252,7 @@ public abstract class AbstractRadioMedium extends RadioMedium {
 				}
 				break;
 				case TRANSMISSION_STARTED: {
+					bytesCounter = 0;
 					/* Create new radio connection */
 					if (radio.isReceiving()) {
 						/*
@@ -347,8 +349,41 @@ public abstract class AbstractRadioMedium extends RadioMedium {
 						logger.fatal("No custom data object to forward");
 						return;
 					}
-					
+					if(bytesCounter++ == 6) { 
+						//(bytes: 4 preamble, 1 SFD, 1 len, then packet bytes) first byte in packet determines if it could get interfered
+						RadioMedium medium = radio.getMote().getSimulation().getRadioMedium();
+						if (medium instanceof DirectedGraphMedium) {
+							Random random = radio.getMote().getSimulation().getRandomGenerator();
+							DGRMDestinationRadio[] destinations = ((DirectedGraphMedium) medium)
+									.getPotentialDestinations(radio);
+							if (destinations != null && destinations.length > 0) {
+								final int FRAME802154_ACKFRAME = 02;
+								boolean isAck = false;
+								try {
+									Byte packet = ((Byte) data);
+									// (fcf_lsb & 7) == FRAME802154_ACKFRAME
+									isAck = ((packet & 7) == FRAME802154_ACKFRAME);
+									if(isAck) logger.info("ACK: " + packet);
+								} catch (Exception e) {
+									logger.info(e.getMessage());
+								}
+								for (DGRMDestinationRadio dest : destinations) {
+								/* XXX assume that we don't loose acks (short packets)!! */
+									if (dest.ratio < 1.0 && random.nextDouble() > dest.ratio
+											&& !isAck) {
+										/* Fail: Reception ratio */
+										// logger.info(source + ": Fail, randomly. " +
+										// failureChance + " > " + dest.ratio + "Packet len: " +
+										// packetLength);
+										connection.addInterfered(dest.radio);
+										continue;
+									}
+								}
+							}
+						}
+					}
 					for (Radio dstRadio : connection.getAllDestinations()) {
+						
 						if (!(dstRadio instanceof CustomDataRadio) || 
 						    !((CustomDataRadio) dstRadio).canReceiveFrom((CustomDataRadio)radio)) {
 							/* Radios communicate via radio packets */

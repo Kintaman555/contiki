@@ -296,20 +296,28 @@ public class DirectedGraphMedium extends AbstractRadioMedium {
          }        
          continue;
       }
-      int packetLength = 0;
-      try {
-    	  packetLength = source.getLastPacketTransmitted().getPacketData().length;      
-      } catch (Exception e) {
-    	  
-      }
-      final int maximumPacketLength = 128;
-      double failureChance =  1 - ((double)packetLength/maximumPacketLength);
-      if (dest.ratio < 1.0 && random.nextDouble() > dest.ratio && random.nextDouble() > failureChance) {
-    	/* Fail: Reception ratio */
-        //logger.info(source + ": Fail, randomly. " + failureChance + " > " + dest.ratio + "Packet len: " + packetLength);
-        newConn.addInterfered(dest.radio);
-        continue;
-      }
+//      final int FRAME802154_ACKFRAME = 02;
+//      int packetLength = 0;
+//      boolean isAck = false;
+//      try {
+//    	  Object data = ((CustomDataRadio) source).getLastCustomDataTransmitted();
+//    	  Byte packet = ((org.contikios.cooja.emulatedmote.RadioByte)data).getPacketData();
+//		  //(fcf_lsb & 7) == FRAME802154_ACKFRAME 
+//		  isAck = ((packet[0] & 7) == FRAME802154_ACKFRAME);
+//		  logger.info("byte: " + packet[0]);
+//      } catch (Exception e) {
+//    	  logger.info(e.getMessage());
+//      }
+////      final int maximumPacketLength = 128;
+////      double failureChance =  1 - ((double)packetLength/maximumPacketLength);
+//      /* XXX assume that we don't loose acks (short packets)!! */
+//      
+//      if (dest.ratio < 1.0 && random.nextDouble() > dest.ratio && !isAck) {
+//    	/* Fail: Reception ratio */
+//        //logger.info(source + ": Fail, randomly. " + failureChance + " > " + dest.ratio + "Packet len: " + packetLength);
+//        newConn.addInterfered(dest.radio);
+//        continue;
+//      }
 
       /* Success: radio starts receiving */
       /*logger.info(source + ": OK: " + dest.radio);*/
