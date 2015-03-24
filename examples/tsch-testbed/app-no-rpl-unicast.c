@@ -52,6 +52,8 @@
 #include <stdio.h>
 #include <string.h>
 
+extern int associated;
+
 #if WITH_ORCHESTRA
 #include "tools/orchestra.h"
 #else
@@ -254,9 +256,10 @@ PROCESS_THREAD(unicast_sender_process, ev, data)
   if(node_id != DEST_ID) {
     etimer_set(&periodic_timer, SEND_INTERVAL);
     while(1) {
-      app_send_to(DEST_ID, 1, ((uint32_t)node_id << 16) + current_cnt);
-      current_cnt++;
-
+      if(associated) {
+        app_send_to(DEST_ID, 1, ((uint32_t)node_id << 16) + current_cnt);
+        current_cnt++;
+      }
       PROCESS_WAIT_UNTIL(etimer_expired(&periodic_timer));
       etimer_reset(&periodic_timer);
     }
