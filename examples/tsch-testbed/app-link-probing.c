@@ -51,6 +51,8 @@
 #include "lib/ringbufindex.h"
 #include <stdio.h>
 
+extern int associated;
+
 #if WITH_TSCH && WITH_OFFLINE_SCHEDULE_DEDICATED_PROBING
 #define PROBE_LENGTH 10
 #define SF_LENGTH (PROBE_LENGTH * MAX_NODES)
@@ -229,7 +231,7 @@ PROCESS_THREAD(broadcast_sender_process, ev, data)
 //    etimer_set(&send_timer, random_rand() % (SEND_INTERVAL));
 //    PROCESS_WAIT_UNTIL(etimer_expired(&send_timer));
 #if WITH_TSCH && WITH_OFFLINE_SCHEDULE_DEDICATED_PROBING
-    for(i = 0; i < PROBE_LENGTH - 1; i++)
+    for(i = 0; associated && i < PROBE_LENGTH - 1; i++)
 #endif
     {
       app_send_broadcast();
