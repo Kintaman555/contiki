@@ -34,9 +34,9 @@
  * \author Simon Duquennoy <simonduq@sics.se>
  */
 
-#if WITH_ORCHESTRA
-#include "contiki.h"
 
+#include "contiki.h"
+#if WITH_ORCHESTRA
 #include "lib/memb.h"
 #include "net/packetbuf.h"
 #include "net/rpl/rpl.h"
