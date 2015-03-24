@@ -119,7 +119,7 @@ The COOJA Simulator
   </target>
 
   <target name="run64" depends="init, compile, jar, copy configs">
-    <java fork="yes" dir="${build}" classname="org.contikios.cooja.Cooja" maxmemory="512m">
+    <java fork="yes" dir="${build}" classname="org.contikios.cooja.Cooja" maxmemory="2048m">
       <sysproperty key="user.language" value="en"/>
       <jvmarg value="-d64 -XX:+ShowMessageBoxOnError"/>
       <arg line="${args}"/>
