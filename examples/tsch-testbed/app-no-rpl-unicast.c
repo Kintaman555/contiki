@@ -52,6 +52,15 @@
 #include <stdio.h>
 #include <string.h>
 
+#define SEND_INTERVAL   (1 * CLOCK_SECOND)
+#define UDP_PORT 1234
+
+#define COORDINATOR_ID 1
+#define DEST_ID COORDINATOR_ID
+//#define DEST2_ID 4
+//#define SRC_ID 3
+#define WITH_PONG 0
+
 extern int associated;
 
 #if WITH_ORCHESTRA
@@ -83,15 +92,6 @@ typedef struct {
      the link may be used to send an Enhanced beacon. */
   enum link_type link_type;
 } link_t;
-
-#define SEND_INTERVAL   (1 * CLOCK_SECOND)
-#define UDP_PORT 1234
-
-#define COORDINATOR_ID 1
-#define DEST_ID COORDINATOR_ID
-//#define DEST2_ID 4
-//#define SRC_ID 3
-#define WITH_PONG 0
 
 static struct simple_udp_connection unicast_connection;
 static uint16_t current_cnt = 0;
