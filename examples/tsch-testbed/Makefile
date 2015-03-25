@@ -1,6 +1,31 @@
-CONTIKI_PROJECT = app-link-probing #app-no-rpl-unicast #app-rpl-collect-only
-CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
+
 TARGET ?= sky
+CONTIKI_WITH_RPL = 0
+
+
+APP_LINK_PROBE=0
+APP_NO_RPL_UNICAST=1
+APP_RPL_COLLECT_ONLY=2
+
+ifeq ($(APP),APP_LINK_PROBE)
+APP=$(APP_LINK_PROBE)
+CONTIKI_PROJECT = app-link-probing
+else
+	ifeq ($(APP),APP_NO_RPL_UNICAST)
+	APP=$(APP_NO_RPL_UNICAST)
+	CONTIKI_PROJECT = app-no-rpl-unicast
+	else
+		ifeq ($(APP),APP_RPL_COLLECT_ONLY)
+		APP=$(APP_RPL_COLLECT_ONLY)
+		CONTIKI_PROJECT = app-rpl-collect-only
+		CONTIKI_WITH_RPL = 1
+		#else
+		#$(error APP not set correctly.)
+		endif
+	endif
+endif
+
+CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
 
 APPS = deployment
 
@@ -20,7 +45,7 @@ CONFIG=$(CONFIG_TSCH)
 PANID ?= 0xABCD
 
 CONTIKI_WITH_IPV6 = 1
-CONTIKI_WITH_RPL = 0
+CFLAGS+= -DAPP=$(APP)
 CFLAGS+= -DCONTIKI_WITH_RPL=$(CONTIKI_WITH_RPL)
 CFLAGS+= -DCONFIG_NULLRDC=$(CONFIG_NULLRDC)
 CFLAGS+= -DCONFIG_CONTIKIMAC=$(CONFIG_CONTIKIMAC)
