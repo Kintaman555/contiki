@@ -349,6 +349,10 @@ public abstract class AbstractRadioMedium extends RadioMedium {
 						logger.fatal("No custom data object to forward");
 						return;
 					}
+					/* if(bytesCounter == 0) {
+						logger.info("\nNew Packet: ");
+					}
+					logger.info(((Byte) data) + " "); */
 					/* XXX hack! decide whether to interfere this packet */
 					if(bytesCounter++ == 6) { 
 						//(bytes: 4 preamble, 1 SFD, 1 len, then packet bytes) first byte in packet determines if it could get interfered
@@ -376,14 +380,15 @@ public abstract class AbstractRadioMedium extends RadioMedium {
 											&& random.nextDouble() > dest.ratio
 											) {
 										/* Fail: Reception ratio */
-										// logger.info(radio + ": Fail, randomly. ");
+										// logger.info(dest.radio.getMote().getID() + ": Fail, randomly. ");
+										connection.removeDestination(dest.radio);
 										connection.addInterfered(dest.radio);
-										continue;
 									}
 								}
 							}
 						}
 					}
+					
 					for (Radio dstRadio : connection.getAllDestinations()) {
 						
 						if (!(dstRadio instanceof CustomDataRadio) || 
