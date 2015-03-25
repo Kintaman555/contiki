@@ -16,10 +16,11 @@ function printEdges() {
   //sim.stopSimulation();
   //var myNetwork = new java.lang.Array();
   //  means no link. 0 means 0 etx
-  var numberOfNodes=5;
+  var numberOfNodes=10;
   var i=0;
   var j=0;
-myNetwork=[0, 0.9, 0.9, 0.1, 0.1, 0.9, 0, 0.9, 0.8, 0.8, 0.9, 0.9, 0, 0.8, 0.8, 0.1, 0.8, 0.75, 0, 0.8, 0.1, 0.75, 0.8, 0.8, 0];
+myNetwork=[0, 0.94828, 0.94828, 0.034483, 0, 0.94828, 0.94828, 0.68966, 0.94828, 0.94828, 0.98276, 0, 0.98276, 0, 0, 0.98276, 0, 0, 0.98276, 0.84483, 0.98276, 0.98276, 0, 0, 0, 0.051724, 0, 0, 0.98276, 0.98276, 0.068966, 0, 0, 0, 0.94828, 0.94828, 0.94828, 0.94828, 0, 0, 0, 0, 0, 0.94828, 0, 0, 0.94828, 0.94828, 0, 0, 0.94828, 0.93103, 0.017241, 0.94828, 0, 0, 0.94828, 0.2931, 0.81034, 0.94828, 0.96552, 0, 0, 0.96552, 0.96552, 0.96552, 0, 0.96552, 0, 0, 0.7931, 0, 0, 0.98276, 0.98276, 0.82759, 0.98276, 0, 0, 0, 0.98276, 0.98276, 0.98276, 0, 0, 0.98276, 0, 0, 0, 0, 0.94828, 0.93103, 0.94828, 0, 0, 0.94828, 0, 0, 0, 0];
+//[0, 0.9, 0.9, 0.1, 0.1, 0.9, 0, 0.9, 0.8, 0.8, 0.9, 0.9, 0, 0.8, 0.8, 0.1, 0.8, 0.75, 0, 0.8, 0.1, 0.75, 0.8, 0.8, 0];
   
   
   //printEdges();          
@@ -30,7 +31,7 @@ myNetwork=[0, 0.9, 0.9, 0.1, 0.1, 0.9, 0, 0.9, 0.8, 0.8, 0.9, 0.9, 0, 0.8, 0.8, 
     for(i=0; i<numberOfNodes; i++) {
 	    var srcRadio = sim.getMoteWithID(i+1).getInterfaces().getRadio();
       for(j=0; j<numberOfNodes; j++) {
-	      var weight =  myNetwork[i*numberOfNodes + j];
+	      var weight =  myNetwork[j*numberOfNodes + i];
 	      if(i==j || weight == 0) {
           continue;
 	      }
@@ -47,7 +48,7 @@ myNetwork=[0, 0.9, 0.9, 0.1, 0.1, 0.9, 0, 0.9, 0.8, 0.8, 0.9, 0.9, 0, 0.8, 0.8, 
     log.log("Script finished setting weights.\n"); 
   }
 //sim.startSimulation();  
- TIMEOUT(3600000);
+ TIMEOUT(360000);
  //import Java Package to JavaScript
  importPackage(java.io);
  date = new java.util.Date();
@@ -71,4 +72,3 @@ myNetwork=[0, 0.9, 0.9, 0.1, 0.1, 0.9, 0, 0.9, 0.8, 0.8, 0.9, 0.9, 0, 0.8, 0.8, 
         throw('test script finished ' + time);
     }
  }
- 

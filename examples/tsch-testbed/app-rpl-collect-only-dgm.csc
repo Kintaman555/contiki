@@ -10,7 +10,284 @@
     <title>My simulation</title>
     <randomseed>123456</randomseed>
     <motedelay_us>1000000</motedelay_us>
-    <radiomedium>org.contikios.cooja.radiomediums.DirectedGraphMedium</radiomedium>
+    <radiomedium>
+      org.contikios.cooja.radiomediums.DirectedGraphMedium
+      <edge>
+        <source>1</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>2</radio>
+          <ratio>0.94828</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>1</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>3</radio>
+          <ratio>0.94828</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>1</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>4</radio>
+          <ratio>0.034483</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>1</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>6</radio>
+          <ratio>0.94828</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>1</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>7</radio>
+          <ratio>0.94828</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>1</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>8</radio>
+          <ratio>0.68966</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>1</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>9</radio>
+          <ratio>0.94828</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>1</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>10</radio>
+          <ratio>0.94828</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>2</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>1</radio>
+          <ratio>0.94828</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>2</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>3</radio>
+          <ratio>0.94828</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>2</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>4</radio>
+          <ratio>0.94828</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>2</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>5</radio>
+          <ratio>0.94828</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>2</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>6</radio>
+          <ratio>0.94828</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>2</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>7</radio>
+          <ratio>0.94828</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>2</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>8</radio>
+          <ratio>0.94828</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>2</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>9</radio>
+          <ratio>0.94828</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>2</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>10</radio>
+          <ratio>0.94828</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>3</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>9</radio>
+          <ratio>0.94828</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>4</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>1</radio>
+          <ratio>0.94828</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>4</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>2</radio>
+          <ratio>0.94828</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>4</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>3</radio>
+          <ratio>0.94828</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>6</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>4</radio>
+          <ratio>0.10345</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>6</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>9</radio>
+          <ratio>0.10345</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>8</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>2</radio>
+          <ratio>0.94828</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+      <edge>
+        <source>10</source>
+        <dest>
+          org.contikios.cooja.radiomediums.DGRMDestinationRadio
+          <radio>9</radio>
+          <ratio>0.98276</ratio>
+          <signal>-10.0</signal>
+          <lqi>105</lqi>
+          <delay>0</delay>
+        </dest>
+      </edge>
+    </radiomedium>
     <events>
       <logoutput>40000</logoutput>
     </events>
@@ -39,8 +316,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>39.0872828811514</x>
-        <y>18.711115055434973</y>
+        <x>39.84726195971331</x>
+        <y>29.097495795780954</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -53,8 +330,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>30.27225325372137</x>
-        <y>39.450685592041985</y>
+        <x>29.258947815638834</x>
+        <y>29.317631211216632</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -105,11 +382,81 @@
       </interface_config>
       <motetype_identifier>sky1</motetype_identifier>
     </mote>
+    <mote>
+      <breakpoints />
+      <interface_config>
+        org.contikios.cooja.interfaces.Position
+        <x>63.99283517970595</x>
+        <y>47.47517169555054</y>
+        <z>0.0</z>
+      </interface_config>
+      <interface_config>
+        org.contikios.cooja.mspmote.interfaces.MspMoteID
+        <id>6</id>
+      </interface_config>
+      <motetype_identifier>sky1</motetype_identifier>
+    </mote>
+    <mote>
+      <breakpoints />
+      <interface_config>
+        org.contikios.cooja.interfaces.Position
+        <x>13.834472773379808</x>
+        <y>47.5478425752644</y>
+        <z>0.0</z>
+      </interface_config>
+      <interface_config>
+        org.contikios.cooja.mspmote.interfaces.MspMoteID
+        <id>7</id>
+      </interface_config>
+      <motetype_identifier>sky1</motetype_identifier>
+    </mote>
+    <mote>
+      <breakpoints />
+      <interface_config>
+        org.contikios.cooja.interfaces.Position
+        <x>39.916646282596844</x>
+        <y>70.23696109377504</y>
+        <z>0.0</z>
+      </interface_config>
+      <interface_config>
+        org.contikios.cooja.mspmote.interfaces.MspMoteID
+        <id>8</id>
+      </interface_config>
+      <motetype_identifier>sky1</motetype_identifier>
+    </mote>
+    <mote>
+      <breakpoints />
+      <interface_config>
+        org.contikios.cooja.interfaces.Position
+        <x>24.841937158557272</x>
+        <y>49.96984810346475</y>
+        <z>0.0</z>
+      </interface_config>
+      <interface_config>
+        org.contikios.cooja.mspmote.interfaces.MspMoteID
+        <id>9</id>
+      </interface_config>
+      <motetype_identifier>sky1</motetype_identifier>
+    </mote>
+    <mote>
+      <breakpoints />
+      <interface_config>
+        org.contikios.cooja.interfaces.Position
+        <x>39.916896549641194</x>
+        <y>49.820997930977924</y>
+        <z>0.0</z>
+      </interface_config>
+      <interface_config>
+        org.contikios.cooja.mspmote.interfaces.MspMoteID
+        <id>10</id>
+      </interface_config>
+      <motetype_identifier>sky1</motetype_identifier>
+    </mote>
   </simulation>
   <plugin>
     org.contikios.cooja.plugins.SimControl
     <width>280</width>
-    <z>0</z>
+    <z>1</z>
     <height>160</height>
     <location_x>1</location_x>
     <location_y>456</location_y>
@@ -122,10 +469,10 @@
       <skin>org.contikios.cooja.plugins.skins.GridVisualizerSkin</skin>
       <skin>org.contikios.cooja.plugins.skins.DGRMVisualizerSkin</skin>
       <skin>org.contikios.cooja.plugins.skins.TrafficVisualizerSkin</skin>
-      <viewport>4.100509291950746 0.0 0.0 4.100509291950746 -6.1178880384803875 -15.452373874843353</viewport>
+      <viewport>3.947477088023084 0.0 0.0 3.947477088023084 15.049046522297912 -26.134425245420687</viewport>
     </plugin_config>
     <width>400</width>
-    <z>1</z>
+    <z>2</z>
     <height>400</height>
     <location_x>1</location_x>
     <location_y>1</location_y>
@@ -138,7 +485,7 @@
       <coloring />
     </plugin_config>
     <width>601</width>
-    <z>3</z>
+    <z>4</z>
     <height>389</height>
     <location_x>401</location_x>
     <location_y>293</location_y>
@@ -151,13 +498,18 @@
       <mote>2</mote>
       <mote>3</mote>
       <mote>4</mote>
+      <mote>5</mote>
+      <mote>6</mote>
+      <mote>7</mote>
+      <mote>8</mote>
+      <mote>9</mote>
       <showRadioRXTX />
       <showRadioHW />
       <showLEDs />
       <zoomfactor>500.0</zoomfactor>
     </plugin_config>
     <width>1913</width>
-    <z>2</z>
+    <z>3</z>
     <height>234</height>
     <location_x>3</location_x>
     <location_y>682</location_y>
@@ -165,83 +517,84 @@
   <plugin>
     org.contikios.cooja.plugins.ScriptRunner
     <plugin_config>
-      <script>function printEdges() {   &#xD;
-      radioMedium = sim.getRadioMedium();&#xD;
-	  if(radioMedium != null) {  &#xD;
-	    radios = radioMedium.getRegisteredRadios();&#xD;
-	    edges = radioMedium.getEdges();&#xD;
-	    if(edges != null) {&#xD;
-            log.log("Edges:\n");&#xD;
-		    for(i=0; i&lt;edges.length; i++) {&#xD;
-		        str = java.lang.String.format("%d -&gt; %d, ratio: %.2f\n", new java.lang.Integer(edges[i].source.getMote().getID()), new java.lang.Integer(edges[i].superDest.radio.getMote().getID()), new java.lang.Float(edges[i].superDest.ratio));&#xD;
-			    log.log(str);&#xD;
-		    }&#xD;
-	    } &#xD;
-    }&#xD;
-  }&#xD;
-  log.log("Script started.\n");&#xD;
-  //sim.stopSimulation();&#xD;
-  //var myNetwork = new java.lang.Array();&#xD;
-  //  means no link. 0 means 0 etx&#xD;
-  var numberOfNodes=5;&#xD;
-  var i=0;&#xD;
-  var j=0;&#xD;
-myNetwork=[0, 0.9, 0.9, 0.1, 0.1, 0.9, 0, 0.9, 0.8, 0.8, 0.9, 0.9, 0, 0.8, 0.8, 0.1, 0.8, 0.75, 0, 0.8, 0.1, 0.75, 0.8, 0.8, 0];&#xD;
-  &#xD;
-  &#xD;
-  //printEdges();          &#xD;
-  radioMedium = sim.getRadioMedium();&#xD;
-  if(radioMedium != null) {  &#xD;
-    radioMedium.clearEdges();&#xD;
-   &#xD;
-    for(i=0; i&lt;numberOfNodes; i++) {&#xD;
-	    var srcRadio = sim.getMoteWithID(i+1).getInterfaces().getRadio();&#xD;
-      for(j=0; j&lt;numberOfNodes; j++) {&#xD;
-	      var weight =  myNetwork[i*numberOfNodes + j];&#xD;
-	      if(i==j || weight == 0) {&#xD;
-          continue;&#xD;
-	      }&#xD;
-	      var ratio = weight;&#xD;
-	      var dstRadio = sim.getMoteWithID(j+1).getInterfaces().getRadio();&#xD;
-	      var superDest = new org.contikios.cooja.radiomediums.DGRMDestinationRadio(dstRadio);&#xD;
-	      superDest.ratio = ratio;&#xD;
-          var edge = new org.contikios.cooja.radiomediums.DirectedGraphMedium.Edge(srcRadio, superDest);&#xD;
-	      radioMedium.addEdge(edge);&#xD;
-    	}&#xD;
-    }&#xD;
-    &#xD;
-    printEdges();&#xD;
-    log.log("Script finished setting weights.\n"); &#xD;
-  }&#xD;
-//sim.startSimulation();  &#xD;
- TIMEOUT(3600000);&#xD;
- //import Java Package to JavaScript&#xD;
- importPackage(java.io);&#xD;
- date = new java.util.Date();&#xD;
- // Use JavaScript object as an associative array&#xD;
- path = sim.getCooja().getLastOpenedFile().getParent();&#xD;
- outputFile = new FileWriter(path + "\/log_" + date.toString().replace(":", ".").replace(" ", "_") +".txt");&#xD;
-&#xD;
- while (true) {&#xD;
- logMsg = time + "\tID:" + id + "\t" + msg + "\n";&#xD;
-    //Write to file.&#xD;
-    outputFile.write(logMsg);&#xD;
-    //log.log(logMsg);&#xD;
-    try{&#xD;
-        //This is the tricky part. The Script is terminated using&#xD;
-        // an exception. This needs to be caught.&#xD;
-        YIELD();&#xD;
-    } catch (e) {&#xD;
-        //Close files.&#xD;
-        outputFile.close();&#xD;
-        //Rethrow exception again, to end the script.&#xD;
-        throw('test script finished ' + time);&#xD;
-    }&#xD;
+      <script>function printEdges() {   
+      radioMedium = sim.getRadioMedium();
+	  if(radioMedium != null) {  
+	    radios = radioMedium.getRegisteredRadios();
+	    edges = radioMedium.getEdges();
+	    if(edges != null) {
+            log.log("Edges:\n");
+		    for(i=0; i&lt;edges.length; i++) {
+		        str = java.lang.String.format("%d -&gt; %d, ratio: %.2f\n", new java.lang.Integer(edges[i].source.getMote().getID()), new java.lang.Integer(edges[i].superDest.radio.getMote().getID()), new java.lang.Float(edges[i].superDest.ratio));
+			    log.log(str);
+		    }
+	    } 
+    }
+  }
+  log.log("Script started.\n");
+  //sim.stopSimulation();
+  //var myNetwork = new java.lang.Array();
+  //  means no link. 0 means 0 etx
+  var numberOfNodes=10;
+  var i=0;
+  var j=0;
+myNetwork=[0, 0.94828, 0.94828, 0.034483, 0, 0.94828, 0.94828, 0.68966, 0.94828, 0.94828, 0.98276, 0, 0.98276, 0, 0, 0.98276, 0, 0, 0.98276, 0.84483, 0.98276, 0.98276, 0, 0, 0, 0.051724, 0, 0, 0.98276, 0.98276, 0.068966, 0, 0, 0, 0.94828, 0.94828, 0.94828, 0.94828, 0, 0, 0, 0, 0, 0.94828, 0, 0, 0.94828, 0.94828, 0, 0, 0.94828, 0.93103, 0.017241, 0.94828, 0, 0, 0.94828, 0.2931, 0.81034, 0.94828, 0.96552, 0, 0, 0.96552, 0.96552, 0.96552, 0, 0.96552, 0, 0, 0.7931, 0, 0, 0.98276, 0.98276, 0.82759, 0.98276, 0, 0, 0, 0.98276, 0.98276, 0.98276, 0, 0, 0.98276, 0, 0, 0, 0, 0.94828, 0.93103, 0.94828, 0, 0, 0.94828, 0, 0, 0, 0];
+//[0, 0.9, 0.9, 0.1, 0.1, 0.9, 0, 0.9, 0.8, 0.8, 0.9, 0.9, 0, 0.8, 0.8, 0.1, 0.8, 0.75, 0, 0.8, 0.1, 0.75, 0.8, 0.8, 0];
+  
+  
+  //printEdges();          
+  radioMedium = sim.getRadioMedium();
+  if(radioMedium != null) {  
+    radioMedium.clearEdges();
+   
+    for(i=0; i&lt;numberOfNodes; i++) {
+	    var srcRadio = sim.getMoteWithID(i+1).getInterfaces().getRadio();
+      for(j=0; j&lt;numberOfNodes; j++) {
+	      var weight =  myNetwork[j*numberOfNodes + i];
+	      if(i==j || weight == 0) {
+          continue;
+	      }
+	      var ratio = weight;
+	      var dstRadio = sim.getMoteWithID(j+1).getInterfaces().getRadio();
+	      var superDest = new org.contikios.cooja.radiomediums.DGRMDestinationRadio(dstRadio);
+	      superDest.ratio = ratio;
+          var edge = new org.contikios.cooja.radiomediums.DirectedGraphMedium.Edge(srcRadio, superDest);
+	      radioMedium.addEdge(edge);
+    	}
+    }
+    
+    printEdges();
+    log.log("Script finished setting weights.\n"); 
+  }
+//sim.startSimulation();  
+ TIMEOUT(360000);
+ //import Java Package to JavaScript
+ importPackage(java.io);
+ date = new java.util.Date();
+ // Use JavaScript object as an associative array
+ path = sim.getCooja().getLastOpenedFile().getParent();
+ outputFile = new FileWriter(path + "\/log_" + date.toString().replace(":", ".").replace(" ", "_") +".txt");
+
+ while (true) {
+ logMsg = time + "\tID:" + id + "\t" + msg + "\n";
+    //Write to file.
+    outputFile.write(logMsg);
+    //log.log(logMsg);
+    try{
+        //This is the tricky part. The Script is terminated using
+        // an exception. This needs to be caught.
+        YIELD();
+    } catch (e) {
+        //Close files.
+        outputFile.close();
+        //Rethrow exception again, to end the script.
+        throw('test script finished ' + time);
+    }
  }</script>
-      <active>true</active>
+      <active>false</active>
     </plugin_config>
     <width>921</width>
-    <z>4</z>
+    <z>0</z>
     <height>683</height>
     <location_x>999</location_x>
     <location_y>0</location_y>
