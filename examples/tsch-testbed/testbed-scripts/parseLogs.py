@@ -44,6 +44,9 @@ def doAppReceive(packetId, recvTime, hops):
     appDataStats[packetId]['refmoduleInfo']['received'] = True
     if not 'latency' in appDataStats[packetId]['refmoduleInfo'] or latency < appDataStats[packetId]['refmoduleInfo']['latency']:
         appDataStats[packetId]['refmoduleInfo']['latency'] = latency 
+    asnLatency = max(0, 1 + appDataStats[packetId]['refmoduleInfo']['rxAsn'] - appDataStats[packetId]['refmoduleInfo']['txAsn'])
+    if not 'asnLatency' in appDataStats[packetId]['refmoduleInfo'] or asnLatency > appDataStats[packetId]['refmoduleInfo']['asnLatency']:
+        appDataStats[packetId]['refmoduleInfo']['asnLatency'] = asnLatency 
     if receivedList[packetId]['hops'] > appDataStats[packetId]['refmoduleInfo']['hops']:
         appDataStats[packetId]['refmoduleInfo']['hops'] = receivedList[packetId]['hops']
 
@@ -104,7 +107,9 @@ def parseApp(line, time, id, log, packetInfo, asnInfo):
             'receivedCount': 0, 'fwCount': 0,  
             'hops': -1, 
             'lastLine': line,
-            'e2eRxCount': 0}
+            'e2eRxCount': 0,
+            'txAsn': 0,
+            'rxAsn': 0}
         # update packet data
         if not packetId in appDataStats:
             appDataStats[packetId] = {'sendTime': time, 'refmoduleInfo': moduleInfo, 'line': line}
@@ -300,6 +305,11 @@ def parseTsch(line, time, id, log, packetInfo, asnInfo):
             if not asn in timeline:
                 timeline[asn] = OrderedDict()
             timeline[asn][id] = moduleInfo
+            
+            ## adding rx asn
+            if packetInfo and id == dst and packetId in appDataStats:
+                if appDataStats[packetId]['refmoduleInfo']['rxAsn'] == 0: #or appDataStats[packetId]['refmoduleInfo']['rxAsn'] < asn:
+                    appDataStats[packetId]['refmoduleInfo']['rxAsn'] = asn
                         
             return moduleInfo
 
@@ -334,7 +344,12 @@ def parseTsch(line, time, id, log, packetInfo, asnInfo):
             if not asn in timeline:
                 timeline[asn] = OrderedDict()
             timeline[asn][id] = moduleInfo
-                                            
+            
+            ## adding tx asn
+            if packetInfo and src == id and packetId in appDataStats:
+                if appDataStats[packetId]['refmoduleInfo']['txAsn'] == 0 or appDataStats[packetId]['refmoduleInfo']['txAsn'] > asn:
+                    appDataStats[packetId]['refmoduleInfo']['txAsn'] = asn
+                                                    
             return moduleInfo
                 
     else: # no asnInfo
@@ -347,8 +362,8 @@ def parseTsch(line, time, id, log, packetInfo, asnInfo):
             if packetInfo and id == dst:
                 receivedList[packetId] = {'recvTime': time, 'hops': hop}
                 if packetId in appDataStats and appDataStats[packetId]['refmoduleInfo']['received'] == False:
-                 doAppReceive(packetId, time, hop)
-                 
+                    doAppReceive(packetId, time, hop)
+                                
             return {'event': 'input', 'from': prevHop }
 
 #---- TSCH: re-synchronizing -------------------------------------------------------------------------------------------------------------

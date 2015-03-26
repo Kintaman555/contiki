@@ -639,6 +639,13 @@ def process(parsed):
                         MIN_INTERVAL)
         )
         allPlottableData.append( 
+            extractData(parsed, "MAC Latency", "ts",
+                        lambda x: x['module'] == 'App' and 'asnLatency' in x['info'],
+                        lambda x: x['info']['asnLatency'], # * LINK_DURATION * 1000
+                        {'min': 0, 'max': 0},
+                        MIN_INTERVAL)
+        )
+        allPlottableData.append( 
             extractData(parsed, "Hop Count", "#",
                         lambda x: x['module'] == 'App' and x['info']['event']=='sending' and x['info']['hops']!=-1,
                         lambda x: x['info']['hops'],
