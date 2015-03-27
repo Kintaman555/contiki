@@ -36,9 +36,9 @@
 
 #include "deployment-def.h"
 
-#define APP_LINK_PROBE 0
 #define APP_NO_RPL_UNICAST 1
 #define APP_RPL_COLLECT_ONLY 2
+#define APP_LINK_PROBE 3
 
 #define ORCHESTRA_MINIMAL_SCHEDULE 0
 #define ORCHESTRA_RECEIVER_BASED   1
