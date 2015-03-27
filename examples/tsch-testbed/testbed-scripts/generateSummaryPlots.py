@@ -11,7 +11,7 @@ import plottingTools
 
 MIN_TIME = 0 # start counting only after 10 minutes (except for timeline)
 MAX_TIME = 0
-SINK_ID = 2
+SINK_ID = 1
 
 # aggregation functions
 def plotTimeline(plottableData, standAlone=False, xLabel=True):
