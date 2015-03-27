@@ -66,9 +66,23 @@ SENSORS(&button_sensor);
 
 extern unsigned char node_mac[8];
 
+#if UIP_CONF_ROUTER
+
+#ifndef UIP_ROUTER_MODULE
+#ifdef UIP_CONF_ROUTER_MODULE
+#define UIP_ROUTER_MODULE UIP_CONF_ROUTER_MODULE
+#else /* UIP_CONF_ROUTER_MODULE */
+#define UIP_ROUTER_MODULE rimeroute
+#endif /* UIP_CONF_ROUTER_MODULE */
+#endif /* UIP_ROUTER_MODULE */
+
+extern const struct uip_router UIP_ROUTER_MODULE;
+#endif /* UIP_CONF_ROUTER */
+
 #if DCOSYNCH_CONF_ENABLED
 static struct timer mgt_timer;
 #endif
+extern int msp430_dco_required;
 
 #ifndef NETSTACK_CONF_WITH_IPV4
 #define NETSTACK_CONF_WITH_IPV4 0
@@ -77,12 +91,12 @@ static struct timer mgt_timer;
 #if NETSTACK_CONF_WITH_IPV4
 #include "net/ip/uip.h"
 #include "net/ipv4/uip-fw.h"
-#include "net/uip-fw-drv.h"
+#include "net/ipv4/uip-fw-drv.h"
 #include "net/ipv4/uip-over-mesh.h"
 static struct uip_fw_netif slipif =
-{ UIP_FW_NETIF(192, 168, 1, 2, 255, 255, 255, 255, slip_send) };
+  {UIP_FW_NETIF(192,168,1,2, 255,255,255,255, slip_send)};
 static struct uip_fw_netif meshif =
-{ UIP_FW_NETIF(172, 16, 0, 0, 255, 255, 0, 0, uip_over_mesh_send) };
+  {UIP_FW_NETIF(172,16,0,0, 255,255,0,0, uip_over_mesh_send)};
 
 #endif /* NETSTACK_CONF_WITH_IPV4 */
 
@@ -95,7 +109,7 @@ static uint8_t is_gateway;
 #include "experiment-setup.h"
 #endif
 
-#define DEBUG 1
+#define DEBUG 0
 #if DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
@@ -153,15 +167,18 @@ set_rime_addr(void)
   }
 #endif
   linkaddr_set_node_addr(&addr);
-  printf("Rime started with address ");
+#if DEBUG
+  PRINTF("Rime started with address ");
   for(i = 0; i < sizeof(addr.u8) - 1; i++) {
-    printf("%d.", addr.u8[i]);
+    PRINTF("%d.", addr.u8[i]);
   }
-  printf("%d\n", addr.u8[i]);
+  PRINTF("%d\n", addr.u8[i]);
+#endif
 }
 /*---------------------------------------------------------------------------*/
+#if !PROCESS_CONF_NO_PROCESS_NAMES
 static void
-print_processes(struct process *const processes[])
+print_processes(struct process * const processes[])
 {
   /*  const struct process * const * p = processes;*/
   printf("Starting");
@@ -171,6 +188,7 @@ print_processes(struct process *const processes[])
   }
   putchar('\n');
 }
+#endif /* !PROCESS_CONF_NO_PROCESS_NAMES */
 /*--------------------------------------------------------------------------*/
 #if NETSTACK_CONF_WITH_IPV4
 static void
@@ -178,9 +196,9 @@ set_gateway(void)
 {
   if(!is_gateway) {
     leds_on(LEDS_RED);
-    printf("%d.%d: making myself the IP network gateway.\n\n",
+    PRINTF("%d.%d: making myself the IP network gateway.\n\n",
            linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1]);
-    printf("IPv4 address of the gateway: %d.%d.%d.%d\n\n",
+    PRINTF("IPv4 address of the gateway: %d.%d.%d.%d\n\n",
            uip_ipaddr_to_quad(&uip_hostaddr));
     uip_over_mesh_set_gateway(&linkaddr_node_addr);
     uip_over_mesh_make_announced_gateway();
@@ -188,6 +206,70 @@ set_gateway(void)
   }
 }
 #endif /* NETSTACK_CONF_WITH_IPV4 */
+/*---------------------------------------------------------------------------*/
+static void
+start_autostart_processes()
+{
+#if !PROCESS_CONF_NO_PROCESS_NAMES
+  print_processes(autostart_processes);
+#endif /* !PROCESS_CONF_NO_PROCESS_NAMES */
+  autostart_start(autostart_processes);
+}
+/*---------------------------------------------------------------------------*/
+#if NETSTACK_CONF_WITH_IPV6
+static void
+start_uip6()
+{
+  NETSTACK_NETWORK.init();
+  
+  process_start(&tcpip_process, NULL);
+
+#if DEBUG
+  PRINTF("Tentative link-local IPv6 address ");
+  {
+    uip_ds6_addr_t *lladdr;
+    int i;
+    lladdr = uip_ds6_get_link_local(-1);
+    for(i = 0; i < 7; ++i) {
+      PRINTF("%02x%02x:", lladdr->ipaddr.u8[i * 2],
+             lladdr->ipaddr.u8[i * 2 + 1]);
+    }
+    PRINTF("%02x%02x\n", lladdr->ipaddr.u8[14], lladdr->ipaddr.u8[15]);
+  }
+#endif /* DEBUG */
+
+  if(!UIP_CONF_IPV6_RPL) {
+    uip_ipaddr_t ipaddr;
+    int i;
+    uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0, 0, 0, 0);
+    uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
+    uip_ds6_addr_add(&ipaddr, 0, ADDR_TENTATIVE);
+    PRINTF("Tentative global IPv6 address ");
+    for(i = 0; i < 7; ++i) {
+      PRINTF("%02x%02x:",
+             ipaddr.u8[i * 2], ipaddr.u8[i * 2 + 1]);
+    }
+    PRINTF("%02x%02x\n",
+           ipaddr.u8[7 * 2], ipaddr.u8[7 * 2 + 1]);
+  }
+}
+#endif /* NETSTACK_CONF_WITH_IPV6 */
+/*---------------------------------------------------------------------------*/
+static void
+start_network_layer()
+{
+#if NETSTACK_CONF_WITH_IPV6
+  start_uip6();
+#endif /* NETSTACK_CONF_WITH_IPV6 */
+  start_autostart_processes();
+  /* To support link layer security in combination with NETSTACK_CONF_WITH_IPV4 and
+   * TIMESYNCH_CONF_ENABLED further things may need to be moved here */
+}
+/*---------------------------------------------------------------------------*/
+#if WITH_TINYOS_AUTO_IDS
+uint16_t TOS_NODE_ID = 0x1234; /* non-zero */
+uint16_t TOS_LOCAL_ADDRESS = 0x1234; /* non-zero */
+#endif /* WITH_TINYOS_AUTO_IDS */
 /*---------------------------------------------------------------------------*/
 int
 main(int argc, char **argv)
@@ -203,19 +285,26 @@ main(int argc, char **argv)
   clock_wait(100);
 
   uart0_init(BAUD2UBR(115200)); /* Must come before first printf */
-#if NETSTACK_CONF_WITH_IPV4
-  slip_arch_init(BAUD2UBR(115200));
-#endif /* NETSTACK_CONF_WITH_IPV4 */
-
+	
+	leds_on(LEDS_BLUE);
   xmem_init();
-
+	leds_off(LEDS_RED);
   rtimer_init();
   /*
    * Hardware initialization done!
    */
+   
+   /* Initialize energest first (but after rtimer)
+   */
+  energest_init();
+  ENERGEST_ON(ENERGEST_TYPE_CPU);
 
+#if WITH_TINYOS_AUTO_IDS
+  node_id = TOS_NODE_ID;
+#else /* WITH_TINYOS_AUTO_IDS */
   /* Restore node id if such has been stored in external mem */
   node_id_restore();
+#endif /* WITH_TINYOS_AUTO_IDS */
 
   /* If no MAC address was burned, we use the node id or the Z1 product ID */
   if(!(node_mac[0] | node_mac[1] | node_mac[2] | node_mac[3] |
@@ -264,7 +353,10 @@ main(int argc, char **argv)
     node_mac[7] = node_id & 0xff;
   }
 #endif /* IEEE_802154_MAC_ADDRESS */
+	
+	random_init(node_mac[0] + node_id);
 
+	leds_off(LEDS_BLUE);
   /*
    * Initialize Contiki and our processes.
    */
@@ -272,6 +364,10 @@ main(int argc, char **argv)
   process_start(&etimer_process, NULL);
 
   ctimer_init();
+
+#if NETSTACK_CONF_WITH_IPV4
+  slip_arch_init(BAUD2UBR(115200));
+#endif /* NETSTACK_CONF_WITH_IPV4 */
 
   init_platform();
 
@@ -288,10 +384,11 @@ main(int argc, char **argv)
       linkaddr_node_addr.u8[1];
     memset(longaddr, 0, sizeof(longaddr));
     linkaddr_copy((linkaddr_t *)&longaddr, &linkaddr_node_addr);
-    printf("MAC %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x ",
+#if DEBUG
+    PRINTF("MAC %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x ",
            longaddr[0], longaddr[1], longaddr[2], longaddr[3],
            longaddr[4], longaddr[5], longaddr[6], longaddr[7]);
-
+#endif
     cc2420_set_pan_addr(IEEE802154_PANID, shortaddr, longaddr);
   }
 
@@ -302,7 +399,7 @@ main(int argc, char **argv)
 #endif
   PRINTF(CONTIKI_VERSION_STRING " started. ");
 
-  if(node_id) {
+  if(node_id > 0) {
     PRINTF("Node id is set to %u.\n", node_id);
   } else {
     PRINTF("Node id not set\n");
@@ -316,45 +413,18 @@ main(int argc, char **argv)
 
   /* Setup X-MAC for 802.15.4 */
   queuebuf_init();
-
   NETSTACK_RDC.init();
   NETSTACK_MAC.init();
-  NETSTACK_NETWORK.init();
 
-  printf("%s %s, channel check rate %lu Hz, radio channel %u\n",
-         NETSTACK_MAC.name, NETSTACK_RDC.name,
-         CLOCK_SECOND / (NETSTACK_RDC.channel_check_interval() == 0 ? 1 :
+  printf("\nContiki starting\n");
+#if DEBUG
+  PRINTF("%s %s %s, channel check rate %lu Hz, radio channel %u, CCA threshold %i\n",
+         NETSTACK_LLSEC.name, NETSTACK_MAC.name, NETSTACK_RDC.name,
+         CLOCK_SECOND / (NETSTACK_RDC.channel_check_interval() == 0 ? 1:
                          NETSTACK_RDC.channel_check_interval()),
-         CC2420_CONF_CHANNEL);
-
-  process_start(&tcpip_process, NULL);
-
-  printf("Tentative link-local IPv6 address ");
-  {
-    uip_ds6_addr_t *lladdr;
-    int i;
-    lladdr = uip_ds6_get_link_local(-1);
-    for(i = 0; i < 7; ++i) {
-      printf("%02x%02x:", lladdr->ipaddr.u8[i * 2],
-             lladdr->ipaddr.u8[i * 2 + 1]);
-    }
-    printf("%02x%02x\n", lladdr->ipaddr.u8[14], lladdr->ipaddr.u8[15]);
-  }
-
-  if(!UIP_CONF_IPV6_RPL) {
-    uip_ipaddr_t ipaddr;
-    int i;
-    uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0, 0, 0, 0);
-    uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
-    uip_ds6_addr_add(&ipaddr, 0, ADDR_TENTATIVE);
-    printf("Tentative global IPv6 address ");
-    for(i = 0; i < 7; ++i) {
-      printf("%02x%02x:",
-             ipaddr.u8[i * 2], ipaddr.u8[i * 2 + 1]);
-    }
-    printf("%02x%02x\n",
-           ipaddr.u8[7 * 2], ipaddr.u8[7 * 2 + 1]);
-  }
+         CC2420_CONF_CHANNEL,
+         CC2420_CONF_CCA_THRESH);
+#endif
 
 #else /* NETSTACK_CONF_WITH_IPV6 */
 
@@ -362,9 +432,9 @@ main(int argc, char **argv)
   NETSTACK_MAC.init();
   NETSTACK_NETWORK.init();
 
-  printf("%s %s, channel check rate %lu Hz, radio channel %u\n",
-         NETSTACK_MAC.name, NETSTACK_RDC.name,
-         CLOCK_SECOND / (NETSTACK_RDC.channel_check_interval() == 0 ? 1 :
+  PRINTF("%s %s %s, channel check rate %lu Hz, radio channel %u\n",
+         NETSTACK_LLSEC.name, NETSTACK_MAC.name, NETSTACK_RDC.name,
+         CLOCK_SECOND / (NETSTACK_RDC.channel_check_interval() == 0? 1:
                          NETSTACK_RDC.channel_check_interval()),
          CC2420_CONF_CHANNEL);
 #endif /* NETSTACK_CONF_WITH_IPV6 */
@@ -378,7 +448,7 @@ main(int argc, char **argv)
 
 #if TIMESYNCH_CONF_ENABLED
   timesynch_init();
-  timesynch_set_authority_level(linkaddr_node_addr.u8[0]);
+  timesynch_set_authority_level((linkaddr_node_addr.u8[0] << 4) + 16);
 #endif /* TIMESYNCH_CONF_ENABLED */
 
 #if NETSTACK_CONF_WITH_IPV4
@@ -405,16 +475,14 @@ main(int argc, char **argv)
     uip_over_mesh_set_gateway_netif(&slipif);
     uip_fw_default(&meshif);
     uip_over_mesh_init(UIP_OVER_MESH_CHANNEL);
-    printf("uIP started with IP address %d.%d.%d.%d\n",
+    PRINTF("uIP started with IP address %d.%d.%d.%d\n",
            uip_ipaddr_to_quad(&hostaddr));
   }
 #endif /* NETSTACK_CONF_WITH_IPV4 */
 
-  energest_init();
-  ENERGEST_ON(ENERGEST_TYPE_CPU);
+  watchdog_start();
 
-  print_processes(autostart_processes);
-  autostart_start(autostart_processes);
+  NETSTACK_LLSEC.bootstrap(start_network_layer);
 
   /*
    * This is the scheduler loop.
@@ -422,7 +490,7 @@ main(int argc, char **argv)
 #if DCOSYNCH_CONF_ENABLED
   timer_set(&mgt_timer, DCOSYNCH_PERIOD * CLOCK_SECOND);
 #endif
-  watchdog_start();
+
   /*  watchdog_stop();*/
   while(1) {
     int r;
@@ -445,8 +513,12 @@ main(int argc, char **argv)
 #if DCOSYNCH_CONF_ENABLED
       /* before going down to sleep possibly do some management */
       if(timer_expired(&mgt_timer)) {
+        watchdog_periodic();
         timer_reset(&mgt_timer);
         msp430_sync_dco();
+#if CC2420_CONF_SFD_TIMESTAMPS
+        cc2420_arch_sfd_init();
+#endif /* CC2420_CONF_SFD_TIMESTAMPS */
       }
 #endif
 
@@ -458,13 +530,17 @@ main(int argc, char **argv)
          were awake. */
       energest_type_set(ENERGEST_TYPE_IRQ, irq_energest);
       watchdog_stop();
-      _BIS_SR(GIE | SCG0 | SCG1 | CPUOFF); /* LPM3 sleep. This
-                                              statement will block
-                                              until the CPU is
-                                              woken up by an
-                                              interrupt that sets
-                                              the wake up flag. */
-
+      /* check if the DCO needs to be on - if so - only LPM 1 */
+      if (msp430_dco_required) {
+	_BIS_SR(GIE | CPUOFF); /* LPM1 sleep for DMA to work!. */
+      } else {
+	_BIS_SR(GIE | SCG0 | SCG1 | CPUOFF); /* LPM3 sleep. This
+						statement will block
+						until the CPU is
+						woken up by an
+						interrupt that sets
+						the wake up flag. */
+      }
       /* We get the current processing time for interrupts that was
          done during the LPM and store it for next time around.  */
       dint();

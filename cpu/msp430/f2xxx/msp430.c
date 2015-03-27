@@ -32,9 +32,35 @@
 #include "contiki.h"
 #include "dev/watchdog.h"
 
+/* dco_required set to 1 will cause the CPU not to go into
+   sleep modes where the DCO clock stopped */
+int msp430_dco_required;
+
 #if defined(__MSP430__) && defined(__GNUC__)
 #define asmv(arg) __asm__ __volatile__(arg)
 #endif
+
+/*---------------------------------------------------------------------------*/
+/* add/remove_lpm_req - for requiring a specific LPM mode. currently Contiki */
+/* jumps to LPM3 to save power, but DMA will not work if DCO is not clocked  */
+/* so some modules might need to enter their LPM requirements                */
+/* NOTE: currently only works with LPM1 (e.g. DCO) requirements.             */
+/*---------------------------------------------------------------------------*/
+void
+msp430_add_lpm_req(int req)
+{
+  if(req <= MSP430_REQUIRE_LPM1) {
+    msp430_dco_required++;
+  }
+}
+
+void
+msp430_remove_lpm_req(int req)
+{
+  if(req <= MSP430_REQUIRE_LPM1) {
+    msp430_dco_required--;
+  }
+}
 
 /*---------------------------------------------------------------------------*/
 #if defined(__MSP430__) && defined(__GNUC__) && MSP430_MEMCPY_WORKAROUND
@@ -172,6 +198,7 @@ msp430_cpu_init(void)
     cur_break++;
   }
 #endif
+  msp430_dco_required = 0;
 }
 /*---------------------------------------------------------------------------*/
 

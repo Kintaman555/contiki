@@ -39,6 +39,9 @@
 #include "deployment.h"
 
 unsigned short node_id = 0;
+#if CONTIKI_TARGET_Z1
+unsigned char node_mac[8];
+#endif
 /*---------------------------------------------------------------------------*/
 void
 node_id_restore(void)
