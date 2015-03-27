@@ -44,9 +44,7 @@ def doAppReceive(packetId, recvTime, hops):
     appDataStats[packetId]['refmoduleInfo']['received'] = True
     if not 'latency' in appDataStats[packetId]['refmoduleInfo'] or latency < appDataStats[packetId]['refmoduleInfo']['latency']:
         appDataStats[packetId]['refmoduleInfo']['latency'] = latency 
-    asnLatency = max(0, 1 + appDataStats[packetId]['refmoduleInfo']['rxAsn'] - appDataStats[packetId]['refmoduleInfo']['txAsn'])
-    if not 'asnLatency' in appDataStats[packetId]['refmoduleInfo'] or asnLatency > appDataStats[packetId]['refmoduleInfo']['asnLatency']:
-        appDataStats[packetId]['refmoduleInfo']['asnLatency'] = asnLatency 
+
     if receivedList[packetId]['hops'] > appDataStats[packetId]['refmoduleInfo']['hops']:
         appDataStats[packetId]['refmoduleInfo']['hops'] = receivedList[packetId]['hops']
 
@@ -310,7 +308,13 @@ def parseTsch(line, time, id, log, packetInfo, asnInfo):
             if packetInfo and id == dst and packetId in appDataStats:
                 if appDataStats[packetId]['refmoduleInfo']['rxAsn'] == 0: #or appDataStats[packetId]['refmoduleInfo']['rxAsn'] < asn:
                     appDataStats[packetId]['refmoduleInfo']['rxAsn'] = asn
-                        
+                
+                if appDataStats[packetId]['refmoduleInfo']['txAsn'] != 0:    
+                    asnLatency = max(0, 1 + appDataStats[packetId]['refmoduleInfo']['rxAsn'] - appDataStats[packetId]['refmoduleInfo']['txAsn'])
+                    if(asnLatency < 1 or asnLatency > 1000):
+                        print ("ASN latency %d error: txASN %u, rxASN %u, packetId %x") %(asnLatency, appDataStats[packetId]['refmoduleInfo']['txAsn'], appDataStats[packetId]['refmoduleInfo']['rxAsn'], packetId)
+                    if not 'asnLatency' in appDataStats[packetId]['refmoduleInfo'] or (asnLatency < appDataStats[packetId]['refmoduleInfo']['asnLatency'] and asnLatency > 0) or appDataStats[packetId]['refmoduleInfo']['asnLatency'] <= 0:
+                        appDataStats[packetId]['refmoduleInfo']['asnLatency'] = asnLatency            
             return moduleInfo
 
 #---- TSCH link: Tx -------------------------------------------------------------------------------------------------------------                
@@ -349,6 +353,13 @@ def parseTsch(line, time, id, log, packetInfo, asnInfo):
             if packetInfo and src == id and packetId in appDataStats:
                 if appDataStats[packetId]['refmoduleInfo']['txAsn'] == 0 or appDataStats[packetId]['refmoduleInfo']['txAsn'] > asn:
                     appDataStats[packetId]['refmoduleInfo']['txAsn'] = asn
+                    
+                if appDataStats[packetId]['refmoduleInfo']['rxAsn'] != 0:    
+                    asnLatency = max(0, 1 + appDataStats[packetId]['refmoduleInfo']['rxAsn'] - appDataStats[packetId]['refmoduleInfo']['txAsn'])
+                    if(asnLatency < 1 or asnLatency > 1000):
+                        print ("ASN latency %d error: txASN %u, rxASN %u, packetId %x") %(asnLatency, appDataStats[packetId]['refmoduleInfo']['txAsn'], appDataStats[packetId]['refmoduleInfo']['rxAsn'], packetId)
+                    if not 'asnLatency' in appDataStats[packetId]['refmoduleInfo'] or (asnLatency < appDataStats[packetId]['refmoduleInfo']['asnLatency'] and asnLatency > 0) or appDataStats[packetId]['refmoduleInfo']['asnLatency'] <= 0:
+                        appDataStats[packetId]['refmoduleInfo']['asnLatency'] = asnLatency 
                                                     
             return moduleInfo
                 
