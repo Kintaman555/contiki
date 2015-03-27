@@ -205,8 +205,8 @@ tsch_queue_flush_nbr_queue(struct tsch_neighbor *n)
     if(p != NULL) {
       /* Set return status for packet_sent callback */
       p->ret = MAC_TX_ERR;
-      LOGA(LOG_APPDATAPTR_FROM_QUEUEBUF(p->qb),
-          "TSCH-queue:! flushing packet");
+//      LOGA(LOG_APPDATAPTR_FROM_QUEUEBUF(p->qb),
+//          "TSCH-queue:! flushing packet");
       /* Call packet_sent callback */
       mac_call_sent_callback(p->sent, p->ptr, p->ret, p->transmissions);
       /* Free packet queuebuf */
@@ -270,7 +270,7 @@ tsch_queue_add_packet(const linkaddr_t *addr, mac_callback_t sent, void *ptr)
       }
     }
   }
-  LOGP("TSCH-queue:! add packet failed: %u %p %d %p %p", tsch_is_locked(), n, put_index, p, p ? p->qb : NULL);
+//  LOGP("TSCH-queue:! add packet failed: %u %p %d %p %p", tsch_is_locked(), n, put_index, p, p ? p->qb : NULL);
   return 0;
 }
 /* Returns the number of packets currently in the queue */

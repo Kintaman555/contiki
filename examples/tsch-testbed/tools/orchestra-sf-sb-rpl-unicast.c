@@ -51,7 +51,7 @@
 #include "tools/orchestra.h"
 #include <stdio.h>
 
-#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_NONE
 #include "net/ip/uip-debug.h"
 
 #ifndef ORCHESTRA_SBUNICAST_PERIOD
