@@ -76,6 +76,11 @@
 #endif /* APP choice */
 
 #if WITH_ORCHESTRA
+
+#define ORCHESTRA_WITH_COMMON_SHARED              1
+#define ORCHESTRA_WITH_EBSF                       1
+#define ORCHESTRA_EBSF_PERIOD                     397
+
 #if ORCHESTRA_CONFIG == ORCHESTRA_MINIMAL_SCHEDULE
 
 #define TSCH_CONF_PACKET_DEST_ADDR_IN_ACK 1
