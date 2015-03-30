@@ -65,12 +65,13 @@ end
 %% slotframes
 sfLength = max(ts_cnt, floor(latencyGoal/tsDuration));
 expectedLatency = sfLength * tsDuration;
-slotframeTable = zeros(2*numNodes, 3);
-for i = 1:numNodes
+n = 1; %n=numNodes
+slotframeTable = zeros(2*n, 3);
+for i = 1:n
     % sf for data
     slotframeTable(i, :) = [i, sfHandle, sfLength];
     % sf for EB
-    slotframeTable(i+numNodes, :) = [i, ebSfHandle, ebSfLength];
+    slotframeTable(i+n, :) = [i, ebSfHandle, ebSfLength];
 end
 
 %{2, 1, 10, 3, 1, LINK_OPTION_TX | LINK_OPTION_TIME_KEEPING, LINK_TYPE_NORMAL}

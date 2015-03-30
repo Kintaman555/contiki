@@ -71,20 +71,20 @@ extern int associated;
 
 typedef struct {
   uint8_t node_id;
-  uint16_t sf_handle;
-  uint16_t size;
+  uint8_t sf_handle;
+  uint8_t size;
 } node_sf_t;
 
 typedef struct {
-  uint16_t node_id;
+  uint8_t node_id;
   /* MAC address of neighbor */
-  uint16_t nbr_id;
+  uint8_t nbr_id;
   /* Slotframe identifier */
-  uint16_t slotframe_handle;
+  uint8_t slotframe_handle;
   /* Timeslot for this link */
-  uint16_t timeslot;
+  uint8_t timeslot;
   /* Channel offset for this link */
-  uint16_t channel_offset;
+  uint8_t channel_offset;
   /* A bit string that defines
    * b0 = Transmit, b1 = Receive, b2 = Shared, b3 = Timekeeping, b4 = reserved */
   uint8_t link_options;
@@ -148,37 +148,38 @@ app_send_to(uint16_t id, int ping, uint32_t seqno)
   simple_udp_sendto(&unicast_connection, &data, sizeof(data), &dest_ipaddr);
 }
 #if !WITH_ORCHESTRA
+static const node_sf_t n_sf[] = STATIC_SLOTFRAMES;
+static const link_t links[] = STATIC_LINKS;
 void
 app_make_schedule()
 {
-  node_sf_t n_sf[] = STATIC_SLOTFRAMES;
-  link_t links[] = STATIC_LINKS;
   int i;
   /* add slotframes */
   for(i = 0; i < NUMBER_OF_SLOTFRAMES; i++) {
-    node_sf_t nsf = n_sf[i];
-    if(nsf.node_id == node_id) {
-      tsch_schedule_add_slotframe(nsf.sf_handle, nsf.size);
+    const node_sf_t* nsf = &n_sf[i];
+    //if(nsf->node_id == node_id)
+    {
+      tsch_schedule_add_slotframe(nsf->sf_handle, nsf->size);
     }
   }
 
   linkaddr_t addr;
   /* add links */
   for(i = 0; i < NUMBER_OF_LINKS; i++) {
-    link_t l = links[i];
-    if(l.node_id == node_id) {
-      struct tsch_slotframe * sf = tsch_schedule_get_slotframe_from_handle(l.slotframe_handle);
+    const link_t* l = &links[i];
+    if(l->node_id == node_id) {
+      struct tsch_slotframe * sf = tsch_schedule_get_slotframe_from_handle(l->slotframe_handle);
       if(sf != NULL) {
-        set_linkaddr_from_id(&addr, l.nbr_id);
-        tsch_schedule_add_link(sf, l.link_options, l.link_type, &addr, l.timeslot, l.channel_offset);
-        if((l.link_options & LINK_OPTION_TIME_KEEPING)
-            && l.link_type != LINK_TYPE_ADVERTISING_ONLY
+        set_linkaddr_from_id(&addr, l->nbr_id);
+        tsch_schedule_add_link(sf, l->link_options, l->link_type, &addr, l->timeslot, l->channel_offset);
+        if((l->link_options & LINK_OPTION_TIME_KEEPING)
+            && l->link_type != LINK_TYPE_ADVERTISING_ONLY
             && !linkaddr_cmp(&addr, &tsch_broadcast_address)
             && !linkaddr_cmp(&addr, &tsch_eb_address)) {
 #if !WITH_RPL
           /* Setup default route */
           uip_ipaddr_t defrt_ipaddr;
-          set_ipaddr_from_id(&defrt_ipaddr, l.nbr_id);
+          set_ipaddr_from_id(&defrt_ipaddr, l->nbr_id);
           /* Convert global address into link-local */
           memcpy(&defrt_ipaddr, &llprefix, 8);
           uip_ds6_nbr_add(&defrt_ipaddr, (const uip_lladdr_t *)&addr, 1, ADDR_MANUAL);

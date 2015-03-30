@@ -927,9 +927,9 @@ dao_output_target(rpl_parent_t *parent, uip_ipaddr_t *prefix, uint8_t lifetime)
   PRINT6ADDR(rpl_get_parent_ipaddr(parent));
   PRINTF("\n");
 
-  LOG("RPL: DAO output to %d, target %d, lifetime %u\n",
-  		LOG_NODEID_FROM_IPADDR(rpl_get_parent_ipaddr(parent)),
-  		LOG_NODEID_FROM_IPADDR(prefix), lifetime);
+//  LOG("RPL: DAO output to %d, target %d, lifetime %u\n",
+//  		LOG_NODEID_FROM_IPADDR(rpl_get_parent_ipaddr(parent)),
+//  		LOG_NODEID_FROM_IPADDR(prefix), lifetime);
 
   if(rpl_get_parent_ipaddr(parent) != NULL) {
     curr_dao_lifetime = lifetime;
@@ -972,7 +972,7 @@ dao_ack_output(rpl_instance_t *instance, uip_ipaddr_t *dest, uint8_t sequence)
   PRINT6ADDR(dest);
   PRINTF("\n");
 
-  LOG("RPL: DAO-ACK output to %d, sequence %d\n", LOG_NODEID_FROM_IPADDR(dest), sequence);
+  //LOG("RPL: DAO-ACK output to %d, sequence %d\n", LOG_NODEID_FROM_IPADDR(dest), sequence);
 
   buffer = UIP_ICMP_PAYLOAD;
 
