@@ -184,7 +184,7 @@ tsch_schedule_add_link(struct tsch_slotframe *slotframe,
     } else {
       l = memb_alloc(&link_memb);
       if(l == NULL) {
-        PRINTF("TSCH-schedule:! add_link memb_alloc failed\n");
+        printf("TSCH-schedule:! add_link memb_alloc failed\n");
       } else {
         static int current_link_handle = 0;
         struct tsch_neighbor *n;
@@ -203,7 +203,7 @@ tsch_schedule_add_link(struct tsch_slotframe *slotframe,
         }
         linkaddr_copy(&l->addr, address);
 
-        PRINTF("TSCH-schedule: add_link %u %u %u %u %u\n",
+        printf("TSCH-schedule: add_link %u %u %u %u %u\n",
             slotframe->handle, link_options, timeslot, channel_offset, LOG_NODEID_FROM_LINKADDR(address));
 
         /* Release the lock before we update the neighbor (will take the lock) */
