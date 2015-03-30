@@ -74,6 +74,12 @@ rpl_print_neighbor_list()
     printf("RPL: eol\n");
   }
 }
+#else
+void
+rpl_print_neighbor_list()
+{
+
+}
 #endif /* WITH_RPL */
 
 /* Copy an appdata to another with no assumption that the addresses are aligned */

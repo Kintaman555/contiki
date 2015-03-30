@@ -58,7 +58,7 @@ def plotStat(all_res, field, ylabel, legendPos="lower right", legendBbox=None, l
       ax.legend(bbox_to_anchor=legendBbox, prop={'size':12})
     else:
       ax.legend(loc=legendPos, prop={'size':12})
-  ax.set_xlabel("Probing interval (s)", fontsize=16)
+  ax.set_xlabel("Packet Period (s)", fontsize=16)
   ax.set_xscale('log')
   
   if field == "dcTx":
@@ -123,8 +123,8 @@ def main():
                                       "stdev": stdev(data)}
 
       print key, field, all_res[key]['stats'][field]["avg"]
-  plotStat(all_res, "rxCount", "Receiver count (#)")
-  plotStat(all_res, "stableLinks", "Stable links (#)",legend=False)
+  plotStat(all_res, "rxCount", "Neighbors (#)")
+  plotStat(all_res, "stableLinks", "Stable Links (#)",legend=False)
   plotStat(all_res, "dcTx", "Tx Duty Cycle (%)", legendPos="upper right",legend=False)
   plotStat(all_res, "dc", "Duty Cycle (%)", legendPos="upper right", legendBbox=(1,0.95),legend=False)
   

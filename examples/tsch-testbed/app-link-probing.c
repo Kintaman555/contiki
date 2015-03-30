@@ -50,7 +50,7 @@
 #include "lib/ringbufindex.h"
 #include <stdio.h>
 
-#define SEND_INTERVAL   (60 * CLOCK_SECOND)
+#define SEND_INTERVAL   (5 * CLOCK_SECOND)
 #define UDP_PORT 1234
 
 #define COORDINATOR_ID ROOT_ID
@@ -82,17 +82,19 @@ void
 app_probing_received(struct app_data *data)
 {
   int log_index = ringbufindex_peek_put(&log_ringbuf);
-  if(data && log_index != -1) {
-    uint32_t *seqno = &log_array[log_index];
-    struct app_data appdata;
-    appdata_copy(&appdata, data);
-    *seqno = appdata.seqno;
-    ringbufindex_put(&log_ringbuf);
-    process_poll(&pending_events_process);
-    return;
-  } else {
-    log_dropped++;
-    return;
+  if(data) {
+    if(log_index != -1) {
+      uint32_t *seqno = &log_array[log_index];
+      struct app_data appdata;
+      appdata_copy(&appdata, data);
+      *seqno = appdata.seqno;
+      ringbufindex_put(&log_ringbuf);
+      process_poll(&pending_events_process);
+      return;
+    } else {
+      log_dropped++;
+      return;
+    }
   }
 }
 /*---------------------------------------------------------------------------*/
