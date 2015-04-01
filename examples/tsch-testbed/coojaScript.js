@@ -50,13 +50,14 @@ var numberOfNodes=java.lang.Math.sqrt(myNetwork.length);
     log.log("Script finished setting weights.\n"); 
   }
 //sim.startSimulation();  
- TIMEOUT(720000);
+//60min*60sec*1000ms
+ TIMEOUT(3600000);
  //import Java Package to JavaScript
  importPackage(java.io);
  date = new java.util.Date();
  // Use JavaScript object as an associative array
  path = sim.getCooja().getLastOpenedFile().getParent();
- outputFile = new FileWriter(path + "\/log_" + date.toString().replace(":", ".").replace(" ", "_") +".txt");
+ outputFile = new FileWriter(path + "\/log_" + sim.getTitle() + date.toString().replace(":", ".").replace(" ", "_") +".txt");
 
  while (true) {
  logMsg = time + "\tID:" + id + "\t" + msg + "\n";
