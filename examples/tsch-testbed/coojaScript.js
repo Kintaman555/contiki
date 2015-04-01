@@ -88,13 +88,20 @@ var numberOfNodes=Math.sqrt(myNetwork.length);
   var step = 2;
   
 //sim.startSimulation();  
-//60min*60sec*1000ms
+//70min*60sec*1000ms
  TIMEOUT(4200000);
  //import Java Package to JavaScript
  
  date = new Date();
- path =  path = "\/home\/beshr\/work\/contiki-private\/examples\/tsch-testbed\/imgs"; //sim.getCooja().getLastOpenedFile().getParent();
- outputFile = new FileWriter(path + "\/log_" + sim.getTitle() + date.toString().replace(":", ".").replace(" ", "_").replace("+","_").replace("(","").replace(")","") +".txt");
+ df = new java.text.SimpleDateFormat("dd_MM_yyyy_HH.mm.ss");
+ log.log("Date: " + df.format(date) + "\n");
+ dateStr = df.format(date);
+ path = "\/home\/beshr\/work\/contiki-private\/examples\/tsch-testbed\/imgs"; //sim.getCooja().getLastOpenedFile().getParent();
+ logFileName = path + "\/log_" + sim.getTitle() + "_" + dateStr +".txt";
+ log.log("Logging to: " + logFileName);
+ 
+ if(1) {
+ outputFile = new FileWriter(logFileName);
 
  while (true) {
  logMsg = time + "\tID:" + id + "\t" + msg + "\n";
@@ -135,4 +142,5 @@ var numberOfNodes=Math.sqrt(myNetwork.length);
 	        throw('test script finished ' + time);
 	    }
     }
+ }
  }
