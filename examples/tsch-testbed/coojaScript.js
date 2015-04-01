@@ -93,8 +93,8 @@ var numberOfNodes=Math.sqrt(myNetwork.length);
  //import Java Package to JavaScript
  
  date = new Date();
- path =  path = "\/Users\/beshr\/work\/contiki-private\/examples\/tsch-testbed\/imgs"; //sim.getCooja().getLastOpenedFile().getParent();
- outputFile = new FileWriter(path + "\/log_" + sim.getTitle() + date.toString().replace(":", ".").replace(" ", "_") +".txt");
+ path =  path = "\/home\/beshr\/work\/contiki-private\/examples\/tsch-testbed\/imgs"; //sim.getCooja().getLastOpenedFile().getParent();
+ outputFile = new FileWriter(path + "\/log_" + sim.getTitle() + date.toString().replace(":", ".").replace(" ", "_").replace("+","_").replace("(","").replace(")","") +".txt");
 
  while (true) {
  logMsg = time + "\tID:" + id + "\t" + msg + "\n";
