@@ -482,10 +482,10 @@ send_packet(mac_callback_t sent, void *ptr)
       LOGP("TSCH:! can't send packet !tsch_queue_add_packet");
       ret = MAC_TX_ERR;
     } else {
-      LOGP("TSCH: send packet to %u with seqno %u, queue %u %u",
-            LOG_NODEID_FROM_LINKADDR(addr), tsch_packet_seqno,
-            packet_count_before,
-            tsch_queue_packet_count(addr));
+//      LOGP("TSCH: send packet to %u with seqno %u, queue %u %u",
+//            LOG_NODEID_FROM_LINKADDR(addr), tsch_packet_seqno,
+//            packet_count_before,
+//            tsch_queue_packet_count(addr));
     }
   }
   if(ret != MAC_TX_DEFERRED) {
@@ -549,9 +549,9 @@ packet_input(void)
 //          LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)));
     } else {
       if(!duplicate) {
-        LOGP("TSCH: received from %u with seqno %u",
-                       LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)),
-                       packetbuf_attr(PACKETBUF_ATTR_PACKET_ID));
+//        LOGP("TSCH: received from %u with seqno %u",
+//                       LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)),
+//                       packetbuf_attr(PACKETBUF_ATTR_PACKET_ID));
         NETSTACK_NETWORK.input();
       }
     }

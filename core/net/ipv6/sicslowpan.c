@@ -1645,12 +1645,12 @@ input(void)
 
   LOG_INC_HOPCOUNT_FROM_PACKETBUF();
 
-  LOGP("6LoWPAN: %s input from %d (%u bytes) type %u %u",
-      linkaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER), &linkaddr_null) ? "bc" : "uc",
-          LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)),
-          packetbuf_datalen(), UIP_IP_BUF->proto,
-          (UIP_IP_BUF->proto == UIP_PROTO_ICMP6 && UIP_ICMP_BUF->type == ICMP6_RPL) ? UIP_ICMP_BUF->icode : 0
-    );
+//  LOGP("6LoWPAN: %s input from %d (%u bytes) type %u %u",
+//      linkaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER), &linkaddr_null) ? "bc" : "uc",
+//          LOG_NODEID_FROM_LINKADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER)),
+//          packetbuf_datalen(), UIP_IP_BUF->proto,
+//          (UIP_IP_BUF->proto == UIP_PROTO_ICMP6 && UIP_ICMP_BUF->type == ICMP6_RPL) ? UIP_ICMP_BUF->icode : 0
+//    );
 
   /* Save the RSSI of the incoming packet in case the upper layer will
      want to query us for it later. */

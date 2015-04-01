@@ -600,7 +600,7 @@ tcpip_ipv6_output(void)
           uip_len = 0;
           return;
         }
-        LOGU("Tcpip: fw to %d (default) (%u bytes)", LOG_NODEID_FROM_IPADDR(nexthop), uip_len);
+//        LOGU("Tcpip: fw to %d (default) (%u bytes)", LOG_NODEID_FROM_IPADDR(nexthop), uip_len);
       } else {
         /* A route was found, so we look up the nexthop neighbor for
            the route. */
