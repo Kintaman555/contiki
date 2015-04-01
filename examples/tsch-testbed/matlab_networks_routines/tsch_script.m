@@ -58,7 +58,7 @@ latencyGoal = 0.1;
 ebSfHandle = 100;
 ebChOffset = 1;
 tsDuration = 15.0/1000; 
-ebPeriod = 2;
+ebPeriod = 397;
 
 longSchedules = true;
 

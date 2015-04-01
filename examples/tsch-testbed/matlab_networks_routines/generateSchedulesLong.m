@@ -53,7 +53,7 @@ end
 disp(parents)
 
 %% EB links
-ebSfLength = floor(ebPeriod/tsDuration);
+ebSfLength = ebPeriod;%floor(ebPeriod/tsDuration);
 for i = 1:numNodes
     node = i;
     nbr = 0;
