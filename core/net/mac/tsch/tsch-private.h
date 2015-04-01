@@ -130,7 +130,7 @@
 #define TsCCAOffset         ((unsigned)US_TO_RTIMERTICKS(1800))
 #define TsCCA               ((unsigned)US_TO_RTIMERTICKS(128))
 #define TsTxAckDelay        ((unsigned)US_TO_RTIMERTICKS(4000))
-#define TsTxOffset          ((unsigned)US_TO_RTIMERTICKS(4000))
+#define TsTxOffset          ((unsigned)US_TO_RTIMERTICKS(3000))
 #define TsSlotDuration      ((unsigned)US_TO_RTIMERTICKS(15000))
 #define TsShortGT           ((unsigned)US_TO_RTIMERTICKS(400))
 #else
