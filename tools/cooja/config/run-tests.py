@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import os
 import subprocess
 import xml.etree.ElementTree as ET
 from threading import Thread
@@ -15,38 +16,39 @@ simulationFiles = ['app-no-rpl-unicast-dgm-full.csc', 'app-no-rpl-unicast-dgm-sh
 
 #tar -czf ${mypath}exp.tar.gz ${mypath}*.txt | uuencode ${mypath}exp.tar.gz | mail -s "Cooja exp" beshr@chalmers.se
 
-randomSeed = 123456;
-seedIncrement = 1;
 
 def setRandomSeed(simFile, randomSeed):
     simFileTree = ET.parse(simFile)
     simFileRoot = simFileTree.getroot()
     #<randomseed>123456</randomseed>
     seedElement = simFileRoot.find('*randomseed')
-    seedElement.text = '' + randomSeed
+    seedElement.text = str(randomSeed)
     simFileTree.write(simFile);
     
 def runSimulationThread(simFile):
+    global coojaCmd, emailAddress, emailTitle, expPath
+    randomSeed = 123456;
+    seedIncrement = 1;
     for i in range(0,3):
-        setRandomSeed(simFile, randomSeed)
-        runSim = coojaCmd + simFile;
+        setRandomSeed(expPath+simFile, randomSeed)
+        runSim = coojaCmd + expPath + simFile;
         simTitle = simFile.split(".csc")[0]
         
-        logFiles = 'log_' + simTitle + '*.txt'
+        logFiles = expPath + 'log_' + simTitle + '*.txt'
         
         moveResultsCmd = ('mv %s %s') %(logFiles, doneFolder);
-        tarFile = expPath + simTitle + 'exp.tar.gz';
-        compressResults = ('tar -czf %s %s') %(tarFile, logFiles);
+        tarFile = expPath + simTitle + '-exp.tar.gz';
+        compressResults = ('tar -czvf "%s" --wildcards %s') %(tarFile, logFiles);
         encodeResults = ('uuencode %s') %(tarFile);
-        mailResults = 'mail -s %s %s' %(emailTitle + simTitle + str(randomSeed), emailAddress);
+        mailResults = 'mail -s "%s" %s' %((emailTitle +' '+ simTitle +' ' + str(randomSeed)), emailAddress);
         tarEncodeMail = ('%s | %s | %s') %(compressResults, encodeResults, mailResults);
         moveTarFile = ('mv %s %s') %(tarFile, doneFolder);
         #deleteTarFile = 'rm -f %s' %tarFile;
 
         subprocess.call(runSim, shell=True);
-        subprocess.call(tarEncodeMail, shell=True);
-        subprocess.call(moveResultsCmd, shell=True);
-        subprocess.call(deleteTarFile, shell=True);
+        os.system(tarEncodeMail);
+        os.system(moveResultsCmd);
+        os.system(moveTarFile);
         randomSeed = randomSeed + seedIncrement
 
 if __name__ == "__main__":
