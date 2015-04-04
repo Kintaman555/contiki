@@ -39,9 +39,9 @@ def runSimulationThread(simFile):
         moveResultsCmd = ('mv %s %s') %(logFiles, doneFolder);
         tarFile = expPath + simTitle + '-exp.tar.gz';
         compressResults = ('tar -czvf "%s" --wildcards %s') %(tarFile, logFiles);
-        encodeResults = ('uuencode %s') %(tarFile);
+        encodeResults = ('uuencode %s %s') %(tarFile, tarFile);
         mailResults = 'mail -s "%s" %s' %((emailTitle +' '+ simTitle +' ' + str(randomSeed)), emailAddress);
-        tarEncodeMail = ('%s | %s | %s') %(compressResults, encodeResults, mailResults);
+        tarEncodeMail = ('%s; %s | %s') %(compressResults, encodeResults, mailResults);
         moveTarFile = ('mv %s %s') %(tarFile, doneFolder);
         #deleteTarFile = 'rm -f %s' %tarFile;
 
