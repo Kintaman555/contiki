@@ -105,9 +105,10 @@ var numberOfNodes=Math.sqrt(myNetwork.length);
  outputFile = new FileWriter(logFileName);
 
  while (true) {
- logMsg = time + "\tID:" + id + "\t" + msg + "\n";
+ logMsg = time + "\tID:" + mote.getID() + "\t" + msg + "\n";
     //Write to file.
     outputFile.write(logMsg);
+    log.log(logMsg);
 
     //manipulate the rx links of a random node
     if(((time/1000) > step * timeSlice) && step < shuffledIDs.length/2) {
@@ -129,9 +130,9 @@ var numberOfNodes=Math.sqrt(myNetwork.length);
     }
     
     
-    //log.log(logMsg);
     YIELD();
-    /*if(1)*/ {
+    //if(0) 
+    {
 	    try{
 	        //This is the tricky part. The Script is terminated using
 	        // an exception. This needs to be caught.
