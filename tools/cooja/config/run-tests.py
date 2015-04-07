@@ -10,7 +10,7 @@ emailTitle = 'Cooja exp-';
 memorySize = 512;
 expPath = '/home/beshr/work/contiki-private/examples/tsch-testbed/imgs/';
 doneFolder = expPath + 'done';
-coojaCmd = ('java -d64 -mx%dm -jar ../dist/cooja.jar -nogui=') %(memorySize);
+coojaCmd = ('java -d64 -mx%dm -Djava.awt.headless=true -jar ../dist/cooja.jar -nogui=') %(memorySize);
 simulationFiles = ['app-no-rpl-unicast-dgm-full.csc', 'app-no-rpl-unicast-dgm-short.csc', 'app-rpl-collect-only-sb.csc', 'app-rpl-collect-only-rb.csc', 'app-rpl-collect-only-min.csc'];
 
 
