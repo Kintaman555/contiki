@@ -445,11 +445,20 @@ def doParse(file, sinkId):
                 log = res.group(2)
 
         if module == None or log == None:
+            if not baseTime:
+                baseTime = time
+            if not time:
+                print "failed to parse: ", (line)
+                packetInfo = None
+                moduleInfo = None
+                asnInfo = None
+                packetId = None
+                time=0
+                baseTime=0
+                #continue
             if log != None and len(log) > 0 and not module in nonExtractedModules:
                 print "Could not extract module:", line
                 nonExtractedModules.append(module)
-            if not baseTime:
-                baseTime = time
             time -= baseTime
             time /= 1000000. # time from us to s 
         else:           
@@ -506,7 +515,7 @@ def doParse(file, sinkId):
             linesProcessedCount += 1
             # process each module separately
             if not module in parsingFunctions:
-                #print "Module unknown: ", line
+                print "Module unknown: ", line
                 continue
             
             parsingFunction = parsingFunctions[module]                
