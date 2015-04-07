@@ -8,8 +8,8 @@ var step = 2;
 var i = 0;
 var j = 0;
 
-//7min*60sec*1000ms
-TIMEOUT(4200000);
+//50min*60sec*1000ms
+TIMEOUT(3000000);
 log.log(time + "\tID:1\t" + "COOJA: Script started.\n");
 
 function setupEdges(mySim, myNetwork, numberOfNodes) {
@@ -180,7 +180,7 @@ var shuffledIDs = new Array(numberOfNodes - 1);
 ShuffleArray(shuffledIDs);
 
 attenuatedMotesString = time + "\tID:1\t" + "COOJA: Attenuated motes: ";
-for (i = 0; i < shuffledIDs.length / 2; i++) {
+for (i = 0; i < shuffledIDs.length; i++) {
 	attenuatedMotesString = attenuatedMotesString + shuffledIDs[i] + ", ";
 }
 attenuatedMotesString = attenuatedMotesString + "\n";
@@ -205,28 +205,31 @@ log.log(attenuatedMotesString);
 		log.append(logFileName, logMsg);
 
 		//manipulate the rx links of a random node
-		if (((time / 1000) > step * timeSlice) && step < shuffledIDs.length / 2) {
-			var myId = shuffledIDs[step - 2];
-			var dstRadio = sim.getMoteWithID(myId).getInterfaces().getRadio();
-			var radioMedium = sim.getRadioMedium();
-			var edges = radioMedium.getEdges();
-			var edge;
-			for (i = 0; i < edges.length; i++) {
-				edge = edges[i];
-				if (edge.superDest.radio == dstRadio) {
-					oldRatio = edge.superDest.ratio;
-					edge.superDest.ratio *= 0.1;
-					logMsg = java.lang.String
-							.format(
-									"%d\tID:%d\tCOOJA: -> %d, ratio: %.2f, was: %.2f\n",
-									 new java.lang.Long(time), new Integer(
-											edge.source.getMote().getID()),
-									new Integer(edge.superDest.radio.getMote()
-											.getID()), new Float(
-											edge.superDest.ratio), new Float(
-											oldRatio));
-					log.log(logMsg);
-					log.append(logFileName, logMsg);
+		if (((time / 1000) > step * timeSlice) && step < shuffledIDs.length) {
+			//manipulate 3 nodes at a time
+			for(j = step - 2; j < step-2 + 3; j++) {
+				var myId = shuffledIDs[j];
+				var dstRadio = sim.getMoteWithID(myId).getInterfaces().getRadio();
+				var radioMedium = sim.getRadioMedium();
+				var edges = radioMedium.getEdges();
+				var edge;
+				for (i = 0; i < edges.length; i++) {
+					edge = edges[i];
+					if (edge.superDest.radio == dstRadio) {
+						oldRatio = edge.superDest.ratio;
+						edge.superDest.ratio *= 0.1;
+						logMsg = java.lang.String
+								.format(
+										"%d\tID:%d\tCOOJA: -> %d, ratio: %.2f, was: %.2f\n",
+										 new java.lang.Long(time), new Integer(
+												edge.source.getMote().getID()),
+										new Integer(edge.superDest.radio.getMote()
+												.getID()), new Float(
+												edge.superDest.ratio), new Float(
+												oldRatio));
+						log.log(logMsg);
+						log.append(logFileName, logMsg);
+					}
 				}
 			}
 			radioMedium.requestEdgeAnalysis(); //update medium
