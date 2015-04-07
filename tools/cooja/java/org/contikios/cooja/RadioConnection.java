@@ -115,7 +115,7 @@ public class RadioConnection {
   public void removeDestination(Radio radio) {
     int idx = allDestinations.indexOf(radio);
     if (idx < 0) {
-      logger.fatal("Radio is not a connection destination: " + radio);
+      //logger.fatal("Radio is not a connection destination: " + radio);
       return;
     }
     
@@ -166,7 +166,7 @@ public class RadioConnection {
    */
   public void addInterfered(Radio radio) {
     if (isInterfered(radio)) {
-      logger.fatal("Radio is already interfered: " + radio);
+      //logger.fatal("Radio is already interfered: " + radio);
       return;
     }
 
