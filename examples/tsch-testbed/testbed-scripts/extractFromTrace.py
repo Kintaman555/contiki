@@ -79,7 +79,8 @@ def allStats(data):
             'p80': 0,
             'p90': 0,
             'p95': 0,
-            'p98': 0
+            'p98': 0,
+            'timeline' : []
             }
     data.sort()
     avg = average(data)
@@ -97,7 +98,8 @@ def allStats(data):
             'p80': percentile(data,80),
             'p90': percentile(data,90),
             'p95': percentile(data,95),
-            'p98': percentile(data,98)
+            'p98': percentile(data,98),
+            'timeline' : []
             }
 
 def generateDataFiles(parsed, name, unit, globalData, nodeIDs, perNodeIndexData, timelineData, perNodeGlobal):
@@ -123,6 +125,15 @@ def generateDataFiles(parsed, name, unit, globalData, nodeIDs, perNodeIndexData,
         tlist.sort()
         for t in tlist:
             fileTimeline.write("%f %f %f %f %f\n" %(t, timelineData[t]['avg'], timelineData[t]['min'], timelineData[t]['max'], timelineData[t]['stdev']))
+
+#         for node in perNodeIndexData:
+#             if(perNodeIndexData[node]['timeline'] != []):
+#                 filePerNodeTimeline = open(baseName + '_node_%d_timeline.txt' %(node), 'w')
+#                 #filePerNode.write("# Global: %f %f %f %f %f %f %f %s\n" %(perNodeIndexData[node]['avg'], perNodeIndexData[node]['min'], perNodeIndexData[node]['max'], perNodeIndexData[node]['stdev'], perNodeGlobal['stdev'] if perNodeGlobal != None else 0, perNodeGlobal['min'] if perNodeGlobal != None else 0, perNodeGlobal['max'] if perNodeGlobal != None else 0, unit))
+#                 #filePerNode.write("# Percentiles: 50=%f 80=%f 90=%f 95=%f 98=%f\n" %(perNodeIndexData[node]['p50'], perNodeIndexData[node]['p80'], perNodeIndexData[node]['p90'], perNodeIndexData[node]['p95'], perNodeIndexData[node]['p98']))
+#                 for t in tlist: 
+#                     print  perNodeIndexData[node]['timeline']
+#                     filePerNodeTimeline.write("%f %f\n" %(t, perNodeIndexData[node]['timeline'][t]))    
 
 def extractData(parsed, name, unit, condition, extractField, expectedRange, period, doSum=False, revert=False, doMax=False, verbose=False, export=True):
     global plotIndex
@@ -193,7 +204,7 @@ def extractData(parsed, name, unit, condition, extractField, expectedRange, peri
         nodeDataList = map(lambda x: x['value'], filter(lambda x: x['id'] == id and x['time'] >= perNodeDataMinTime, data))
         
         if nodeDataList == []:
-            perNodeIndexData[index] = {'id': id, 'avg': 0, 'min': 0, 'max':0, 'stdev': 0}
+            perNodeIndexData[index] = {'id': id, 'avg': 0, 'min': 0, 'max':0, 'stdev': 0, 'timeline':[]}
         else:
             if doSum:
                 nodeAllStats = allStats([sum(nodeDataList)])
@@ -610,6 +621,14 @@ def process(parsed):
 #            extractData(parsed, "Not received, not dropped", "%", lambda x: x['module'] == 'App' and 'sending' in x['info'], lambda x: 100 if not x['info']['csmaDropped'] and not x['info']['duplicateDropped'] and not x['info']['tcpipDropped'] and not x['info']['received'] else 0, {'min': 0, 'max': 0}, MIN_INTERVAL)
 #        )
 
+#         allPlottableData.append( 
+#             extractData(parsed, "PDR for Node 25", "%",
+#                 lambda x: x['module'] == 'App' and 'sending' in x['info'] and x['id'] == 25 ,
+#                 lambda x: 100 if x['info']['received'] else 0,
+#                 {'min': 1, 'max': 100},
+#                 MIN_INTERVAL, verbose=False, export=False)
+#         )
+        
         allPlottableData.append( 
             extractData(parsed, "MAC drop", "%",
                         lambda x: x['module'] == 'App' and 'sending' in x['info'],
@@ -851,15 +870,9 @@ def process(parsed):
             summaryFile.write("%s\n" %str) 
         print ""
             
-            
-def main():
+def mainFunction(dir):
     global MIN_TIME
     global MAX_TIME
-
-    if len(sys.argv) < 2:
-        dir = '.'
-    else:
-        dir = sys.argv[1].rstrip('/')
 
     file = os.path.join(dir, "log.txt")
     parsed = parseLogs.doParse(file, SINK_ID)
@@ -867,8 +880,7 @@ def main():
     
     print "\nProcessing %s" %(file)
     process(parsed)
-        
-#        print "\nGenerating vector graphics timeline"
+    #        print "\nGenerating vector graphics timeline"
  #       generateTimelineFileVector(dir, parsed, txOnly=False)
         
 #        print "\nGenerating timeline txOnly=False"
@@ -882,5 +894,17 @@ def main():
  
 #        print "\nExtracting probing data"
  #       extractProbing(dir, parsed)
+             
+def main():
+    if len(sys.argv) < 2:
+        dir = '.'
+    else:
+        dir = sys.argv[1].rstrip('/')
+
+    mainFunction(dir)
+        
+
                 
-main()
+if __name__=='__main__':
+   main()
+   

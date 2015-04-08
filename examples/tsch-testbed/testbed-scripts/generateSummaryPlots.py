@@ -43,6 +43,10 @@ def plotTimeline(plottableData, standAlone=False, xLabel=True):
         plt.axis(ymax=plottableData["global"]["perNodeMax"]+1)
     else:
         plt.axis(ymin=0)
+    
+#     y = plottableData['perNode'][24]
+#     print y
+#     plot(x, y, color='#11ddbb')
 
 def plotPerNode(plottableData, standAlone=False, xLabel=True):
     unitstr = "" if plottableData['global']['unit'] == "" else " (%s)"%(plottableData['global']['unit'])
@@ -72,15 +76,10 @@ def plotPerNode(plottableData, standAlone=False, xLabel=True):
     else:
         plt.axis(ymin=0)
     
-def main():
+def mainFunction(dirName):
     global MAX_TIME
     
     allPlottableData = []
-    
-    if len(sys.argv) < 2:
-        dirName = '.'
-    else:
-        dirName = sys.argv[1].rstrip('/')
 
     experiment = os.path.basename(os.path.abspath(dirName))
     dir = os.path.join(dirName, 'data')
@@ -124,5 +123,14 @@ def main():
     fig.savefig('%s.pdf' %(destFile), format='pdf')
                 
     print "Done."
+
+def main():
+    if len(sys.argv) < 2:
+        dirName = '.'
+    else:
+        dirName = sys.argv[1].rstrip('/')
     
-main()
+    mainFunction(dirName)
+
+if __name__=='__main__':
+   main()

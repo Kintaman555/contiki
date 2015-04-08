@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 
 import os
+import shutil
 import re
 import fileinput
 import math
 from pylab import *
 import parseLogs
 import pygraphviz as pgv
+import numpy as np
 
 markers = ['s', 'o', '^', 'p', '*']
 colors = ['#FF9900', '#00A876', '#0a51a7', '#FF5900', 'yellow', 'black']
@@ -35,6 +37,8 @@ def allStats(data):
 
 def getFile(exp, base, name):
     dir = os.path.join(base, exp, 'data')
+    if(not os.path.isdir(dir)):
+        return None
     for file in os.listdir(dir):
         if name in file:
             return os.path.join(dir, file)
@@ -226,17 +230,98 @@ def smooth_over(l,c):
             sum += l[j]
         smoothed[i] = sum/(c+1)
     return smoothed
- 
-def plotTimeline(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, xlabel=None, ylabel=None, smooth_level=0, downsample=1):
+
+def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, xlabel=None, ylabel=None, smooth_level=0, downsample=1, ylog=False, xmax=50):
         
     index = 0
+    shadeInreference=1
+    if(shadeInreference):
+        for t in range(9, 46, 5):
+            if ylog:
+                ymin = 0.3
+            ax.fill([t+1, t+1, t, t], [ymin, ymax, ymax, ymin], linewidth=0, color='#FFD073')
     
-    for t in range(50, 120, 25):
-        ax.fill([t-10, t-10, t, t], [ymin, ymax, ymax, ymin], linewidth=0, color='#FFD073')
+    #staircase showing percent of active nodes        
+    x = np.arange(4, 46, 5)
+    y = (28 - x * 3.0/5)*100.0/25
+    
+    ax.step(x, y, label='#nodes', color='#000073', linestyle = '-', marker='*', where='post')
+        
+    exps = ['full-base', 'full', 'short', 'sb', 'rb', 'min']
+    for config in [ ('full-base', 1, 1, 'Static-baseline', '#0a51a7', ':'), 
+               ('full', 0, 0, 'Static', '#0a51a7', '-'), 
+               ('min', 0, 0, 'Min-3', '#67e667', '-'),
+               ('rb', 0, 0, 'RB-7', '#FF9900', '-'),
+               ('sb', 0, 0, 'SB-7', '#FF5900', '-')]:
+        
+    #for config in [(0, '#0a51a7', '-'), (1, '#0a51a7', ':'), (2, '#67e667', '-')]:
+        exp = config[0]
+        color = config[4]
+        linestyle = config[5]
+        l = config[3]
+        nc = exps.index(exp)
+        if exp in dataSet:
+            x = dataSet[exp]['timeline'].keys()
+            x.sort()
+            timeline = dataSet[exp]['timeline']
+            y = map(lambda x: timeline[x]['avg'] if (exp) in dataSet else None, x)
+            ysmoothed = smooth_over(y,smooth_level)
+            
+            ax.errorbar(x[0::downsample], ysmoothed[0::downsample],
+                        linewidth=1.8,
+                        linestyle = linestyle,
+                        marker=None,
+                        color=color,
+                        label=l)
+        index += 1
+    
+    handles, labels = ax.get_legend_handles_labels()
+    if(shadeInreference):
+        handles = handles + [Rectangle((0, 0), 1, 1, fc="#FFD073", linewidth=0)]
+        labels = labels + ['Interference']
 
+    font = {'size' : 14}
+    matplotlib.rc('font', **font)
+
+    ax.locator_params(nbins=5, axis='y')
+
+    if legendPos != None:
+        ax.legend(handles, labels, loc="upper center", prop={'size':12}, ncol=4,  bbox_to_anchor=(0.475, 1.35))
+    ax.grid(True)
+    if ylog:
+        ax.set_yscale('log', basex=10)
+    if xlabel != None:
+        #ax.set_xticks([10, 30, 50, 70, 90, 110])
+        #ax.set_xticklabels([0, 20, 40, 60, 80, 100])
+        ax.set_xlabel(xlabel, fontsize=14)
+    if metric == 'PDR':
+        ax.set_yticks([0,20,40,60,80,100])
+    if metric == 'Latency':
+        ax.set_yticks([1,10,100])
+            
+    ax.minorticks_off()
+    ax.yaxis.set_major_formatter(ScalarFormatter())
+    ax.axis(ymin=ymin, ymax=ymax, xmin=0, xmax=xmax)
+    if ylabel == None:
+        ylabel = "%s (%s)" %(metric, unit) if unit!="" else metric
+    ax.set_ylabel(ylabel, fontsize=13, multialignment='center')
+     
+def plotTimeline(dataSet, metric, file, ylabel, legendPos="lower right", legendBbox=None, legend=True, dir = '.', ymin=0, ymax=None, xlabel=None, smooth_level=0, downsample=1):
+        
+    index = 0
+    fig = plt.figure(figsize=(4.5, 3.5))
+    ax = fig.add_subplot(111)
+    for t in range(10, 45, 5):
+        ax.fill([t-1, t-1, t, t], [ymin, ymax, ymax, ymin], linewidth=0, color='#FFD073')
+    
 #colors = ['#0a51a7', '#FF9900', '#', '#FF5900', 'yellow', 'black']
     #for config in [('orpl', 'ORPL', '#0a51a7', '-'), ('orpl-nofp', 'ORPL (no recovery)', '#0a51a7', ':'), ('rpl', 'RPL', '#67e667', '-')]:
-    for config in [('orpl', 1, 1, 'ORPL (Bloom filter)', '#0a51a7', '-'), ('orpl', 0, 0, 'ORPL (Bitmap)', '#0a51a7', ':'), ('rpl', 0, 0, 'RPL', '#67e667', '-')]:
+    #for config in [('orpl', 1, 1, 'ORPL (Bloom filter)', '#0a51a7', '-'), ('orpl', 0, 0, 'ORPL (Bitmap)', '#0a51a7', ':'), ('rpl', 0, 0, 'RPL', '#67e667', '-')]:
+    for config in [('full', 1, 1, 'Static-long', '#0a51a7', '-'), 
+                   ('short', 0, 0, 'Static-short', '#0a51a7', ':'), 
+                   ('min', 0, 0, 'TSCH-min-3', '#67e667', '-'),
+                   ('rb', 0, 0, 'TTSCH-RB-7', '#FF9900', '-'),
+                   ('sb', 0, 0, 'TSCH-SB-7', '#FF5900', '-')]:
         protocol = config[0]
         bf = config[1]
         fpr = config[2]
@@ -284,6 +369,11 @@ def plotTimeline(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, x
         ylabel = "%s (%s)" %(metric, unit) if unit!="" else metric
     ax.set_ylabel(ylabel, fontsize=13, multialignment='center')
     
+    plotsDir = os.path.join(dir,'plots')
+    if not (os.path.exists(plotsDir) and os.path.isdir(plotsDir)):
+        os.mkdir(plotsDir)
+    
+    fig.savefig(os.path.join(plotsDir, 'timeline-cmp%s.pdf' % (file)), format='pdf', bbox_inches='tight', pad_inches=0)
     #fig.savefig('plots/%s.pdf'%(file), format='pdf', bbox_inches='tight', pad_inches=0)
  
 def plotMetricVsCycleTime(dataSet, file, metric, legendPos=None, ymin=0, ymax=None, ylabel=None, invertLegend=False):
@@ -548,3 +638,37 @@ def extractTimeline(file):
             timelineData[t]['stdev'] = float(res.group(5))
     
     return timelineData
+
+def extractTimelineJamlab(metric, dir, expIdx):
+    dataSet = {}
+    i = 0
+    for exp in os.listdir(dir):
+        if(not os.path.isdir(os.path.join(dir, exp))):
+            continue
+        prrFile = getFile(exp, dir, metric + '_timeline.txt')
+        if prrFile != None:
+            prrData = extractGlobal(prrFile)
+            timeline = extractTimeline(prrFile)
+            dataSet[i] = {'global': prrData, 'timeline': timeline}
+            i=i+1
+    if i <= expIdx:
+        return dataSet[i-1]
+    return dataSet[expIdx]
+
+def structureFolders(baseDir):
+    #log_app-no-rpl-unicast-dgm-full_07_04_2015_19.00.46.txt
+    for exp in os.listdir(baseDir):
+        if(not os.path.isfile(os.path.join(baseDir, exp))):
+            continue
+        
+        res = re.compile('log_app-.*-(?:dgm|only)-(\w+)_(\d+_\d+_\d+)_(\d+.\d+.\d+).txt').match(exp)
+        if res:
+            expName = res.group(1)
+            expDate = res.group(2)
+            expTime = res.group(3)
+            newDir = os.path.join(baseDir, expName, expDate + '_' + expTime)
+            if(not os.path.exists(newDir)):
+                os.makedirs(newDir, mode=0755)
+                if(not os.path.exists(os.path.join(newDir, 'log.txt'))):
+                    shutil.copy(os.path.join(baseDir, exp), os.path.join(newDir, 'log.txt'))
+    return
