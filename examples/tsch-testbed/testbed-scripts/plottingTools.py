@@ -305,7 +305,7 @@ def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, 
     
     handles, labels = ax.get_legend_handles_labels()
     if(shadeInreference):
-        handles = handles + [Rectangle((0, 0), 1, 1, fc="#%6x" %(interferenceColor[0]), linewidth=0)]
+        handles = handles + [Rectangle((0, 0), 1, 1, fc="#%6x" %(interferenceColor[2]), linewidth=0)]
         labels = labels + ['Failure']
 
     font = {'size' : 14}
@@ -314,7 +314,7 @@ def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, 
     ax.locator_params(nbins=5, axis='y')
 
     if legendPos != None:
-        ax.legend(handles, labels, loc="upper center", prop={'size':12}, ncol=4,  bbox_to_anchor=(0.475, 1.35))
+        ax.legend(handles, labels, loc="upper center", prop={'size':12}, ncol=5,  bbox_to_anchor=(0.475, 1.25))
     ax.grid(True)
     if ylog:
         ax.set_yscale('log', basex=10)

@@ -224,7 +224,7 @@ def plotJammed(base_xp_dir):
     
     exps = ['fullNoAttenuation', 'full', 'shortNoAttenuation', 'short', 'sb', 'rb', 'min', 'nodes']
 
-    fig, ax = plt.subplots(len(configs), figsize=(8, 2*len(configs)+4), sharex=True)
+    fig, ax = plt.subplots(len(configs), figsize=(8, 1.6*len(configs)+4), sharex=True)
     
     ## to draw active nodes count
     x_nodes = np.arange(0, 120, 15)
@@ -264,7 +264,8 @@ def plotJammed(base_xp_dir):
     
         plotTimeline2(ax[index], dataSet, file, metric, ymax = ymax, ylabel=ylabel, legendPos=legendPos, xlabel=xlabel, smooth_level=smooth_level, downsample=downsample, ylog=ylog, xmax=xmax)
         index += 1
-    plt.tight_layout()    
+        
+    plt.tight_layout(h_pad=0.7)    
     plotsDir = os.path.join(base_xp_dir, 'plots')
     if not (os.path.exists(plotsDir) and os.path.isdir(plotsDir)):
         os.mkdir(plotsDir)
