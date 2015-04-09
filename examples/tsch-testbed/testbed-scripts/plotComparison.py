@@ -213,19 +213,27 @@ def mainCooja(base_xp_dir):
 
 def plotJammed(base_xp_dir):
     configs = [
+               ("Active nodes", 'cmp_nodes', 26, "Nodes #", 0, 0, False),
             ("End-to-end Delivery Ratio", 'cmp_pdr', 105, "End-to-end PDR (%)", 0, 1, False),
-            ('Latency', 'cmp_latency', 100, "Latency (s)", 0, 1, True),
-            ("Duty Cycle", 'cmp_dc', 30, "Duty Cycle (%)", 0, 1, False),
-            ("MAC Unicast Success", 'cmp_prr', 105, "MAC Success Rate (%)", 0, 1, False),
+            #('Latency', 'cmp_latency', 100, "Latency (s)", 0, 1, True),
+            ('MAC Latency', 'cmp_mlatency', None, "MAC Latency (s)", 0, 1, True),
+            ("Duty Cycle", 'cmp_dc', 5, "Duty Cycle (%)\n", 0, 1, False),
+            ("MAC Unicast Success", 'cmp_prr', 105, "Link PRR (%)", 0, 1, False),
+            
               ]
     
-    exps = ['full-base', 'full', 'short', 'sb', 'rb', 'min']
+    exps = ['fullNoAttenuation', 'full', 'shortNoAttenuation', 'short', 'sb', 'rb', 'min', 'nodes']
+
+    fig, ax = plt.subplots(len(configs), figsize=(8, 2*len(configs)+4), sharex=True)
     
-    fig, ax = plt.subplots(len(configs), figsize=(8, 2*len(configs)+3), sharex=True)
+    ## to draw active nodes count
+    x_nodes = np.arange(0, 120, 15)
+    y_nodes = (28 - x_nodes * 3.0/15)
+    y_nodes[0] = 25
     
-    expIdx = 1
+    expIdx = 0
     index = 0
-    i=0
+    xmax=75
     dataSet={}
     for config in configs:
         for exp in exps:
@@ -244,12 +252,17 @@ def plotJammed(base_xp_dir):
                 xlabel = 'Time (minutes)'
             else:
                 xlabel = None
-            thisExpDir = os.path.join(base_xp_dir, exp)
-            dataSet.update({exp: extractTimelineJamlab(metric, thisExpDir, expIdx)})
+            if(exp == 'nodes' and metric == "Active nodes"):
+                dataSet.update({exp: {'x': x_nodes, 'y':y_nodes}})
+            else:
+                if metric == "Active nodes" or exp == 'nodes':
+                    continue    
+                thisExpDir = os.path.join(base_xp_dir, exp)
+                dataSet.update({exp: extractTimelineJamlab(metric, thisExpDir, expIdx)})
             print exp
-            i=i+1
+            
     
-        plotTimeline2(ax[index], dataSet, file, metric, ymax = ymax, ylabel=ylabel, legendPos=legendPos, xlabel=xlabel, smooth_level=smooth_level, downsample=downsample, ylog=ylog)
+        plotTimeline2(ax[index], dataSet, file, metric, ymax = ymax, ylabel=ylabel, legendPos=legendPos, xlabel=xlabel, smooth_level=smooth_level, downsample=downsample, ylog=ylog, xmax=xmax)
         index += 1
         
         plotsDir = os.path.join(base_xp_dir, 'plots')

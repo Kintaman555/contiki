@@ -235,24 +235,36 @@ def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, 
         
     index = 0
     linewidth=1.8
+    xticksArr=range(0,xmax+1,15)
     shadeInreference=1
+    interferenceColor = 0xFFD073
+    
+    if ylog:
+        ymin = 0.01
+        ymax=10
+                
     if(shadeInreference):
-        for t in range(9, 46, 5):
-            if ylog:
-                ymin = 0.3
-            ax.fill([t+1, t+1, t, t], [ymin, ymax, ymax, ymin], linewidth=0, color='#FFD073')
+        for t in range(30, xmax+1, 15):
+            ax.fill([t+15, t+15, t, t], [ymin, ymax, ymax, ymin], linewidth=0, color='#%06x' %(interferenceColor+(t<<1)))
     
     #staircase showing percent of active nodes  
-    if metric == 'End-to-end Delivery Ratio':      
-        x = np.arange(4, 46, 5)
-        y = (28 - x * 3.0/5)*100.0/25
-        ax.step(x, y, label='% Active nodes', linewidth=linewidth, color='#000073', linestyle = '--', marker=None, where='post')
-        
-    exps = ['full-base', 'full', 'short', 'sb', 'rb', 'min']
-    for config in [ ('full-base', 1, 1, 'Static-baseline', '#0a51a7', ':'), 
+#     if metric == 'End-to-end Delivery Ratio':      
+#         x = np.arange(30, 120, 15)
+#         y = (28 - x * 3.0/15)*100.0/25
+#         ax.step(x, y, label='% Active nodes', linewidth=linewidth, color='#000073', linestyle = '--', marker=None, where='post')
+    
+    if metric == 'MAC Latency':    
+        yfactor=15.0/1000
+    else:
+        yfactor=1
+    exps = ['fullNoAttenuation', 'full', 'shortNoAttenuation', 'short', 'sb', 'rb', 'min']
+    for config in [ #('fullNoAttenuation', 1, 1, 'Static-base-f', '#0a51a7', ':'),
+                   ('nodes', 0, 0, 'Nodes', '#000073', '--'), 
                ('full', 0, 0, 'Static', '#0a51a7', '-'), 
-               ('min', 0, 0, 'Min-3', '#67e667', '-'),
+               #('shortNoAttenuation', 1, 1, 'Static-base-s', '#67e667', ':'), 
+               #('short', 0, 0, 'Static-s', '#67e667', '-'), 
                ('rb', 0, 0, 'RB-7', '#FF9900', '-'),
+               ('min', 0, 0, 'Min-3', '#67e667', '-'),
                ('sb', 0, 0, 'SB-7', '#FF5900', '-')]:
         
     #for config in [(0, '#0a51a7', '-'), (1, '#0a51a7', ':'), (2, '#67e667', '-')]:
@@ -260,26 +272,42 @@ def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, 
         color = config[4]
         linestyle = config[5]
         l = config[3]
-        nc = exps.index(exp)
-        if exp in dataSet:
-            x = dataSet[exp]['timeline'].keys()
-            x.sort()
-            timeline = dataSet[exp]['timeline']
-            y = map(lambda x: timeline[x]['avg'] if (exp) in dataSet else None, x)
-            ysmoothed = smooth_over(y,smooth_level)
-            
-            ax.errorbar(x[0::downsample], ysmoothed[0::downsample],
-                        linewidth=linewidth,
-                        linestyle = linestyle,
-                        marker=None,
-                        color=color,
-                        label=l)
-        index += 1
+        if exp in dataSet or metric == 'Active nodes':
+            if metric == 'Active nodes':
+                if exp == 'nodes':
+                    x = dataSet[exp]['x']
+                    y= dataSet[exp]['y']
+                    color = config[4]
+                else:
+                    x = -1
+                    y = -1
+                ax.step(x, y, where='post',
+                            linewidth=linewidth,
+                            linestyle = linestyle,
+                            marker=None,
+                            color=color,
+                            label=l)
+                
+            elif (metric != 'Active nodes' and exp != 'nodes'):    
+                x = dataSet[exp]['timeline'].keys()
+                x.sort()
+                timeline = dataSet[exp]['timeline']
+                y = map(lambda x: yfactor*timeline[x]['avg'] if (exp) in dataSet else None, x)
+                ysmoothed = smooth_over(y,smooth_level)
+                
+                ax.errorbar(x[0::downsample], ysmoothed[0::downsample],
+                            linewidth=linewidth,
+                            linestyle = linestyle,
+                            marker=None,
+                            color=color,
+                            label=l)
+            else:
+                continue
     
     handles, labels = ax.get_legend_handles_labels()
     if(shadeInreference):
-        handles = handles + [Rectangle((0, 0), 1, 1, fc="#FFD073", linewidth=0)]
-        labels = labels + ['Node failure']
+        handles = handles + [Rectangle((0, 0), 1, 1, fc="#%6x" %(interferenceColor+30*2), linewidth=0)]
+        labels = labels + ['Failure']
 
     font = {'size' : 14}
     matplotlib.rc('font', **font)
@@ -297,9 +325,12 @@ def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, 
         ax.set_xlabel(xlabel, fontsize=14)
     if metric == 'End-to-end Delivery Ratio':
         ax.set_yticks([0,20,40,60,80,100])
-    if metric == 'Latency':
+    if metric == 'Latency': #or metric == 'MAC Latency':
         ax.set_yticks([1,10,100])
-            
+    if metric == 'Active nodes':
+        ymin=15
+        ax.set_yticks([16,19,22,25]) #range(1,26,3))    
+    ax.set_xticks(xticksArr)        
     ax.minorticks_off()
     ax.yaxis.set_major_formatter(ScalarFormatter())
     ax.axis(ymin=ymin, ymax=ymax, xmin=0, xmax=xmax)
