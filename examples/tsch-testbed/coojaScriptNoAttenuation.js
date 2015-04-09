@@ -211,40 +211,39 @@ log.log(randomSeedString);
 		//log.log(logMsg);
 		log.append(logFileName, logMsg);
 
-		//if(enableAttenuation) 
-		{
-			//manipulate the rx links of a random node
-			if (step < endStep && ((time / 1000) > step * timeSlice)) {
-				//manipulate 3 nodes at a time
-				for(j = step - startStep; j < step-startStep + failingNodes; j++) {
-					var myId = shuffledIDs[j];
-					var dstRadio = sim.getMoteWithID(myId).getInterfaces().getRadio();
-					var radioMedium = sim.getRadioMedium();
-					var edges = radioMedium.getEdges();
-					var edge;
-					for (i = 0; i < edges.length; i++) {
-						edge = edges[i];
-						if (edge.superDest.radio == dstRadio) {
-							oldRatio = edge.superDest.ratio;
-							edge.superDest.ratio *= linkDampingFactor;
-							logMsg = java.lang.String
-									.format(
-											"%d\tID:%d\tCOOJA: attenuate rx from %d, ratio: %.2f < %.2f\n",
-											new java.lang.Long(time), new Integer(
-													edge.superDest.radio.getMote()
-															.getID()), new Integer(
-													edge.source.getMote().getID()),
-											new Float(edge.superDest.ratio),
-											new Float(oldRatio));
-							log.log(logMsg);
-							log.append(logFileName, logMsg);
-						}
-					}
-				}
-				radioMedium.requestEdgeAnalysis(); //update medium
-				step++;
-			}
-		}
+//		if(enableAttenuation) {
+//			//manipulate the rx links of a random node
+//			if (step < endStep && ((time / 1000) > step * timeSlice)) {
+//				//manipulate 3 nodes at a time
+//				for(j = step - startStep; j < step-startStep + failingNodes; j++) {
+//					var myId = shuffledIDs[j];
+//					var dstRadio = sim.getMoteWithID(myId).getInterfaces().getRadio();
+//					var radioMedium = sim.getRadioMedium();
+//					var edges = radioMedium.getEdges();
+//					var edge;
+//					for (i = 0; i < edges.length; i++) {
+//						edge = edges[i];
+//						if (edge.superDest.radio == dstRadio) {
+//							oldRatio = edge.superDest.ratio;
+//							edge.superDest.ratio *= linkDampingFactor;
+//							logMsg = java.lang.String
+//									.format(
+//											"%d\tID:%d\tCOOJA: attenuate rx from %d, ratio: %.2f < %.2f\n",
+//											new java.lang.Long(time), new Integer(
+//													edge.superDest.radio.getMote()
+//															.getID()), new Integer(
+//													edge.source.getMote().getID()),
+//											new Float(edge.superDest.ratio),
+//											new Float(oldRatio));
+//							log.log(logMsg);
+//							log.append(logFileName, logMsg);
+//						}
+//					}
+//				}
+//				radioMedium.requestEdgeAnalysis(); //update medium
+//				step++;
+//			}
+//		}
 		YIELD();
 	}
 }

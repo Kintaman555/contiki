@@ -5,13 +5,14 @@ import xml.etree.ElementTree as ET
 from threading import Thread
 from time import sleep
 
+randomSeedInit = 123457;
 emailAddress = 'beshr@chalmers.se';
 emailTitle = 'Cooja exp-';
 memorySize = 512;
 expPath = '/home/beshr/work/contiki-private/examples/tsch-testbed/imgs/';
 doneFolder = expPath + 'done';
 coojaCmd = ('java -d64 -mx%dm -Djava.awt.headless=true -jar ../dist/cooja.jar -nogui=') %(memorySize);
-simulationFiles = ['app-no-rpl-unicast-dgm-full.csc', 'app-no-rpl-unicast-dgm-short.csc', 'app-rpl-collect-only-sb.csc', 'app-rpl-collect-only-rb.csc', 'app-rpl-collect-only-min.csc'];
+simulationFiles = ['app-no-rpl-unicast-dgm-full.csc', 'app-no-rpl-unicast-dgm-fullNoAttenuation.csc', 'app-no-rpl-unicast-dgm-short.csc', 'app-no-rpl-unicast-dgm-shortNoAttenuation.csc', 'app-rpl-collect-only-sb.csc', 'app-rpl-collect-only-rb.csc', 'app-rpl-collect-only-min.csc'];
 
 
 #tar -czf ${mypath}exp.tar.gz ${mypath}*.txt | uuencode ${mypath}exp.tar.gz | mail -s "Cooja exp" beshr@chalmers.se
@@ -26,8 +27,8 @@ def setRandomSeed(simFile, randomSeed):
     simFileTree.write(simFile);
     
 def runSimulationThread(simFile):
-    global coojaCmd, emailAddress, emailTitle, expPath
-    randomSeed = 123456;
+    global coojaCmd, emailAddress, emailTitle, expPath, randomSeedInit
+    randomSeed = randomSeedInit;
     seedIncrement = 1;
     for i in range(0,3):
         setRandomSeed(expPath+simFile, randomSeed)
