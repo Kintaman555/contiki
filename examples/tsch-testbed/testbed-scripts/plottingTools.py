@@ -308,20 +308,20 @@ def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, 
         handles = handles + [Rectangle((0, 0), 1, 1, fc="#%6x" %(interferenceColor[2]), linewidth=0)]
         labels = labels + ['Failure']
 
-    font = {'size' : 14}
+    font = {'size' : 16}
     matplotlib.rc('font', **font)
 
     ax.locator_params(nbins=5, axis='y')
 
     if legendPos != None:
-        ax.legend(handles, labels, loc="upper center", prop={'size':12}, ncol=5,  bbox_to_anchor=(0.475, 1.25))
+        ax.legend(handles, labels, loc="upper center", prop={'size':14}, ncol=5,  bbox_to_anchor=(0.46, 1.3))
     ax.grid(True)
     if ylog:
         ax.set_yscale('log', basex=10)
     if xlabel != None:
         #ax.set_xticks([10, 30, 50, 70, 90, 110])
         #ax.set_xticklabels([0, 20, 40, 60, 80, 100])
-        ax.set_xlabel(xlabel, fontsize=14)
+        ax.set_xlabel(xlabel, fontsize=16)
     if metric == 'End-to-end Delivery Ratio':
         ax.set_yticks([0,20,40,60,80,100])
     if metric == 'Latency': #or metric == 'MAC Latency':
@@ -335,7 +335,7 @@ def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, 
     ax.axis(ymin=ymin, ymax=ymax, xmin=0, xmax=xmax)
     if ylabel == None:
         ylabel = "%s (%s)" %(metric, unit) if unit!="" else metric
-    ax.set_ylabel(ylabel, fontsize=13, multialignment='center')
+    ax.set_ylabel(ylabel, fontsize=16, multialignment='center')
      
 def plotTimeline(dataSet, metric, file, ylabel, legendPos="lower right", legendBbox=None, legend=True, dir = '.', ymin=0, ymax=None, xlabel=None, smooth_level=0, downsample=1):
         
