@@ -265,7 +265,7 @@ def plotJammed(base_xp_dir):
         plotTimeline2(ax[index], dataSet, file, metric, ymax = ymax, ylabel=ylabel, legendPos=legendPos, xlabel=xlabel, smooth_level=smooth_level, downsample=downsample, ylog=ylog, xmax=xmax)
         index += 1
         
-    plt.tight_layout(h_pad=0.7)    
+    plt.tight_layout(h_pad=-0.2)    
     plotsDir = os.path.join(base_xp_dir, 'plots')
     if not (os.path.exists(plotsDir) and os.path.isdir(plotsDir)):
         os.mkdir(plotsDir)
