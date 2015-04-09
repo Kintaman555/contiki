@@ -14,7 +14,7 @@ var i = 0;
 var j = 0;
 
 //120min*60sec*1000ms
-TIMEOUT(72000000);
+TIMEOUT(7200000);
 log.log(time + "\tID:1\t" + "COOJA: Script started.\n");
 
 function setupEdges(mySim, myNetwork, numberOfNodes) {
