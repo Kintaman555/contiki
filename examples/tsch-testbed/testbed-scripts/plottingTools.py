@@ -264,8 +264,8 @@ def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, 
                ('full', 0, 0, 'Static', '#0a51a7', '-'), 
                #('shortNoAttenuation', 1, 1, 'Static-base-s', '#67e667', ':'), 
                #('short', 0, 0, 'Static-s', '#67e667', '-'), 
-               ('rb', 0, 0, 'RB-7', '#FF9900', '-'),
-               ('min', 0, 0, 'Min-3', '#67e667', '-'),
+               ('rb', 0, 0, 'RB-7', '#FF9900', '--'),
+               ('min', 0, 0, 'Min-3', '#67e667', '--'),
                ('sb', 0, 0, 'SB-7', '#FF5900', '-')]:
         
         exp = config[0]
