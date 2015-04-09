@@ -213,7 +213,7 @@ def mainCooja(base_xp_dir):
 
 def plotJammed(base_xp_dir):
     configs = [
-               ("Active nodes", 'cmp_nodes', 26, "Nodes #", 0, 0, False),
+               ("Active nodes", 'cmp_nodes', 26, "Clear Nodes #", 0, 0, False),
             ("End-to-end Delivery Ratio", 'cmp_pdr', 105, "End-to-end PDR (%)", 0, 1, False),
             #('Latency', 'cmp_latency', 100, "Latency (s)", 0, 1, True),
             ('MAC Latency', 'cmp_mlatency', None, "MAC Latency (s)", 0, 1, True),
@@ -264,12 +264,12 @@ def plotJammed(base_xp_dir):
     
         plotTimeline2(ax[index], dataSet, file, metric, ymax = ymax, ylabel=ylabel, legendPos=legendPos, xlabel=xlabel, smooth_level=smooth_level, downsample=downsample, ylog=ylog, xmax=xmax)
         index += 1
+    plt.tight_layout()    
+    plotsDir = os.path.join(base_xp_dir, 'plots')
+    if not (os.path.exists(plotsDir) and os.path.isdir(plotsDir)):
+        os.mkdir(plotsDir)
         
-        plotsDir = os.path.join(base_xp_dir, 'plots')
-        if not (os.path.exists(plotsDir) and os.path.isdir(plotsDir)):
-            os.mkdir(plotsDir)
-        
-        fig.savefig(os.path.join(plotsDir, '%s.pdf' % (file)), format='pdf', bbox_inches='tight', pad_inches=0)
+    fig.savefig(os.path.join(plotsDir, '%s.pdf' % (file)), format='pdf', bbox_inches='tight', pad_inches=0)
         
 if __name__=='__main__':
    #main()  

@@ -237,15 +237,16 @@ def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, 
     linewidth=1.8
     xticksArr=range(0,xmax+1,15)
     shadeInreference=1
-    interferenceColor = 0xFFD073
+    interferenceColor = [0xFFF5E6, 0xFFEBCC, 0xFFE0B2, 0xFFD699, 0xFFCC80, 0xFFC266, 0xFFB84D, 0xFFAD33, 0xFFA319]
     
     if ylog:
         ymin = 0.01
         ymax=10
-                
+    i=0            
     if(shadeInreference):
         for t in range(30, xmax+1, 15):
-            ax.fill([t+15, t+15, t, t], [ymin, ymax, ymax, ymin], linewidth=0, color='#%06x' %(interferenceColor+(t<<1)))
+            ax.fill([t+15, t+15, t, t], [ymin, ymax, ymax, ymin], linewidth=0, color='#%06x' %(interferenceColor[i]))
+            i=i+1
     
     #staircase showing percent of active nodes  
 #     if metric == 'End-to-end Delivery Ratio':      
@@ -259,7 +260,7 @@ def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, 
         yfactor=1
     exps = ['fullNoAttenuation', 'full', 'shortNoAttenuation', 'short', 'sb', 'rb', 'min']
     for config in [ #('fullNoAttenuation', 1, 1, 'Static-base-f', '#0a51a7', ':'),
-                   ('nodes', 0, 0, 'Nodes', '#000073', '--'), 
+                   ('nodes', 0, 0, None, '#000073', '--'), 
                ('full', 0, 0, 'Static', '#0a51a7', '-'), 
                #('shortNoAttenuation', 1, 1, 'Static-base-s', '#67e667', ':'), 
                #('short', 0, 0, 'Static-s', '#67e667', '-'), 
@@ -267,7 +268,6 @@ def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, 
                ('min', 0, 0, 'Min-3', '#67e667', '-'),
                ('sb', 0, 0, 'SB-7', '#FF5900', '-')]:
         
-    #for config in [(0, '#0a51a7', '-'), (1, '#0a51a7', ':'), (2, '#67e667', '-')]:
         exp = config[0]
         color = config[4]
         linestyle = config[5]
@@ -277,7 +277,6 @@ def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, 
                 if exp == 'nodes':
                     x = dataSet[exp]['x']
                     y= dataSet[exp]['y']
-                    color = config[4]
                 else:
                     x = -1
                     y = -1
@@ -306,7 +305,7 @@ def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, 
     
     handles, labels = ax.get_legend_handles_labels()
     if(shadeInreference):
-        handles = handles + [Rectangle((0, 0), 1, 1, fc="#%6x" %(interferenceColor+30*2), linewidth=0)]
+        handles = handles + [Rectangle((0, 0), 1, 1, fc="#%6x" %(interferenceColor[0]), linewidth=0)]
         labels = labels + ['Failure']
 
     font = {'size' : 14}
