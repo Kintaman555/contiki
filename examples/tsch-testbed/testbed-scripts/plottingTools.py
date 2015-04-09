@@ -234,6 +234,7 @@ def smooth_over(l,c):
 def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, xlabel=None, ylabel=None, smooth_level=0, downsample=1, ylog=False, xmax=50):
         
     index = 0
+    linewidth=1.8
     shadeInreference=1
     if(shadeInreference):
         for t in range(9, 46, 5):
@@ -241,11 +242,11 @@ def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, 
                 ymin = 0.3
             ax.fill([t+1, t+1, t, t], [ymin, ymax, ymax, ymin], linewidth=0, color='#FFD073')
     
-    #staircase showing percent of active nodes        
-    x = np.arange(4, 46, 5)
-    y = (28 - x * 3.0/5)*100.0/25
-    
-    ax.step(x, y, label='#nodes', color='#000073', linestyle = '-', marker='*', where='post')
+    #staircase showing percent of active nodes  
+    if metric == 'End-to-end Delivery Ratio':      
+        x = np.arange(4, 46, 5)
+        y = (28 - x * 3.0/5)*100.0/25
+        ax.step(x, y, label='% Active nodes', linewidth=linewidth, color='#000073', linestyle = '--', marker=None, where='post')
         
     exps = ['full-base', 'full', 'short', 'sb', 'rb', 'min']
     for config in [ ('full-base', 1, 1, 'Static-baseline', '#0a51a7', ':'), 
@@ -268,7 +269,7 @@ def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, 
             ysmoothed = smooth_over(y,smooth_level)
             
             ax.errorbar(x[0::downsample], ysmoothed[0::downsample],
-                        linewidth=1.8,
+                        linewidth=linewidth,
                         linestyle = linestyle,
                         marker=None,
                         color=color,
@@ -278,7 +279,7 @@ def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, 
     handles, labels = ax.get_legend_handles_labels()
     if(shadeInreference):
         handles = handles + [Rectangle((0, 0), 1, 1, fc="#FFD073", linewidth=0)]
-        labels = labels + ['Interference']
+        labels = labels + ['Node failure']
 
     font = {'size' : 14}
     matplotlib.rc('font', **font)
@@ -294,7 +295,7 @@ def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, 
         #ax.set_xticks([10, 30, 50, 70, 90, 110])
         #ax.set_xticklabels([0, 20, 40, 60, 80, 100])
         ax.set_xlabel(xlabel, fontsize=14)
-    if metric == 'PDR':
+    if metric == 'End-to-end Delivery Ratio':
         ax.set_yticks([0,20,40,60,80,100])
     if metric == 'Latency':
         ax.set_yticks([1,10,100])
