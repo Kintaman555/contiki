@@ -12,6 +12,7 @@ var step = startStep;
 var endStep = (25 - 1 - failingNodes)/failingNodes;
 var i = 0;
 var j = 0;
+var k = 0;
 
 //120min*60sec*1000ms
 TIMEOUT(7200000);
@@ -216,7 +217,8 @@ log.log(randomSeedString);
 			//manipulate the rx links of a random node
 			if (step < endStep && ((time / 1000) > step * timeSlice)) {
 				//manipulate 3 nodes at a time
-				for(j = step - startStep + (step-startStep)*failingNodes; j < step-startStep + (step-startStep+1)*failingNodes; j++) {
+			    k = step - startStep;
+				for(j = k*(failingNodes); j < (k+1)*failingNodes; j++) {
 					var myId = shuffledIDs[j];
 					var dstRadio = sim.getMoteWithID(myId).getInterfaces().getRadio();
 					var radioMedium = sim.getRadioMedium();
