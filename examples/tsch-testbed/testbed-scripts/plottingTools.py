@@ -237,7 +237,10 @@ def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, 
     linewidth=1.8
     xticksArr=range(0,xmax+1,15)
     shadeInreference=1
-    interferenceColor = [0xFFF5E6, 0xFFEBCC, 0xFFE0B2, 0xFFD699, 0xFFCC80, 0xFFC266, 0xFFB84D, 0xFFAD33, 0xFFA319]
+    ## yellow-orange shades
+    #interferenceColor = [0xFFF5E6, 0xFFEBCC, 0xFFE0B2, 0xFFD699, 0xFFCC80, 0xFFC266, 0xFFB84D, 0xFFAD33, 0xFFA319]
+    ## grayscale shades
+    interferenceColor = [0xF2F2F2, 0xE6E6E6, 0xD9D9D9, 0xcccccc, 0xBFBFBF, 0xb2b2b2]
     
     if ylog:
         ymin = 0.01
@@ -245,7 +248,7 @@ def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, 
     i=0            
     if(shadeInreference):
         for t in range(30, xmax+1, 15):
-            ax.fill([t+15, t+15, t, t], [ymin, ymax, ymax, ymin], linewidth=0, color='#%06x' %(interferenceColor[i]))
+            ax.fill([t+15, t+15, t, t], [ymin, ymax, ymax, ymin], linewidth=0, color='#%06x' %(interferenceColor[(i*2)%6]))
             i=i+1
     
     #staircase showing percent of active nodes  
