@@ -216,7 +216,7 @@ def plotJammed(base_xp_dir):
                ("Active nodes", 'cmp_nodes', 26, "Clear Nodes #", 0, 0, False),
             ("End-to-end Delivery Ratio", 'cmp_pdr', 105, "End-to-end PDR (%)", 0, 1, False),
             #('Latency', 'cmp_latency', 100, "Latency (s)", 0, 1, True),
-            ('MAC Latency', 'cmp_mlatency', None, "MAC Latency (s)", 0, 1, True),
+            ('MAC Latency', 'cmp_mlatency', None, "Latency (s)", 0, 1, True),
             ("Duty Cycle", 'cmp_dc', 5, "Duty Cycle (%)\n", 0, 1, False),
             ("MAC Unicast Success", 'cmp_prr', 105, "Link PRR (%)", 0, 1, False),
             

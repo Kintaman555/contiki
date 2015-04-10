@@ -216,7 +216,7 @@ log.log(randomSeedString);
 			//manipulate the rx links of a random node
 			if (step < endStep && ((time / 1000) > step * timeSlice)) {
 				//manipulate 3 nodes at a time
-				for(j = step - startStep; j < step-startStep + failingNodes; j++) {
+				for(j = step - startStep + (step-startStep)*failingNodes; j < step-startStep + (step-startStep+1)*failingNodes; j++) {
 					var myId = shuffledIDs[j];
 					var dstRadio = sim.getMoteWithID(myId).getInterfaces().getRadio();
 					var radioMedium = sim.getRadioMedium();

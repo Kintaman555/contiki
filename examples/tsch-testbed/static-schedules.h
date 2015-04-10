@@ -1,11 +1,11 @@
-/* 30-Mar-2015 18:52:34 */
+/* 10-Apr-2015 21:19:21 */
 #ifndef STATIC_SCHEDULES_H_
 #define STATIC_SCHEDULES_H_
 
 #define NUMBER_OF_SLOTFRAMES 2
 #define STATIC_SLOTFRAMES { \
 	{1, 7, 105}, \
-	{1, 100, 133}, \
+	{1, 100, 397}, \
 }
 
 #define NUMBER_OF_LINKS 259

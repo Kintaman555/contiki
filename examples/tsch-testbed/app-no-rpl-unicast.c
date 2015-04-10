@@ -52,7 +52,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define SEND_INTERVAL   (10 * CLOCK_SECOND)
+#define SEND_INTERVAL   (30 * CLOCK_SECOND)
 #define UDP_PORT 1234
 
 #define COORDINATOR_ID 1

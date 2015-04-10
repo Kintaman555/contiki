@@ -53,7 +53,7 @@
 #elif IN_NESTESTBED
 #define SEND_INTERVAL   (30*CLOCK_SECOND)
 #else
-#define SEND_INTERVAL   (10*CLOCK_SECOND)
+#define SEND_INTERVAL   (30*CLOCK_SECOND)
 #endif
 
 #define UDP_PORT 1234
