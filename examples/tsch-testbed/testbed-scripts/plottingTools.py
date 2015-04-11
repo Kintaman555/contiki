@@ -243,7 +243,6 @@ def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, 
     interferenceColor = [0xF2F2F2, 0xE6E6E6, 0xD9D9D9, 0xcccccc, 0xBFBFBF, 0xb2b2b2]
     
     if ylog:
-        ymin = 0.01
         ymax=10
     i=0            
     if(shadeInreference):
@@ -330,7 +329,6 @@ def plotTimeline2(ax, dataSet, file, metric, legendPos=None, ymin=0, ymax=None, 
     if metric == 'Latency': #or metric == 'MAC Latency':
         ax.set_yticks([1,10,100])
     if metric == 'Active nodes':
-        ymin=15
         ax.set_yticks([16,19,22,25]) #range(1,26,3))    
     ax.set_xticks(xticksArr)        
     ax.minorticks_off()

@@ -213,25 +213,25 @@ def mainCooja(base_xp_dir):
 
 def plotJammed(base_xp_dir):
     configs = [
-               ("Active nodes", 'cmp_nodes', 26, "Clear Nodes #", 0, 0, False),
-            ("End-to-end Delivery Ratio", 'cmp_pdr', 105, "End-to-end PDR (%)", 0, 1, False),
-            #('Latency', 'cmp_latency', 100, "Latency (s)", 0, 1, True),
-            ('MAC Latency', 'cmp_mlatency', None, "Latency (s)", 0, 1, True),
-            ("Duty Cycle", 'cmp_dc', 5, "Duty Cycle (%)\n", 0, 1, False),
-            ("MAC Unicast Success", 'cmp_prr', 105, "Link PRR (%)", 0, 1, False),
+               ("Active nodes", 'cmp_nodes', 26, "Clear Nodes #", 0, 0, False, 15),
+            ("End-to-end Delivery Ratio", 'cmp_pdr', 105, "End-to-end PDR (%)", 0, 1, False, 75),
+            #('Latency', 'cmp_latency', 100, "Latency (s)", 0, 1, True, 0),
+            ('MAC Latency', 'cmp_mlatency', None, "Latency (s)", 0, 1, True, 0.01),
+            ("Duty Cycle", 'cmp_dc', 5, "Duty Cycle (%)\n", 0, 1, False, 0),
+            ("MAC Unicast Success", 'cmp_prr', 105, "Link PRR (%)", 0, 1, False, 0),
             
               ]
     
-    exps = ['fullNoAttenuation', 'full', 'shortNoAttenuation', 'short', 'sb', 'rb', 'min', 'nodes']
+    exps = ['full', 'sb', 'rb', 'min', 'nodes'] #'fullNoAttenuation', , 'shortNoAttenuation', 'short'
 
     fig, ax = plt.subplots(len(configs), figsize=(8, 1.6*len(configs)+4), sharex=True)
     
     ## to draw active nodes count
-    x_nodes = np.arange(0, 120, 15)
+    x_nodes = np.arange(0, 121, 15)
     y_nodes = (28 - x_nodes * 3.0/15)
     y_nodes[0] = 25
     
-    expIdx = 0
+    expIdx = 1
     index = 0
     xmax=75
     dataSet={}
@@ -244,6 +244,7 @@ def plotJammed(base_xp_dir):
             smooth_level = config[4]
             downsample = config[5]
             ylog = config[6]
+            ymin = config[7]
             if index == 0:
                 legendPos = 'lower left'
             else:
@@ -262,7 +263,7 @@ def plotJammed(base_xp_dir):
             print exp
             
     
-        plotTimeline2(ax[index], dataSet, file, metric, ymax = ymax, ylabel=ylabel, legendPos=legendPos, xlabel=xlabel, smooth_level=smooth_level, downsample=downsample, ylog=ylog, xmax=xmax)
+        plotTimeline2(ax[index], dataSet, file, metric, ymax = ymax, ymin = ymin, ylabel=ylabel, legendPos=legendPos, xlabel=xlabel, smooth_level=smooth_level, downsample=downsample, ylog=ylog, xmax=xmax)
         index += 1
         
     plt.tight_layout(h_pad=-0.2)    
