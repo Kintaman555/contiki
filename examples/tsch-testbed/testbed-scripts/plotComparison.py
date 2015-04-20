@@ -48,7 +48,7 @@ def plotStat(all_res, metric, filename, ylabel, legendPos="lower right", legendB
   b = a+4
   c = b+2
   d = c+2
-  configs = [{"mac":"nm", 'l': "Csma", 'i': a, 'color': colors[1]},
+  configs = [{"mac":"nm", 'l': "Always-on", 'i': a, 'color': colors[1]},
              {"mac":"cm64", "l": "ContikiMAC-64", 'i': a+1, 'color': colors[1]},
              {"mac":"cm8", "l": "ContikiMAC-8", 'i': a+2, 'color': colors[1]},
 #             {"mac":"tmin1", "l": "TSCH-min-1", 'i': b-1, 'color': colors[2]},
@@ -88,7 +88,7 @@ def plotStat(all_res, metric, filename, ylabel, legendPos="lower right", legendB
     ax.axis(ymax=6)
     ax.annotate('100', xy=(0.2, 6),
                 horizontalalignment='left', verticalalignment='bottom',
-                fontsize=10)
+                fontsize=14)
   if metric == "End-to-end Delivery Ratio":
     ax.axis(ymin=98.5, ymax=100)
     #ax.axis(ymax=1,ymin=0.001)
@@ -100,9 +100,11 @@ def plotStat(all_res, metric, filename, ylabel, legendPos="lower right", legendB
   ax.yaxis.grid(True)
   ax.set_axisbelow(True) 
   ax.set_xticks(x + xshift)
-  ax.set_xticklabels(xlabels, rotation=45, fontsize=12, horizontalalignment="right")
+  ax.set_xticklabels(xlabels, rotation=45, fontsize=14, horizontalalignment="right")
+  #ax.tick_params(axis='y', fontsize=16)
   ax.set_ylabel(ylabel, fontsize=16)
-
+  setp(ax.get_yticklabels(), fontsize=14)
+  
   fig.savefig('plots/cmp%s.pdf'%(filename), format='pdf', bbox_inches='tight', pad_inches=0)
 
 def getFile(base, name):
@@ -157,6 +159,6 @@ def main():
   plotStat(all_res, "Latency", "latency", "Latency (s)")
   plotStat(all_res, "Duty Cycle", "dc", "Duty Cycle (%)")
   #plotStat(all_res, "MAC Unicast Success", "ucprr", "MAC Loss Rate (%)")
-  plotStat(all_res, "MAC Unicast Success", "ucprr", "MAC Success Rate (%)")
+  plotStat(all_res, "MAC Unicast Success", "ucprr", "Link PRR (%)")
   
 main()

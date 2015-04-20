@@ -63,9 +63,9 @@ def plotStat(all_res, field, ylabel):
       #ax.legend(loc="lower left", prop={'size':12})
       ax.axis(xmin=3, ymin=80, ymax=100)
   else:
-      ax.legend(loc="upper left", prop={'size':12})
+      ax.legend(loc="upper left", prop={'size':16})
       ax.axis(xmin=3, ymin=0)
-  ax.set_xlabel("Unicast Slotframe Len (slots)", fontsize=16)
+  ax.set_xlabel("Unicast Slotframe Len (slots)", fontsize=18)
   ax.set_xscale('log')
   
   #ax.axis(ymin=0, xmin=1.7, xmax=70)
@@ -79,7 +79,9 @@ def plotStat(all_res, field, ylabel):
   
   ax.set_xticks(x_all)
   ax.set_xticklabels(x_all_labels)
-  ax.set_ylabel(ylabel, fontsize=16)
+  ax.set_ylabel(ylabel, fontsize=18)
+  setp(ax.get_xticklabels(), fontsize=16)
+  setp(ax.get_yticklabels(), fontsize=16)
 
   fig.savefig('plots/cont%s.pdf'%(field), format='pdf', bbox_inches='tight', pad_inches=0)
 
@@ -128,6 +130,6 @@ def main():
 
       print key, field, all_res[key]['stats'][field]["avg"]
   plotStat(all_res, "contentionPercent", "Contention Rate (%)")
-  plotStat(all_res, "prr", "Unicast Success Rate (%)")
+  plotStat(all_res, "prr", "Link PRR (%)")
     
 main()

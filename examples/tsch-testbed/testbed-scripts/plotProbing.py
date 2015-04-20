@@ -36,7 +36,7 @@ def plotStat(all_res, field, ylabel, legendPos="lower right", legendBbox=None, l
   fig = plt.figure(figsize=(4.5, 3.5))
   ax = fig.add_subplot(111)
   x = [2, 5, 15, 30, 60]
-  configs = {"nm": {'l': "Csma", 'i': 3},
+  configs = {"nm": {'l': "Always-on", 'i': 3},
              "cm8": {"l": "ContikiMAC@8Hz", 'i': 4},
              "cm64": {"l": "ContikiMAC@64Hz", 'i': 2},
              "ts": {"l": "TSCH-minimal", 'i': 1},
@@ -55,9 +55,9 @@ def plotStat(all_res, field, ylabel, legendPos="lower right", legendBbox=None, l
   ax.grid(True)
   if legend:
     if legendBbox != None:
-      ax.legend(bbox_to_anchor=legendBbox, prop={'size':12})
+      ax.legend(bbox_to_anchor=legendBbox, prop={'size':16})
     else:
-      ax.legend(loc=legendPos, prop={'size':12})
+      ax.legend(loc=legendPos, prop={'size':13})
   ax.set_xlabel("Packet Period (s)", fontsize=16)
   ax.set_xscale('log')
   
@@ -82,6 +82,8 @@ def plotStat(all_res, field, ylabel, legendPos="lower right", legendBbox=None, l
   ax.set_xticks(x)
   ax.set_xticklabels(x)
   ax.set_ylabel(ylabel, fontsize=16)
+  setp(ax.get_xticklabels(), fontsize=14)
+  setp(ax.get_yticklabels(), fontsize=14)
 
   fig.savefig('plots/probing%s.pdf'%(field), format='pdf', bbox_inches='tight', pad_inches=0)
 
@@ -125,7 +127,7 @@ def main():
       print key, field, all_res[key]['stats'][field]["avg"]
   plotStat(all_res, "rxCount", "Neighbors (#)")
   plotStat(all_res, "stableLinks", "Stable Links (#)",legend=False)
-  plotStat(all_res, "dcTx", "Tx Duty Cycle (%)", legendPos="upper right",legend=False)
+  plotStat(all_res, "dcTx", "Channel Utilization (%)", legendPos="upper right")
   plotStat(all_res, "dc", "Duty Cycle (%)", legendPos="upper right", legendBbox=(1,0.95),legend=False)
   
 main()

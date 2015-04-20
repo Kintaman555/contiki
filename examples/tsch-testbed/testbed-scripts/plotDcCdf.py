@@ -43,13 +43,13 @@ def plotStat(all_res, field, filename, xlabel):
   ax = fig.add_subplot(111)
   
   configs = {
-             #"cm8": {"l": "ContikiMAC@8Hz", 'i': 0},
+             "cm8": {"l": "ContikiMAC@8Hz", 'i': 0},
              #"cm64": {"l": "ContikiMAC@64Hz", 'i': 1},
-             "tmin5": {"l": "TSCH-min-5", 'i': 0},
-             "trb397x31x7": {"l": "TSCH-RB-7", 'i': 1},
-             "tsb397x31x7": {"l": "TSCH-SB-7", 'i': 2},
+             "tmin7": {"l": "TSCH-min-7", 'i': 1},
+             "trb397x31x29": {"l": "TSCH-RB-29", 'i': 3},
+             "tsb397x31x29": {"l": "TSCH-SB-29", 'i': 2},
              }
-  for mac in ["tmin5", "trb397x31x7", "tsb397x31x7"]:
+  for mac in ["cm8","tmin7", "trb397x31x29", "tsb397x31x29"]:
     index = configs[mac]["i"]
     perNodeData = all_res[mac][field]['data'][0]['stats']['perNode'] # we pick the first xp
     dutyCycleList = []
@@ -69,13 +69,13 @@ def plotStat(all_res, field, filename, xlabel):
   
   #ax.legend(loc="lower right", prop={'size':12})
   ax.legend(loc="upper left", prop={'size':8})
-  ax.set_ylabel(xlabel, fontsize=12) 
-  #ax.axis(ymin=0,ymax=7)
+  ax.set_ylabel(xlabel, fontsize=10) 
+  #ax.axis(ymin=0,ymax=3.8)
   ax.tick_params(labelsize=8)
   
   #ax.set_xticks(x)
   #ax.set_xticklabels(x)
-  ax.set_xlabel("CDF", fontsize=12)
+  ax.set_xlabel("CDF", fontsize=10)
 
   fig.savefig('plots/cdf%s.pdf'%(filename), format='pdf', bbox_inches='tight', pad_inches=0)
 
@@ -112,7 +112,7 @@ def main():
             all_res[mac] = {}
           if not m in all_res[mac]:
             all_res[mac][m] = {'data': []}
-            print mac
+            print mac, stats['global']['perNodeMin'], stats['global']['perNodeMax']
           all_res[mac][m]['data'].append({'dir': dir, 'stats': stats})
 
       
