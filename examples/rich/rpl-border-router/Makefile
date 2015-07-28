@@ -13,7 +13,7 @@ CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
 PROJECT_SOURCEFILES += slip-bridge.c slip.c
 
 PROJECTDIRS += .. ../tools
-PROJECT_SOURCEFILES += rich.c #rich-scheduler-interface.c 
+PROJECT_SOURCEFILES += rich.c rich-scheduler-interface_iii.c 
 
 CFLAGS += -DWITH_COAP
 CFLAGS += -DREST=coap_rest_implementation

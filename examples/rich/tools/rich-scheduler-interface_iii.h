@@ -28,15 +28,10 @@
  *
  */
 /**
+ * \file
+ *         RICH CoAP scheduler interface (header file)
+ *
  * \author Simon Duquennoy <simonduq@sics.se>
  */
 
-#ifndef __PROJECT_CONF_H__
-#define __PROJECT_CONF_H__
-
-#include "../common-conf.h"
-
-#undef UART_BAUD_RATE
-#define UART_BAUD_RATE UART_RATE_19200
-
-#endif /* __PROJECT_CONF_H__ */
+void rich_scheduler_interface_init();

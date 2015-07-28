@@ -2,27 +2,13 @@
 #include "net/ip/uip.h"
 #include "rich.h"
 #include "rest-engine.h"
-#include "light-sensor.h"
-#include "ht-sensor.h"
 #include <stdio.h>
 #include <LightingBoard.h>
 #include <pca9634.h>
+#include "net/ipv6/uip-ds6-route.h"
 
-static void event_rpl_tree_handler(void);
-static void get_rpl_tree_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
-
-
-static void event_sensors_dr1175_handler(void);
-static void get_sensors_dr1175_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
-static void get_light_sensor_value_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
-static void get_light_sensor_unit_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
-static void get_temperature_value_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
-static void get_temperature_unit_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
-static void get_humidity_value_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
-static void get_humidity_unit_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
-static void put_post_white_led_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
-static void put_post_rgb_led_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
-static void put_post_scale_rgb_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
+static void event_rpl_dodag_handler(void);
+static void get_rpl_dodag_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
 
 static char content[REST_MAX_CHUNK_SIZE];
 static int content_len = 0;
@@ -32,327 +18,175 @@ static int content_len = 0;
 #define CLIP(value, level) if (value > level) { \
                               value = level;    \
                            }                
-/*---------------------------------------------------------------------------*/
-PROCESS(start_app, "START_APP");
-AUTOSTART_PROCESSES(&start_app, &sensors_process);
+/*********** RICH scheduler resources ****************************************/
 
-/*---------------------------------------------------------------------------*/
-
-/*********** RICH sensor/ resource *************************************************/
-
-/*******************************************************************/
-/* Observable resource and event handler to obtain all sensor data */ 
-/*******************************************************************/
-EVENT_RESOURCE(resource_rpl_tree,                          /* name */
-               "obs;title=\"RPL Parent and Children\"",    /* attributes */
-               get_rpl_tree_handler,                       /* GET handler */
-               NULL,                                       /* POST handler */
-               NULL,                                       /* PUT handler */
-               NULL,                                       /* DELETE handler */
-               event_rpl_tree_handler);                    /* event handler */
-static void
-get_rpl_tree_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
-{
-  unsigned int accept = -1;
-  REST.get_header_accept(request, &accept);
-  if(accept == -1 || accept == REST.type.APPLICATION_JSON) {
-    content_len = 0;
-    CONTENT_PRINTF("{\"DR1175\":[");
-    CONTENT_PRINTF("{\"Humidity\":\"%d\"},", ht_sensor.value(HT_SENSOR_HUM));
-    CONTENT_PRINTF("{\"Light\":\"%d\"},", light_sensor.value(0));
-    CONTENT_PRINTF("{\"Temp\":\"%d\"}", ht_sensor.value(HT_SENSOR_TEMP));
-    CONTENT_PRINTF("]}");
-    REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
-    REST.set_response_payload(response, (uint8_t *)content, content_len);
-  }
-} 
+/***************************************************************************/
+/* Observable dodag resource and event handler to obtain all neighbor data */ 
+/***************************************************************************/
+EVENT_RESOURCE(resource_rpl_dodag,								/* name */
+               "obs;title=\"RPL DoDAG Parent and Children\"",	/* attributes */
+               get_rpl_dodag_handler,							/* GET handler */
+               NULL,											/* POST handler */
+               NULL,											/* PUT handler */
+               NULL,											/* DELETE handler */
+               event_rpl_dodag_handler);						/* event handler */
 
 static void
-event_sensors_dr1175_handler()
+get_rpl_dodag_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
-  /* Registered observers are notified and will trigger the GET handler to create the response. */
-  REST.notify_subscribers(&resource_sensors_dr1175);
+	unsigned int accept = -1;
+	REST.get_header_accept(request, &accept);
+	if(accept == -1 || accept == REST.type.APPLICATION_JSON) {
+		content_len = 0;
+		CONTENT_PRINTF("\"parents\",\"children\"");
+		REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
+		REST.set_response_payload(response, (uint8_t *)content, content_len);
+	}
 }
 
-/*****************************************************/
-/* Resource and handler to obtain light sensor value */ 
-/*****************************************************/
-RESOURCE(resource_light_sensor_value,
-         "title=\"light sensor value\"",
-         get_light_sensor_value_handler,
-         NULL,
-         NULL,
-         NULL);
 static void
-get_light_sensor_value_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
+event_rpl_dodag_handler()
 {
-  unsigned int accept = -1;
-  REST.get_header_accept(request, &accept);
-  if(accept == -1 || accept == REST.type.TEXT_PLAIN) {
-    content_len = 0;
-    CONTENT_PRINTF("%d", light_sensor.value(0));
-    REST.set_header_content_type(response, REST.type.TEXT_PLAIN);
-    REST.set_response_payload(response, (uint8_t *)content, content_len);
-  }
+	/* Registered observers are notified and will trigger the GET handler to create the response. */
+	REST.notify_subscribers(&resource_rpl_dodag);
 }
 
-/***************************************************/
-/* Resource and handler to obtain light unit value */ 
-/***************************************************/
-RESOURCE(resource_light_sensor_unit, 
-         "title=\"light sensor unit\"",
-         get_light_sensor_unit_handler,
-         NULL,
-         NULL,
-         NULL);
-static void
-get_light_sensor_unit_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
-{
-  unsigned int accept = -1;
-  REST.get_header_accept(request, &accept);
-  if(accept == -1 || accept == REST.type.TEXT_PLAIN) {
-    content_len = 0;
-    CONTENT_PRINTF("Lux");
-    REST.set_header_content_type(response, REST.type.TEXT_PLAIN);
-    REST.set_response_payload(response, (uint8_t *)content, content_len);
-  }
-}
+/* Wait for 30s without activity before notifying subscribers */
+static struct ctimer route_changed_timer;
 
-/***********************************************************/
-/* Resource and handler to obtain temperature sensor value */ 
-/***********************************************************/
-RESOURCE(resource_temperature_value,
-         "title=\"temperature value\"",
-         get_temperature_value_handler,
-         NULL,
-         NULL,
-         NULL);
 static void
-get_temperature_value_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
+route_changed_callback(int event, uip_ipaddr_t *route, uip_ipaddr_t *ipaddr, int num_routes)
 {
-  unsigned int accept = -1;
-  REST.get_header_accept(request, &accept);
-  if(accept == -1 || accept == REST.type.TEXT_PLAIN) {
-    content_len = 0;
-    CONTENT_PRINTF("%d", ht_sensor.value(HT_SENSOR_TEMP));
-    REST.set_header_content_type(response, REST.type.TEXT_PLAIN);
-    REST.set_response_payload(response, (uint8_t *)content, content_len);
-  }
-}
-
-/*********************************************************/
-/* Resource and handler to obtain temperature unit value */ 
-/*********************************************************/
-RESOURCE(resource_temperature_unit, 
-         "title=\"temperature unit\"",
-         get_temperature_unit_handler,
-         NULL,
-         NULL,
-         NULL);
-static void
-get_temperature_unit_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
-{
-  unsigned int accept = -1;
-  REST.get_header_accept(request, &accept);
-  if(accept == -1 || accept == REST.type.TEXT_PLAIN) {
-    content_len = 0;
-    CONTENT_PRINTF("degrees C");
-    REST.set_header_content_type(response, REST.type.TEXT_PLAIN);
-    REST.set_response_payload(response, (uint8_t *)content, content_len);
-  }
-}
-
-/********************************************************/
-/* Resource and handler to obtain humidity sensor value */ 
-/********************************************************/
-RESOURCE(resource_humidity_value,
-         "title=\"humidity value\"",
-         get_humidity_value_handler,
-         NULL,
-         NULL,
-         NULL);
-static void
-get_humidity_value_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
-{
-  unsigned int accept = -1;
-  REST.get_header_accept(request, &accept);
-  if(accept == -1 || accept == REST.type.TEXT_PLAIN) {
-    content_len = 0;
-    CONTENT_PRINTF("%d", ht_sensor.value(HT_SENSOR_HUM));
-    REST.set_header_content_type(response, REST.type.TEXT_PLAIN);
-    REST.set_response_payload(response, (uint8_t *)content, content_len);
-  }
-}
-
-/******************************************************/
-/* Resource and handler to obtain humidity unit value */ 
-/******************************************************/
-RESOURCE(resource_humidity_unit, 
-         "title=\"humidity unit\"",
-         get_humidity_unit_handler,
-         NULL,
-         NULL,
-         NULL);
-static void
-get_humidity_unit_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
-{
-  unsigned int accept = -1;
-  REST.get_header_accept(request, &accept);
-  if(accept == -1 || accept == REST.type.TEXT_PLAIN) {
-    content_len = 0;
-    CONTENT_PRINTF("relative %%");
-    REST.set_header_content_type(response, REST.type.TEXT_PLAIN);
-    REST.set_response_payload(response, (uint8_t *)content, content_len);
-  }
-}
-
-/***************************************************/
-/* Resource and handler to control White LED level */ 
-/***************************************************/
-RESOURCE(resource_white_led, 
-         "title=\"WhiteLED <[0..255]>\"",
-         NULL,
-         put_post_white_led_handler,
-         put_post_white_led_handler,
-         NULL);
-static void
-put_post_white_led_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
-{
-  const uint8_t *request_content = NULL;
-  int request_content_len;
-  int level;
- 
-  unsigned int accept = -1;
-  REST.get_header_accept(request, &accept);
-  if(accept == -1 || accept == REST.type.TEXT_PLAIN) {
-    request_content_len = REST.get_request_payload(request, &request_content);
-    level = atoi((const char *)request_content);
-    CLIP(level, 255)
-    if (level > 255)
-    {
-      level = 255;
-    }
-    bWhite_LED_SetLevel(level);
-    bWhite_LED_On();
-  }
-}
-
-/*************************************************/
-/* Resource and handler to control RGB LED level */ 
-/*************************************************/
-RESOURCE(resource_rgb_led, 
-         "title=\"RGB LED <[0..255] [0..255] [0..255]>\"",
-         NULL,
-         put_post_rgb_led_handler,
-         put_post_rgb_led_handler,
-         NULL);
-static void
-put_post_rgb_led_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
-{
-  const uint8_t *request_content = NULL;
-  int request_content_len;
-  char * pch;
-  int RGB[] = {0,0,0};
-  int index = 0;
- 
-  unsigned int accept = -1;
-  REST.get_header_accept(request, &accept);
-  if(accept == -1 || accept == REST.type.TEXT_PLAIN) {
-    request_content_len = REST.get_request_payload(request, &request_content);
-    pch = strtok((char *)request_content, " ");
-    while((pch != NULL) && (index != sizeof(RGB)/sizeof(int)))
-    {
-      /* Convert token to int */
-      RGB[index] = atoi(pch);
-      CLIP(RGB[index], 255) 
-      index++;
-      /* Get next token */
-      pch = strtok(NULL, " ");
-    }
-    bRGB_LED_SetLevel(RGB[0],RGB[1],RGB[2]);
-    bRGB_LED_On();
-  }
-}
-
-/***************************************************/
-/* Resource and handler to control RGB LED scaling */ 
-/***************************************************/
-RESOURCE(resource_scale_rgb, 
-         "title=\"Scale RGB <[0..255]>\"",
-         NULL,
-         put_post_scale_rgb_handler,
-         put_post_scale_rgb_handler,
-         NULL);
-static void
-put_post_scale_rgb_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
-{
-  const uint8_t *request_content = NULL;
-  int request_content_len;
-  int level;
- 
-  unsigned int accept = -1;
-  REST.get_header_accept(request, &accept);
-  if(accept == -1 || accept == REST.type.TEXT_PLAIN) {
-    request_content_len = REST.get_request_payload(request, &request_content);
-    level = atoi((const char *)request_content);
-    CLIP(level,255)
-    bRGB_LED_SetGroupLevel(level);
-    bRGB_LED_On();
+  /* We have added or removed a routing entry, notify subscribers */
+  if(event == UIP_DS6_NOTIFICATION_ROUTE_ADD
+      || event == UIP_DS6_NOTIFICATION_ROUTE_RM) {
+    printf("RICH: setting route_changed callback with 30s delay\n");
+    ctimer_set(&route_changed_timer, 30*CLOCK_SECOND,
+        event_rpl_dodag_handler, NULL);
   }
 }
 
 /*---------------------------------------------------------------------------*/
-PROCESS_THREAD(start_app, ev, data)
+PROCESS_THREAD(ischeduler, ev, data)
 {
-  PROCESS_BEGIN();
-
-  static int is_coordinator = 0;
-  //is_coordinator = node_id == 1;
+	PROCESS_BEGIN();
+	
+	static struct uip_ds6_notification n; 										// Initialize a notification to trigger a callback when a RPL route changes
+	static int is_coordinator = 0;
+	//is_coordinator = node_id == 1;
   
-  /* White LED initialisation */
-  bWhite_LED_Enable();
-  bWhite_LED_SetLevel(0);
-  bWhite_LED_On();
+	/* Start RICH stack */
+	if(is_coordinator) {
+		uip_ipaddr_t prefix;
+		uip_ip6addr(&prefix, 0xaaaa, 0, 0, 0, 0, 0, 0, 0);
+		rich_init(&prefix);
+	} else {
+		rich_init(NULL);
+	}
 
-  /* Coloured LED initialisation */ 
-  bRGB_LED_Enable();
-  bRGB_LED_SetGroupLevel(255);
-  bRGB_LED_SetLevel(0,0,0);
-  bRGB_LED_On();
+	printf("Starting RPL node\n");
 
-  /* Make sensor active for measuring */
-  SENSORS_ACTIVATE(light_sensor);
-  SENSORS_ACTIVATE(ht_sensor);
+	rest_init_engine();
+	rest_activate_resource(&resource_rpl_dodag,  "rpl/dodag");
   
-  /* Start RICH stack */
-  if(is_coordinator) {
-    uip_ipaddr_t prefix;
-    uip_ip6addr(&prefix, 0xaaaa, 0, 0, 0, 0, 0, 0, 0);
-    rich_init(&prefix);
-  } else {
-    rich_init(NULL);
-  }
-  printf("Starting RPL node\n");
+	PROCESS_END();
+}
 
+/*********** Init *************************************************/
+
+void
+rich_scheduler_interface_init()
+{
+  static struct uip_ds6_notification n;
   rest_init_engine();
-  rest_activate_resource(&resource_light_sensor_value,  "DR1175/LightSensor/Value");
-  rest_activate_resource(&resource_light_sensor_unit,   "DR1175/LightSensor/Unit");
-  rest_activate_resource(&resource_temperature_unit,    "DR1175/Temperature/Unit");
-  rest_activate_resource(&resource_temperature_value,   "DR1175/Temperature/Value");
-  rest_activate_resource(&resource_humidity_unit,       "DR1175/Humidity/Unit");
-  rest_activate_resource(&resource_humidity_value,      "DR1175/Humidity/Value");
-  rest_activate_resource(&resource_white_led,           "DR1175/WhiteLED");
-  rest_activate_resource(&resource_rgb_led,             "DR1175/ColorLED/RGBValue");
-  rest_activate_resource(&resource_scale_rgb,           "DR1175/ColorLED/ScaleRGB");
-  rest_activate_resource(&resource_sensors_dr1175,      "DR1175/AllSensors");
-
-  /* If sensor process generates an event, call event_handler of resource.
-     This will make this resource observable by the client */ 
-  while(1) {
-    PROCESS_WAIT_EVENT_UNTIL( (ev == sensors_event) && 
-                              ((data == &light_sensor)|| (data == &ht_sensor)) );
-    event_sensors_dr1175_handler();
-  }
-
-  PROCESS_END();
+  rest_activate_resource(&resource_rpl_dodag, "rpl/dodag");
+  /* A callback for routing table changes */
+  uip_ds6_notification_add(&n, route_changed_callback);
+  //process_start(&ischeduler, NULL);
+  printf("RICH: initializing scheduler interface\n");
 }
+
+/*
+//create the response itself
+void
+dodaglist_create_response(coap_packet_t* response)
+{
+	content_len = 0;
+
+	/*
+	* first the parent and than the children list
+	*
+	
+
+	int size;
+	//array that holds pointers to the addresses in the list
+	rimeaddr_t* neighboraddrs[32];
+	//variables used later
+	uip_ds6_route_t *r;
+	int first_item = 1;
+	uip_ipaddr_t *last_next_hop = NULL;
+	uip_ipaddr_t *curr_next_hop = NULL;
+
+	
+	CONTENT_PRINTF("[");//dodag  begin
+
+	//parent begin
+
+	//get the list and size of list
+	size = tsch_get_neighboraddrs(&neighboraddrs);
+	/* 
+	*  Parent is always in the third element of the list
+	*  First two elements are always 0 and 255
+	*  If there are only two elements than this node is the rpl-border-router as it has no parents
+	*  otherwise return the third element
+	*  Sometimes there is an random fourth element, this is probably due to being in the process of switching
+	*  Or queue list (Dimitris is looking into this)
+	*
+	
+	//because coap apparently fucks up the sending of single string, this is done in a one item list
+	if (size == 2)
+	{
+		CONTENT_PRINTF("[\"Border-Router\"]");
+	}
+	else
+	{
+		//because the printf prints 00 as 0 add a zero here
+		//this printing is in RiSCH ip format
+		CONTENT_PRINTF("[\"aaaa::2%x:%x%x0:%x:%x%x\"]",	neighboraddrs[2]->u8[1], 
+											neighboraddrs[2]->u8[2],
+											neighboraddrs[2]->u8[4],
+											neighboraddrs[2]->u8[5],
+											neighboraddrs[2]->u8[6],
+											neighboraddrs[2]->u8[7]);
+	}
+
+	CONTENT_PRINTF(",");//parent end
+
+	CONTENT_PRINTF("[");//child begin
+	for (r = uip_ds6_route_head();
+		r != NULL;
+		r = uip_ds6_route_next(r)) {
+
+		/* We rely on the fact that routes are ordered by next hop.
+		* Loop over all loops and print every next hop exactly once. *
+		curr_next_hop = uip_ds6_route_nexthop(r);
+		if (curr_next_hop != last_next_hop) {
+			if (!first_item) {
+				CONTENT_PRINTF(",");
+			}
+			first_item = 0;
+			CONTENT_PRINTF("\"%x:%x:%x:%x\"",
+				UIP_HTONS(curr_next_hop->u16[4]), UIP_HTONS(curr_next_hop->u16[5]),
+				UIP_HTONS(curr_next_hop->u16[6]), UIP_HTONS(curr_next_hop->u16[7])
+				);
+			last_next_hop = curr_next_hop;
+		}
+	}
+	CONTENT_PRINTF("]");//child end
+
+	CONTENT_PRINTF("]");//dodag end
+
+	coap_set_header_content_type(response, REST.type.APPLICATION_JSON);
+	coap_set_payload(response, content, content_len);
+}
+*/

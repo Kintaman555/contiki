@@ -46,7 +46,7 @@
 #include "uart-driver.h"
 
 /* Valid range for TXBUFSIZE and RXBUFSIZE: 16-2047 */
-#define RXBUFSIZE 2047
+#define RXBUFSIZE 63
 #if UART_XONXOFF_FLOW_CTRL
 #define TXBUFSIZE 16
 #else

@@ -36,7 +36,7 @@
 
 /* Global config flags */
 
-#define WITH_COAP_RESOURCES 0
+#define WITH_COAP_RESOURCES 1
 #define WITH_TSCH 1
 
 #if WITH_COAP_RESOURCES
