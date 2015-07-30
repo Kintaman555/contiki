@@ -20,3 +20,8 @@ all: $(CONTIKI_PROJECT)
 
 CONTIKI=../../..
 include $(CONTIKI)/Makefile.include
+
+#using XON/XOFF flow control
+connect-router-sw:	$(CONTIKI)/tools/tunslip6
+	sudo $(CONTIKI)/tools/tunslip6 -v1 -X -B 1000000 $(PREFIX)
+	

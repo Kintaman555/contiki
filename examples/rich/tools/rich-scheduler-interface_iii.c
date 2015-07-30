@@ -3,13 +3,11 @@
 #include "rich.h"
 #include "rest-engine.h"
 #include <stdio.h>
-#include <LightingBoard.h>
-#include <pca9634.h>
 #include "net/ipv6/uip-ds6-route.h"
 #include "net/rpl/rpl.h"
 
-static void event_rpl_dodag_handler(void);
-static void get_rpl_dodag_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
+static void plexi_dag_event_handler(void);
+static void plexi_get_dag_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
 
 static char content[REST_MAX_CHUNK_SIZE];
 static int content_len = 0;
@@ -24,33 +22,79 @@ static int content_len = 0;
 /***************************************************************************/
 /* Observable dodag resource and event handler to obtain all neighbor data */ 
 /***************************************************************************/
-EVENT_RESOURCE(resource_rpl_dodag,								/* name */
-               "obs;title=\"RPL DoDAG Parent and Children\"",	/* attributes */
-               get_rpl_dodag_handler,							/* GET handler */
+EVENT_RESOURCE(resource_rpl_dag,								/* name */
+               "obs;title=\"RPL DAG Parent and Children\"",	/* attributes */
+               plexi_get_dag_handler,							/* GET handler */
                NULL,											/* POST handler */
                NULL,											/* PUT handler */
                NULL,											/* DELETE handler */
-               event_rpl_dodag_handler);						/* event handler */
+               plexi_dag_event_handler);						/* event handler */
 
 static void
-get_rpl_dodag_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
+plexi_get_dag_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
 	unsigned int accept = -1;
 	REST.get_header_accept(request, &accept);
 	if(accept == -1 || accept == REST.type.APPLICATION_JSON) {
 		content_len = 0;
-		CONTENT_PRINTF("\"parents\",\"children\"");
-		rpl_print_neighbor_list();
+		// TODO: get details per dag id
+		rpl_instance_t *default_instance = rpl_get_instance(RPL_DEFAULT_INSTANCE);
+		CONTENT_PRINTF("[[");
+		if(default_instance != NULL && default_instance->current_dag != NULL && default_instance->of != NULL && default_instance->of->calculate_rank != NULL) {
+			rpl_parent_t *p = nbr_table_head(rpl_parents);
+			int nbr_lst_size = uip_ds6_nbr_num();
+			int j = 0;
+			if(p == NULL) {
+				CONTENT_PRINTF("]");
+			} else {
+				while(p != NULL) {
+					uip_ds6_nbr_t *nbr = rpl_get_nbr(p);
+					CONTENT_PRINTF("\"2%x:%x%x%x:%x:%x%x\"",
+						UIP_HTONS(nbr_table_get_lladdr(rpl_parents, p)->u8[1]), UIP_HTONS(nbr_table_get_lladdr(rpl_parents, p)->u8[2]),
+						UIP_HTONS(nbr_table_get_lladdr(rpl_parents, p)->u8[3]), UIP_HTONS(nbr_table_get_lladdr(rpl_parents, p)->u8[4]),
+						UIP_HTONS(nbr_table_get_lladdr(rpl_parents, p)->u8[5]), UIP_HTONS(nbr_table_get_lladdr(rpl_parents, p)->u8[6]),
+						UIP_HTONS(nbr_table_get_lladdr(rpl_parents, p)->u8[7])
+					);
+					p = nbr_table_next(rpl_parents, p);
+					if(p != NULL) {
+						CONTENT_PRINTF(",");
+					}
+				}
+				CONTENT_PRINTF("]");
+			}
+		}
+		CONTENT_PRINTF(",[");
+		
+		uip_ds6_route_t *r;
+		int first_item = 1;
+		uip_ipaddr_t *last_next_hop = NULL;
+		uip_ipaddr_t *curr_next_hop = NULL;
+		for (r = uip_ds6_route_head(); r != NULL; r = uip_ds6_route_next(r)) {
+			curr_next_hop = uip_ds6_route_nexthop(r);
+			if (curr_next_hop != last_next_hop) {
+				if (!first_item) {
+					CONTENT_PRINTF(",");
+				}
+				first_item = 0;
+				CONTENT_PRINTF("\"%x:%x:%x:%x\"",
+					UIP_HTONS(curr_next_hop->u16[4]), UIP_HTONS(curr_next_hop->u16[5]),
+					UIP_HTONS(curr_next_hop->u16[6]), UIP_HTONS(curr_next_hop->u16[7])
+				);
+				last_next_hop = curr_next_hop;
+			}
+		}
+		CONTENT_PRINTF("]]");
+
 		REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
 		REST.set_response_payload(response, (uint8_t *)content, content_len);
 	}
 }
 
 static void
-event_rpl_dodag_handler()
+plexi_dag_event_handler()
 {
 	/* Registered observers are notified and will trigger the GET handler to create the response. */
-	REST.notify_subscribers(&resource_rpl_dodag);
+	REST.notify_subscribers(&resource_rpl_dag);
 }
 
 /* Wait for 30s without activity before notifying subscribers */
@@ -60,12 +104,10 @@ static void
 route_changed_callback(int event, uip_ipaddr_t *route, uip_ipaddr_t *ipaddr, int num_routes)
 {
   /* We have added or removed a routing entry, notify subscribers */
-  if(event == UIP_DS6_NOTIFICATION_ROUTE_ADD
-      || event == UIP_DS6_NOTIFICATION_ROUTE_RM) {
-    printf("RICH: setting route_changed callback with 30s delay\n");
-    ctimer_set(&route_changed_timer, 30*CLOCK_SECOND,
-        event_rpl_dodag_handler, NULL);
-  }
+	if(event == UIP_DS6_NOTIFICATION_ROUTE_ADD || event == UIP_DS6_NOTIFICATION_ROUTE_RM) {
+		printf("PLEXI: setting route_changed callback with 30s delay\n");
+		ctimer_set(&route_changed_timer, 30*CLOCK_SECOND, (void(*)(void *))plexi_dag_event_handler, NULL);
+	}
 }
 
 /*---------------------------------------------------------------------------*/
@@ -89,7 +131,7 @@ PROCESS_THREAD(ischeduler, ev, data)
 	printf("Starting RPL node\n");
 
 	rest_init_engine();
-	rest_activate_resource(&resource_rpl_dodag,  "rpl/dodag");
+	rest_activate_resource(&resource_rpl_dag,  "rpl/dag");
   
 	PROCESS_END();
 }
@@ -101,94 +143,9 @@ rich_scheduler_interface_init()
 {
   static struct uip_ds6_notification n;
   rest_init_engine();
-  rest_activate_resource(&resource_rpl_dodag, "rpl/dodag");
+  rest_activate_resource(&resource_rpl_dag, "rpl/dag");
   /* A callback for routing table changes */
   uip_ds6_notification_add(&n, route_changed_callback);
   //process_start(&ischeduler, NULL);
-  printf("RICH: initializing scheduler interface\n");
+  printf("PLEXI: initializing scheduler interface\n");
 }
-
-/*
-//create the response itself
-void
-dodaglist_create_response(coap_packet_t* response)
-{
-	content_len = 0;
-
-	/*
-	* first the parent and than the children list
-	*
-	
-
-	int size;
-	//array that holds pointers to the addresses in the list
-	rimeaddr_t* neighboraddrs[32];
-	//variables used later
-	uip_ds6_route_t *r;
-	int first_item = 1;
-	uip_ipaddr_t *last_next_hop = NULL;
-	uip_ipaddr_t *curr_next_hop = NULL;
-
-	
-	CONTENT_PRINTF("[");//dodag  begin
-
-	//parent begin
-
-	//get the list and size of list
-	size = tsch_get_neighboraddrs(&neighboraddrs);
-	/* 
-	*  Parent is always in the third element of the list
-	*  First two elements are always 0 and 255
-	*  If there are only two elements than this node is the rpl-border-router as it has no parents
-	*  otherwise return the third element
-	*  Sometimes there is an random fourth element, this is probably due to being in the process of switching
-	*  Or queue list (Dimitris is looking into this)
-	*
-	
-	//because coap apparently fucks up the sending of single string, this is done in a one item list
-	if (size == 2)
-	{
-		CONTENT_PRINTF("[\"Border-Router\"]");
-	}
-	else
-	{
-		//because the printf prints 00 as 0 add a zero here
-		//this printing is in RiSCH ip format
-		CONTENT_PRINTF("[\"aaaa::2%x:%x%x0:%x:%x%x\"]",	neighboraddrs[2]->u8[1], 
-											neighboraddrs[2]->u8[2],
-											neighboraddrs[2]->u8[4],
-											neighboraddrs[2]->u8[5],
-											neighboraddrs[2]->u8[6],
-											neighboraddrs[2]->u8[7]);
-	}
-
-	CONTENT_PRINTF(",");//parent end
-
-	CONTENT_PRINTF("[");//child begin
-	for (r = uip_ds6_route_head();
-		r != NULL;
-		r = uip_ds6_route_next(r)) {
-
-		/* We rely on the fact that routes are ordered by next hop.
-		* Loop over all loops and print every next hop exactly once. *
-		curr_next_hop = uip_ds6_route_nexthop(r);
-		if (curr_next_hop != last_next_hop) {
-			if (!first_item) {
-				CONTENT_PRINTF(",");
-			}
-			first_item = 0;
-			CONTENT_PRINTF("\"%x:%x:%x:%x\"",
-				UIP_HTONS(curr_next_hop->u16[4]), UIP_HTONS(curr_next_hop->u16[5]),
-				UIP_HTONS(curr_next_hop->u16[6]), UIP_HTONS(curr_next_hop->u16[7])
-				);
-			last_next_hop = curr_next_hop;
-		}
-	}
-	CONTENT_PRINTF("]");//child end
-
-	CONTENT_PRINTF("]");//dodag end
-
-	coap_set_header_content_type(response, REST.type.APPLICATION_JSON);
-	coap_set_payload(response, content, content_len);
-}
-*/
