@@ -38,8 +38,20 @@ plexi_get_dag_handler(void *request, void *response, uint8_t *buffer, uint16_t p
 	if(accept == -1 || accept == REST.type.APPLICATION_JSON) {
 		content_len = 0;
 		// TODO: get details per dag id
+		CONTENT_PRINTF("[");
+		rpl_parent_t *parent = rpl_get_any_dag()->preferred_parent;
+		if(parent != NULL) {
+			uip_ipaddr_t *parent_addr = rpl_get_parent_ipaddr(parent);
+			CONTENT_PRINTF("[\"%x:%x:%x:%x\"]",
+				UIP_HTONS(parent_addr->u16[4]), UIP_HTONS(parent_addr->u16[5]),
+				UIP_HTONS(parent_addr->u16[6]), UIP_HTONS(parent_addr->u16[7])
+			);
+		} else {
+			CONTENT_PRINTF("[]");
+		}
+		
+		/*
 		rpl_instance_t *default_instance = rpl_get_instance(RPL_DEFAULT_INSTANCE);
-		CONTENT_PRINTF("[[");
 		if(default_instance != NULL && default_instance->current_dag != NULL && default_instance->of != NULL && default_instance->of->calculate_rank != NULL) {
 			rpl_parent_t *p = nbr_table_head(rpl_parents);
 			int nbr_lst_size = uip_ds6_nbr_num();
@@ -63,6 +75,7 @@ plexi_get_dag_handler(void *request, void *response, uint8_t *buffer, uint16_t p
 				CONTENT_PRINTF("]");
 			}
 		}
+		*/
 		CONTENT_PRINTF(",[");
 		
 		uip_ds6_route_t *r;
