@@ -252,6 +252,25 @@ RESOURCE(resource_slotframe, 					/* name */
 		NULL,									/*PUT handler*/
 		plexi_delete_slotframe_handler);		/*DELETE handler*/ 
  
+/* When used without a subresource (e.g. 6top/slotFrame), returns the handles of 
+ * installed slotframes in the following JSON format:
+ *	[
+ *		handle_1, 
+ *		handle_2, 
+ *		..., 
+ *		handle_n
+ *	]
+ *	
+ * When used with a subresource	(e.g 6top/slotFrame/handle_value), returns the number of slots
+ * installed and the IDs of the cells that are installed in this slotframe in the following JSON format:
+ *  [
+ *		number_of_slots,
+ *		cell_id_1,
+ *		cell_id_2,
+ *		...,
+ *		cell_id_n
+ *  ]
+*/  
 void
 plexi_get_slotframe_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
@@ -300,7 +319,7 @@ plexi_get_slotframe_handler(void* request, void* response, uint8_t *buffer, uint
 	  struct tsch_slotframe *sf = tsch_schedule_get_slotframe_from_handle(fd);
       
 	  CONTENT_PRINTF("[");
-	  CONTENT_PRINTF("{\"ns\":%u},", sf->size.val);
+	  CONTENT_PRINTF("%u,", sf->size.val);
 	  
 	  for (d = 0; d<length; d++) {
 	    if (d == length - 1){
@@ -318,6 +337,34 @@ plexi_get_slotframe_handler(void* request, void* response, uint8_t *buffer, uint
   REST.set_response_payload(response, (uint8_t *)content, content_len);	
 }
 
+/**
+ *  Installs the slotframe with the provided amount of slots in the payload.
+ *  
+ *  Usage 1: If a slotframe handle is not provided, an unused handle is automatically
+ *  assigned to the slotframe and reported back.
+ *  
+ *  Payload, JSON:
+ *  [
+ *  	number_of_slots
+ *  ] 
+ * 	Response, JSON:
+ *  [
+ *  	handle_value
+ *  ]
+ *  
+ *  Usage 2: If a slotframe handle is provided, then it is assigned to the installed slotframe
+ *  and reported back for confirmation.
+ *  
+ *  Payload, JSON:
+ *  [
+ *  	number_of_slots,
+ *  	handle_value
+ *  ]
+ *  Response, JSON:
+ *  [
+ *  	handle_value
+ *  ]
+ */
 void 
 plexi_post_slotframe_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset) 
 {
@@ -331,6 +378,8 @@ plexi_post_slotframe_handler(void* request, void* response, uint8_t *buffer, uin
   char field_buf[32] = "";
   int new_sf_count = 0; /* The number of newly added slotframes */
   int ns = 0; /* number of slots */
+  int fd; /* slotframeID (handle) */
+  int fd_flag = 0; /*A flag to see if a custom handle is provided*/
   /* Add new slotframe */
   
   unsigned int accept = -1;
@@ -352,33 +401,42 @@ plexi_post_slotframe_handler(void* request, void* response, uint8_t *buffer, uin
 			ns = 0;
 			break;
 		  case ']': { /* End of current element */
-			int fd; /* slotframeID (handle) */
-			fd = get_next_fd();
-	
+			if(!fd_flag) {
+				fd = get_next_fd();
+			}
+			
 			/* Add slotframe */
 			if(fd != -1 && tsch_schedule_add_slotframe(fd, ns)) {
 			new_sf_count++;
 			PRINTF("PLEXI: added slotframe %u with length %u\n", fd, ns);
 	
 			/* Update response */
-			if(!first_item) {
+			/*if(!first_item) {
 				CONTENT_PRINTF(",");
-			}
-			first_item = 0;
+			}*/
+			//first_item = 0;
 			CONTENT_PRINTF("%u", fd);
 			} else {
 				PRINTF("PLEXI:! could not add slotframe %u with length %u\n", fd, ns);
 			}
 			break;
 		}
-		  case JSON_TYPE_NUMBER: //Try to remove the if statement and change { to [ on line 601.
+		  case JSON_TYPE_NUMBER: 
+			//int fd; /* slotframeID (handle) */
 		//if(!strncmp(field_buf, "ns", sizeof(field_buf))) {
-			ns = jsonparse_get_value_as_int(&js);
+			if(first_item){
+				ns = jsonparse_get_value_as_int(&js);
+				first_item = 0;
+			}
+			else{
+			fd = jsonparse_get_value_as_int(&js);
+			fd_flag = 1;
+			}
+			
 		//}
 		    break;
 		}
 	}
-	
 	/* Check if json parsing succeeded */
 	if(js.error == JSON_ERROR_OK) {
 		if(new_sf_count >= 1) {
