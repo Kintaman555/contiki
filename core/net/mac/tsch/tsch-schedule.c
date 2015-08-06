@@ -222,6 +222,24 @@ tsch_schedule_get_slotframe_links(int *handles, uint16_t subresource)
 	}
 }
 
+struct tsch_slotframe* tsch_schedule_get_next_slotframe(struct tsch_slotframe* previous) {
+	if(tsch_is_locked()) return NULL;
+	if(previous == NULL) {
+		return list_head(slotframe_list);
+	} else {
+		return list_item_next(previous);
+	}
+}
+
+struct tsch_link* tsch_schedule_get_next_link_of(struct tsch_slotframe* slotframe, struct tsch_link* previous) {
+	if(tsch_is_locked()) return NULL;
+	if(previous == NULL) {
+		return  list_head(slotframe->links_list);
+	} else {
+		return list_item_next(previous);
+	}
+}
+
 /* Adds a link to a slotframe, return a pointer to it (NULL if failure) */
 struct tsch_link *
 tsch_schedule_add_link(struct tsch_slotframe *slotframe,
