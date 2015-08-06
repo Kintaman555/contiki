@@ -224,6 +224,25 @@ PARENT_RESOURCE(resource_6top_slotframe,		/* name */
 		NULL,									/*PUT handler*/
 		plexi_delete_slotframe_handler);		/*DELETE handler*/ 
  
+/* When used without a subresource (e.g. 6top/slotFrame), returns the handles of 
+ * installed slotframes in the following JSON format:
+ *	[
+ *		handle_1, 
+ *		handle_2, 
+ *		..., 
+ *		handle_n
+ *	]
+ *	
+ * When used with a subresource	(e.g 6top/slotFrame/handle_value), returns the number of slots
+ * installed and the IDs of the cells that are installed in this slotframe in the following JSON format:
+ *  [
+ *		number_of_slots,
+ *		cell_id_1,
+ *		cell_id_2,
+ *		...,
+ *		cell_id_n
+ *  ]
+*/ 
 static void plexi_get_slotframe_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset) {
 	content_len = 0;
 
@@ -233,8 +252,8 @@ static void plexi_get_slotframe_handler(void* request, void* response, uint8_t *
 	int base_len = strlen(resource_6top_slotframe.url);
 	
 	int c = 0;
-	int d = 0;  
-  
+	int d = 0;
+
 	if (uri_len == base_len){
 		/*An array is created for the slotframe handles, it is passed to the function retrieving them*/
 		int handles_list[32];
@@ -281,6 +300,34 @@ static void plexi_get_slotframe_handler(void* request, void* response, uint8_t *
 	}
 }
 
+/**
+ *  Installs the slotframe with the provided amount of slots in the payload.
+ *  
+ *  Usage 1: If a slotframe handle is not provided, an unused handle is automatically
+ *  assigned to the slotframe and reported back.
+ *  
+ *  Payload, JSON:
+ *  [
+ *  	number_of_slots
+ *  ] 
+ * 	Response, JSON:
+ *  [
+ *  	handle_value
+ *  ]
+ *  
+ *  Usage 2: If a slotframe handle is provided, then it is assigned to the installed slotframe
+ *  and reported back for confirmation.
+ *  
+ *  Payload, JSON:
+ *  [
+ *  	number_of_slots,
+ *  	handle_value
+ *  ]
+ *  Response, JSON:
+ *  [
+ *  	handle_value
+ *  ]
+ */
 static void plexi_post_slotframe_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)  {
 	content_len = 0;
 	int state;
@@ -294,7 +341,7 @@ static void plexi_post_slotframe_handler(void* request, void* response, uint8_t 
 	int ns = 0; /* number of slots */
 	int fd = 0;
 	/* Add new slotframe */
-  
+
 	unsigned int accept = -1;
 	REST.get_header_accept(request, &accept);
 	if(accept == -1 || accept == REST.type.APPLICATION_JSON) {
