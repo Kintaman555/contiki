@@ -61,7 +61,7 @@ def plotStat(all_res, field, ylabel):
   
   if field == "prr":
       #ax.legend(loc="lower left", prop={'size':12})
-      ax.axis(xmin=3, ymin=80, ymax=100)
+      ax.axis(xmin=3, ymin=75, ymax=100)
   else:
       ax.legend(loc="upper left", prop={'size':16})
       ax.axis(xmin=3, ymin=0)

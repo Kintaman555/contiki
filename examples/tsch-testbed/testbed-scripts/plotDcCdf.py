@@ -18,8 +18,8 @@ N_NODES = 99
 N_NEIGHBORS = 15.7
 
 markers = ['s', 'o', '^', 'p', 'd']
-colors = ['#FF9900', '#00A876', '#0a51a7', '#FF5900', '#8FD9F2', 'black']
-linestyles = ['-', '--']
+colors = ['#FF5900', '#00A876', '#0a51a7', '#FF9900', '#8FD9F2', 'black']
+linestyles = ['--', '-.', '-', '-']
 fillColors = ['#0a51a7', '#FF9900', '#00A876', '#FF5900', '#8FD9F2', 'black']
 
 def getMarker(index):
@@ -46,8 +46,8 @@ def plotStat(all_res, field, filename, xlabel):
              "cm8": {"l": "ContikiMAC@8Hz", 'i': 0},
              #"cm64": {"l": "ContikiMAC@64Hz", 'i': 1},
              "tmin7": {"l": "TSCH-min-7", 'i': 1},
-             "trb397x31x29": {"l": "TSCH-RB-29", 'i': 3},
-             "tsb397x31x29": {"l": "TSCH-SB-29", 'i': 2},
+             "trb397x31x29": {"l": "TSCH-RB-29", 'i': 2},
+             "tsb397x31x29": {"l": "TSCH-SB-29", 'i': 3},
              }
   for mac in ["cm8","tmin7", "trb397x31x29", "tsb397x31x29"]:
     index = configs[mac]["i"]
