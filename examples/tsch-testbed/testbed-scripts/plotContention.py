@@ -55,7 +55,8 @@ def plotStat(all_res, field, ylabel):
             label=configs[mac]['l'],
             linestyle=getLineStyle(index),
             marker=getMarker(index),
-            color=getLineColor(index)
+            color=getLineColor(index),
+            linewidth=1.5,
             )
   ax.grid(True)
   
@@ -109,7 +110,7 @@ def extractStats(dir):
 
 def main():
   all_res = {}
-  xp_dir = "experiments"
+  xp_dir = "experiments/indriya-experiments"
   for f in os.listdir(xp_dir):
     res = re.compile('Indriya_([^_]+)_[\\d]+_[\\d]+').match(f)
     if res != None:
