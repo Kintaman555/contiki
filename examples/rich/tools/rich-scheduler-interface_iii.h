@@ -34,4 +34,23 @@
  * \author Simon Duquennoy <simonduq@sics.se>
  */
 
+#define DAG_RESOURCE "rpl/dag"
+#define DAG_PARENT_LABEL "parent"
+#define DAG_CHILD_LABEL "child"
+
+#define NEIGHBORS_RESOURCE "6top/neighbors"
+
+#define FRAME_RESOURCE "6top/slotFrame"
+#define FRAME_ID_LABEL "frame"
+#define FRAME_SLOTS_LABEL "slots"
+
+#define LINK_RESOURCE "6top/cellList"
+#define LINK_ID_LABEL "link"
+#define LINK_SLOT_LABEL "slot"
+#define LINK_CHANNEL_LABEL "channel"
+#define LINK_OPTION_LABEL "option"
+#define LINK_TYPE_LABEL "type"
+#define LINK_TARGET_LABEL "target"
+ 
+
 void rich_scheduler_interface_init();

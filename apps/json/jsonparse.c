@@ -118,7 +118,7 @@ jsonparse_next(struct jsonparse_state *state)
   c = state->json[state->pos];
   s = jsonparse_get_type(state);
   state->pos++;
-
+  
   switch(c) {
   case '{':
     push(state, c);
@@ -167,7 +167,7 @@ jsonparse_next(struct jsonparse_state *state)
     }
     return c;
   case '[':
-    if(1){//s == '{' || s == '[' || s == ':') {
+    if(s == '{' || s == '[' || s == ':') {
       push(state, c);
     } else {
       state->error = JSON_ERROR_UNEXPECTED_ARRAY;
