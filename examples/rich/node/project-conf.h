@@ -36,4 +36,7 @@
 
 #include "../common-conf.h"
 
+#undef UART_BAUD_RATE
+#define UART_BAUD_RATE UART_RATE_19200
+
 #endif /* __PROJECT_CONF_H__ */

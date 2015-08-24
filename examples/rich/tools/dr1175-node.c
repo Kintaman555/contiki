@@ -1,3 +1,29 @@
+/***************************************************************************
+ *
+ *
+ * This software is owned by NXP B.V. and/or its supplier and is protected
+ * under applicable copyright laws. All rights are reserved. We grant You,
+ * and any third parties, a license to use this software solely and
+ * exclusively on NXP products [NXP Microcontrollers such as JN5148, JN5142, JN5139].
+ * You, and any third parties must reproduce the copyright and warranty notice
+ * and any other legend of ownership on each copy or partial copy of the
+ * software.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+
+ * Copyright NXP B.V. 2012. All rights reserved
+ *
+***************************************************************************/
 #include "contiki.h"
 #include "net/ip/uip.h"
 #include "rich.h"
@@ -7,10 +33,6 @@
 #include <stdio.h>
 #include <LightingBoard.h>
 #include <pca9634.h>
-
-static void event_rpl_tree_handler(void);
-static void get_rpl_tree_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
-
 
 static void event_sensors_dr1175_handler(void);
 static void get_sensors_dr1175_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
@@ -43,15 +65,15 @@ AUTOSTART_PROCESSES(&start_app, &sensors_process);
 /*******************************************************************/
 /* Observable resource and event handler to obtain all sensor data */ 
 /*******************************************************************/
-EVENT_RESOURCE(resource_rpl_tree,                          /* name */
-               "obs;title=\"RPL Parent and Children\"",    /* attributes */
-               get_rpl_tree_handler,                       /* GET handler */
-               NULL,                                       /* POST handler */
-               NULL,                                       /* PUT handler */
-               NULL,                                       /* DELETE handler */
-               event_rpl_tree_handler);                    /* event handler */
+EVENT_RESOURCE(resource_sensors_dr1175,               /* name */
+               "obs;title=\"All DR1175 sensors\"",    /* attributes */
+               get_sensors_dr1175_handler,            /* GET handler */
+               NULL,                                  /* POST handler */
+               NULL,                                  /* PUT handler */
+               NULL,                                  /* DELETE handler */
+               event_sensors_dr1175_handler);         /* event handler */
 static void
-get_rpl_tree_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
+get_sensors_dr1175_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
   unsigned int accept = -1;
   REST.get_header_accept(request, &accept);

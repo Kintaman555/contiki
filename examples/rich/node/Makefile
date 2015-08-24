@@ -7,7 +7,7 @@ TARGET ?= jn516x
 CONTIKI_WITH_IPV6 = 1
 
 PROJECTDIRS += .. ../tools
-PROJECT_SOURCEFILES += rich.c #rich-scheduler-interface.c 
+PROJECT_SOURCEFILES += rich.c plexi.c
 
 CFLAGS += -DWITH_COAP
 CFLAGS += -DREST=coap_rest_implementation
@@ -22,3 +22,8 @@ MODULES += core/net/mac/tsch
 all: $(CONTIKI_PROJECT)
 
 include $(CONTIKI)/Makefile.include
+
+#using XON/XOFF flow control
+connect-router-sw:	$(CONTIKI)/tools/tunslip6
+	sudo $(CONTIKI)/tools/tunslip6 -v1 -X -B 1000000 $(PREFIX)
+	

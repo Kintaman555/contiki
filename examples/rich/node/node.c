@@ -38,7 +38,6 @@
 #include "net/netstack.h"
 #include "net/mac/tsch/tsch-schedule.h"
 #include "net/rpl/rpl-private.h"
-#include "net/mac/tsch/tsch-schedule.h"
 #include "net/ip/uip-debug.h"
 #include "lib/random.h"
 #include "tools/rich.h"

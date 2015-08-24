@@ -36,6 +36,7 @@
  * \author
  *         Beshr Al Nahas <beshr@sics.se>
  *         Simon Duquennoy <simonduq@sics.se>
+ *         Ilker Oztelcan <i.oztelcan@tue.nl>
  */
 
 #include "contiki.h"
@@ -179,6 +180,85 @@ tsch_schedule_get_link_from_handle(uint16_t handle)
   }
   return NULL;
 }
+
+int
+tsch_schedule_get_link_handles(int *handles)
+{
+  int c = 0;
+  if(!tsch_is_locked()) {
+    struct tsch_slotframe *sf = list_head(slotframe_list);
+    while(sf != NULL) {
+      struct tsch_link *l = list_head(sf->links_list);
+      /* Loop over all items. Assume there is max one link per timeslot */
+      while(l != NULL) {
+		 /*Fill the array with handles, c tracks the size of the array.*/
+		handles[c] = l->handle; 
+        l = list_item_next(l);
+		c++;
+      }
+      sf = list_item_next(sf);
+    }
+	return c;
+  }
+}
+
+int
+tsch_schedule_get_slotframe_handles(int *handles)
+{
+	int c = 0;
+	if (!tsch_is_locked()) {
+		struct tsch_slotframe *sf = list_head(slotframe_list);
+		while (sf != NULL) {
+			handles[c] = sf->handle;
+			sf = list_item_next(sf);
+			c++;
+		}
+		return c;
+	}
+}
+
+int
+tsch_schedule_get_slotframe_links(int *handles, uint16_t subresource)
+{
+	int c = 0;
+	if (!tsch_is_locked()) {
+		struct tsch_slotframe *sf = list_head(slotframe_list);
+		while (sf != NULL) {
+			/*Check if the slotframe id matches the one given by the uri.*/
+			if (sf->handle == subresource){
+			struct tsch_link *l = list_head(sf->links_list);
+			/* Loop over all items. Assume there is max one link per timeslot */
+			while (l != NULL) {
+				/*Fill the array with handles, c tracks the size of the array.*/
+				handles[c] = l->handle;
+				l = list_item_next(l);
+				c++;
+				}
+			}
+			sf = list_item_next(sf);
+		}
+		return c;
+	}
+}
+
+struct tsch_slotframe* tsch_schedule_get_next_slotframe(struct tsch_slotframe* previous) {
+	if(tsch_is_locked()) return NULL;
+	if(previous == NULL) {
+		return list_head(slotframe_list);
+	} else {
+		return list_item_next(previous);
+	}
+}
+
+struct tsch_link* tsch_schedule_get_next_link_of(struct tsch_slotframe* slotframe, struct tsch_link* previous) {
+	if(tsch_is_locked()) return NULL;
+	if(previous == NULL) {
+		return  list_head(slotframe->links_list);
+	} else {
+		return list_item_next(previous);
+	}
+}
+
 /* Adds a link to a slotframe, return a pointer to it (NULL if failure) */
 struct tsch_link *
 tsch_schedule_add_link(struct tsch_slotframe *slotframe,

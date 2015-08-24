@@ -36,6 +36,10 @@
 
 /* Global config flags */
 
+<<<<<<< HEAD
+=======
+#define WITH_COAP_RESOURCES 1
+>>>>>>> tsch-schedule-port-3.x
 #define WITH_TSCH 1
 #define WITH_TSCH_SECURITY 0
 #define WITH_TSCH_LOG 1
