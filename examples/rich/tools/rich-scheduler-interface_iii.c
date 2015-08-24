@@ -527,6 +527,46 @@ PARENT_RESOURCE(resource_6top_links,		/* name */
 		NULL,								/* PUT handler */
 		plexi_delete_links_handler);		/* DELETE handler */
 
+/** Gets (details about) a set of links as specified by the query.
+ *  A request can specify to get a subresource of a link.
+ *  GET /6top/cellList would provide an array of all links (all frames) of the requested node in the following format:
+ *   [
+ *     {
+ *		link:<link id>,
+ *		frame:<slotframe id>,
+ *		slot:<timeslot offset>,
+ *		channel:<channel offset>,
+ *		option:<link options>,
+ *		type:<link type>,
+ *	},
+ *     . . .
+ *     {
+ *		link:<link id>,
+ *		frame:<slotframe id>,
+ *		slot:<timeslot offset>,
+ *		channel:<channel offset>,
+ *		option:<link options>,
+ *		type:<link type>,
+ *	}
+ *    ]
+ *
+ *  GET /6top/cellList/frame would provide an array of the slotframe IDs of all links of the requested node in the following format:
+ *   [0,0,0,0,0,2,2,2,2,3,3,3,3,3,3,3,. . .,6,6,6]
+ *   Instead of “frame” subresource any other subresource may be used e.g. /6top/cellist/slot
+ *
+ *  GET /6top/cellList?link=0 would provide the dictionary with the complete details of the cell with handle =0.
+ *     {
+ *		link:0,
+ *		frame:<slotframe id>,
+ *		slot:<timeslot offset>,
+ *		channel:<channel offset>,
+ *		option:<link options>,
+ *		type:<link type>,
+ *	}
+ * 
+ * GET /6top/cellList/slot?link=0 will give a scalar with the slot of the link with handle =0.
+ *     [2]
+ */
 static void plexi_get_links_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset) {
 	if(inbox_msg_lock != NO_LOCK && inbox_msg_lock != LINK_GET_LOCK) {
 		coap_set_status_code(response, SERVICE_UNAVAILABLE_5_03);
