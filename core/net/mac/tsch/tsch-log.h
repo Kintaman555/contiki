@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Swedish Institute of Computer Science.
+ * Copyright (c) 2014, SICS Swedish ICT.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,7 +58,7 @@ struct tsch_log_t {
   struct asn_t asn;
   struct tsch_link *link;
   union {
-    char message[26];
+    char message[64];
     struct {
       //struct app_data appdata;
       int mac_tx_status;

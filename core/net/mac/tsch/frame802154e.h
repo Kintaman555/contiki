@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Swedish Institute of Computer Science.
+ * Copyright (c) 2015, SICS Swedish ICT.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,6 +58,20 @@ struct tsch_slotframe_and_links {
   uint8_t num_links;
   struct tsch_slotframe_and_links_link links[FRAME802154E_IE_MAX_LINKS];
 };
+struct tsch_timeslot_timing_t {
+  uint16_t cca_offset;
+  uint16_t cca;
+  uint16_t tx_offset;
+  uint16_t rx_offset;
+  uint16_t rx_ack_delay;
+  uint16_t tx_ack_delay;
+  uint16_t rx_wait;
+  uint16_t ack_wait;
+  uint16_t rx_tx;
+  uint16_t max_ack;
+  uint16_t max_tx;
+  uint16_t timeslot_length;
+};
 
 /* The information elements that we currently support */
 struct ieee802154_ies {
@@ -65,6 +79,7 @@ struct ieee802154_ies {
   int16_t ie_time_correction;
   uint8_t ie_is_nack;
   /* Payload MLME */
+  uint8_t ie_payload_ie_offset;
   uint16_t ie_mlme_len;
   /* Payload Short MLME IEs */
   uint8_t ie_tsch_synchronization_offset;
@@ -82,7 +97,18 @@ struct ieee802154_ies {
 
 /** Insert various Information Elements **/
 /* Header IE. ACK/NACK time correction. Used in enhanced ACKs */
-int frame80215e_create_ie_ack_nack_time_correction(uint8_t *buf, int len,
+int frame80215e_create_ie_header_ack_nack_time_correction(uint8_t *buf, int len,
+    struct ieee802154_ies *ies);
+/* Header IE. List termination 1 (Signals the end of the Header IEs when
+ * followed by payload IEs) */
+int frame80215e_create_ie_header_list_termination_1(uint8_t *buf, int len,
+    struct ieee802154_ies *ies);
+/* Header IE. List termination 2 (Signals the end of the Header IEs when
+ * followed by an unformatted payload) */
+int frame80215e_create_ie_header_list_termination_2(uint8_t *buf, int len,
+    struct ieee802154_ies *ies);
+/* Payload IE. List termination */
+int frame80215e_create_ie_payload_list_termination(uint8_t *buf, int len,
     struct ieee802154_ies *ies);
 /* Payload IE. MLME. Used to nest sub-IEs */
 int frame80215e_create_ie_mlme(uint8_t *buf, int len,
@@ -101,6 +127,7 @@ int frame80215e_create_ie_tsch_channel_hopping_sequence(uint8_t *buf, int len,
     struct ieee802154_ies *ies);
 
 /* Parse all Information Elements of a frame */
-int frame802154e_parse_information_elements(uint8_t *buf, uint8_t buf_size, struct ieee802154_ies *ies);
+int frame802154e_parse_information_elements(uint8_t *buf, uint8_t buf_size,
+    struct ieee802154_ies *ies);
 
 #endif /* FRAME_802154E_H */

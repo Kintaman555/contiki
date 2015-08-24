@@ -1,20 +1,22 @@
 CONTIKI_PROJECT = dr1175-node
 CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
 
-TARGET = jn5168
-CFLAGS += -DSENSOR_BOARD_DR1175
+TARGET = jn516x
+JN516x_WITH_DR1175 = 1
 
 CONTIKI_WITH_IPV6 = 1
 
-PROJECTDIRS += .. ../tools ../../../platform/jn5168/dev/dr1175
+PROJECTDIRS += .. ../tools
 PROJECT_SOURCEFILES += rich.c 
-PROJECT_SOURCEFILES += light-sensor.c ht-sensor.c
 
 CFLAGS += -DWITH_COAP
 CFLAGS += -DUIP_CONF_TCP=0
-APPS = json
+APPS = orchestra
+APPS += json
 APPS += er-coap
 APPS += rest-engine
+
+MODULES += core/net/mac/tsch
 
 all: $(CONTIKI_PROJECT)
 

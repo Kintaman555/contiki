@@ -1,8 +1,8 @@
 CONTIKI_PROJECT = dongle-node
 CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
 
-TARGET = jn5168
-CFLAGS += -DDONGLE_NODE
+TARGET = jn516x
+JN516x_WITH_DONGLE = 1
 
 CONTIKI_WITH_IPV6 = 1
 
@@ -11,9 +11,12 @@ PROJECT_SOURCEFILES += rich.c
 
 CFLAGS += -DWITH_COAP
 CFLAGS += -DUIP_CONF_TCP=0
-APPS = json
+APPS = orchestra
+APPS += json
 APPS += er-coap
 APPS += rest-engine
+
+MODULES += core/net/mac/tsch
 
 all: $(CONTIKI_PROJECT)
 

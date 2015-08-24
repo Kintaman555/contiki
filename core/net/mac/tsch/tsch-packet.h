@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Swedish Institute of Computer Science.
+ * Copyright (c) 2014, SICS Swedish ICT.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,7 @@
 
 #include "contiki.h"
 #include "net/mac/tsch/tsch-private.h"
+#include "net/mac/frame802154.h"
 #include "net/mac/tsch/frame802154e.h"
 
 /* Construct enhanced ACK packet and return ACK length */
@@ -50,18 +51,19 @@ int tsch_packet_create_eack(uint8_t *buf, int buf_size,
     linkaddr_t *dest_addr, uint8_t seqno, int16_t drift, int nack);
 
 /* Parse enhanced ACK packet, extract drift and nack */
-int tsch_packet_parse_eack(uint8_t *buf, int buf_size, uint8_t seqno,
-    struct ieee802154_ies *ies);
+int tsch_packet_parse_eack(uint8_t *buf, int buf_size,
+    uint8_t seqno, frame802154_t *frame, struct ieee802154_ies *ies, uint8_t *hdr_len);
 
 /* Create an EB packet */
-int tsch_packet_create_eb(uint8_t *buf, uint8_t buf_size,
-    uint8_t seqno, uint8_t *tsch_sync_ie_ptr);
+int tsch_packet_create_eb(uint8_t *buf, int buf_size,
+    uint8_t seqno, uint8_t *hdr_len, uint8_t *tsch_sync_ie_ptr);
 
 /* Update ASN in EB packet */
-int tsch_packet_update_eb(uint8_t *buf, uint8_t buf_size, uint8_t tsch_sync_ie_offset);
+int tsch_packet_update_eb(uint8_t *buf, int buf_size, uint8_t tsch_sync_ie_offset);
 
 /* Parse EB and extract ASN and join priority */
-int tsch_packet_parse_eb(uint8_t *buf, uint8_t buf_size,
-    linkaddr_t *source_address, struct ieee802154_ies *ies);
+int tsch_packet_parse_eb(uint8_t *buf, int buf_size,
+    frame802154_t *frame, struct ieee802154_ies *ies,
+    uint8_t *hdrlen, int frame_without_mic);
 
 #endif /* __TSCH_PACKET_H__ */

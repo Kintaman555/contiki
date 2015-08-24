@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Swedish Institute of Computer Science.
+ * Copyright (c) 2014, SICS Swedish ICT.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -101,6 +101,8 @@ int tsch_schedule_init();
 struct tsch_slotframe *tsch_schedule_add_slotframe(uint16_t handle, uint16_t size);
 /* Removes a slotframe Return 1 if success, 0 if failure */
 int tsch_schedule_remove_slotframe(struct tsch_slotframe *slotframe);
+/* Removes all slotframes, resulting in an empty schedule */
+int tsch_schedule_remove_all_slotframes();
 /* Looks for a slotframe from a handle */
 struct tsch_slotframe *tsch_schedule_get_slotframe_from_handle(uint16_t handle);
 /* Looks for a link from a handle */

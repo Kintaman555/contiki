@@ -187,6 +187,10 @@ rpl_set_preferred_parent(rpl_dag_t *dag, rpl_parent_t *p)
     }
     PRINTF("\n");
 
+#ifdef RPL_CALLBACK_PARENT_SWITCH
+    tsch_rpl_callback_parent_switch(dag->preferred_parent, p);
+#endif /* RPL_CALLBACK_PARENT_SWITCH */
+
     /* Always keep the preferred parent locked, so it remains in the
      * neighbor table. */
     nbr_table_unlock(rpl_parents, dag->preferred_parent);
@@ -481,8 +485,7 @@ rpl_set_default_route(rpl_instance_t *instance, uip_ipaddr_t *from)
     PRINT6ADDR(from);
     PRINTF("\n");
     instance->def_route = uip_ds6_defrt_add(from,
-        RPL_LIFETIME(instance,
-            instance->default_lifetime));
+        RPL_DEFAULT_ROUTE_INFINITE_LIFETIME ? 0 : RPL_LIFETIME(instance, instance->default_lifetime));
     if(instance->def_route == NULL) {
       return 0;
     }
@@ -814,6 +817,9 @@ rpl_select_parent(rpl_dag_t *dag)
 
   if(best != NULL) {
     rpl_set_preferred_parent(dag, best);
+    dag->rank = dag->instance->of->calculate_rank(dag->preferred_parent, 0);
+  } else {
+    dag->rank = INFINITE_RANK;
   }
 
   return best;
@@ -1373,6 +1379,9 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
     }
   }
 
+  /* Parent info has been updated, trigger rank recalculation */
+  p->flags |= RPL_PARENT_FLAG_UPDATED;
+
   PRINTF("RPL: preferred DAG ");
   PRINT6ADDR(&instance->current_dag->dag_id);
   PRINTF(", rank %u, min_rank %u, ",
@@ -1398,7 +1407,7 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
     }
     /* We received a new DIO from our preferred parent.
      * Call uip_ds6_defrt_add to set a fresh value for the lifetime counter */
-    uip_ds6_defrt_add(from, RPL_LIFETIME(instance, instance->default_lifetime));
+    uip_ds6_defrt_add(from, RPL_DEFAULT_ROUTE_INFINITE_LIFETIME ? 0 : RPL_LIFETIME(instance, instance->default_lifetime));
   }
   p->dtsn = dio->dtsn;
 }

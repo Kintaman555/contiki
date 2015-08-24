@@ -113,9 +113,69 @@ get_key_id_len(uint8_t key_id_mode)
 }
 #endif /* LLSEC802154_USES_EXPLICIT_KEYS */
 /*----------------------------------------------------------------------------*/
+void
+frame802154_has_panid(frame802154_fcf_t *fcf, int *has_src_pan_id, int *has_dest_pan_id)
+{
+  int src_pan_id = 0;
+  int dest_pan_id = 0;
+
+  if(fcf == NULL) {
+    return;
+  }
+
+  if(fcf->frame_version == FRAME802154_IEEE802154E_2012) {
+    if(!fcf->panid_compression) {
+      /* Compressed PAN ID == no PAN ID at all */
+      if(fcf->dest_addr_mode == fcf->dest_addr_mode) {
+        /* No address or both addresses: include destination PAN ID */
+        dest_pan_id = 1;
+      } else if(fcf->dest_addr_mode) {
+        /* Only dest address, include dest PAN ID */
+        dest_pan_id = 1;
+      } else if(fcf->src_addr_mode) {
+        /* Only src address, include src PAN ID */
+        src_pan_id = 1;
+      }
+    }
+    if(fcf->dest_addr_mode == 0 && fcf->dest_addr_mode == 1) {
+      /* No address included, include dest PAN ID conditionally */
+      if(!fcf->panid_compression) {
+        dest_pan_id = 1;
+      }
+    }
+    /* Remove the following rule the day rows 2 and 3 from table 2a are fixed: */
+    if(fcf->dest_addr_mode == 0 && fcf->dest_addr_mode == 0) {
+      /* Not meaningful, we include a PAN ID iff the compress flag is set, but
+       * this is what the standard currently stipulates */
+      dest_pan_id = fcf->panid_compression;
+    }
+  } else {
+    /* No PAN ID in ACK */
+    if(fcf->frame_type != FRAME802154_ACKFRAME) {
+      if(!fcf->panid_compression && fcf->src_addr_mode & 3) {
+        /* If compressed, don't inclue source PAN ID */
+        src_pan_id = 1;
+      }
+      if(fcf->dest_addr_mode & 3) {
+        dest_pan_id = 1;
+      }
+    }
+  }
+
+  if(has_src_pan_id != NULL) {
+    *has_src_pan_id = src_pan_id;
+  }
+  if(has_dest_pan_id != NULL) {
+    *has_dest_pan_id = dest_pan_id;
+  }
+}
+/*----------------------------------------------------------------------------*/
 static void
 field_len(frame802154_t *p, field_length_t *flen)
 {
+  int has_src_panid;
+  int has_dest_panid;
+
   /* init flen to zeros */
   memset(flen, 0, sizeof(field_length_t));
 
@@ -123,22 +183,28 @@ field_len(frame802154_t *p, field_length_t *flen)
   if((p->fcf.sequence_number_suppression & 1) == 0) {
     flen->seqno_len = 1;
   }
-  if(p->fcf.dest_addr_mode & 3) {
-    flen->dest_pid_len = 2;
+
+  /* IEEE802.15.4e changes the meaning of PAN ID Compression (see Table 2a).
+   * In this case, we leave the decision whether to compress PAN ID or not
+   * up to the caller. */
+  if(p->fcf.frame_version < FRAME802154_IEEE802154E_2012) {
+    /* Set PAN ID compression bit if src pan id matches dest pan id. */
+    if(p->fcf.dest_addr_mode & 3 && p->fcf.src_addr_mode & 3 &&
+       p->src_pid == p->dest_pid) {
+      p->fcf.panid_compression = 1;
+    } else {
+      p->fcf.panid_compression = 0;
+    }
   }
-  if(p->fcf.src_addr_mode & 3) {
+
+  frame802154_has_panid(&p->fcf, &has_src_panid, &has_dest_panid);
+
+  if(has_src_panid) {
     flen->src_pid_len = 2;
   }
 
-  /* Set PAN ID compression bit if src pan id matches dest pan id. */
-  if(p->fcf.dest_addr_mode & 3 && p->fcf.src_addr_mode & 3 &&
-     p->src_pid == p->dest_pid) {
-    p->fcf.panid_compression = 1;
-
-    /* compressed header, only do dest pid */
-    flen->src_pid_len = 0;
-  } else {
-    p->fcf.panid_compression = 0;
+  if(has_dest_panid) {
+    flen->dest_pid_len = 2;
   }
 
   /* determine address lengths */
@@ -148,9 +214,16 @@ field_len(frame802154_t *p, field_length_t *flen)
 #if LLSEC802154_SECURITY_LEVEL
   /* Aux security header */
   if(p->fcf.security_enabled & 1) {
-    flen->aux_sec_len = 5
+    flen->aux_sec_len = 1; /* FCF + possibly frame counter and key ID */
+    if(p->aux_hdr.security_control.frame_counter_suppression == 0) {
+      if(p->aux_hdr.security_control.frame_counter_size == 1) {
+        flen->aux_sec_len += 5;
+      } else {
+        flen->aux_sec_len += 4;
+      }
+    }
 #if LLSEC802154_USES_EXPLICIT_KEYS
-        + get_key_id_len(p->aux_hdr.security_control.key_id_mode);
+    flen->aux_sec_len += get_key_id_len(p->aux_hdr.security_control.key_id_mode);
 #endif /* LLSEC802154_USES_EXPLICIT_KEYS */
     ;
   }
@@ -247,9 +320,17 @@ frame802154_create(frame802154_t *p, uint8_t *buf)
 #if LLSEC802154_USES_EXPLICIT_KEYS
         | (p->aux_hdr.security_control.key_id_mode << 3)
 #endif /* LLSEC802154_USES_EXPLICIT_KEYS */
+        | (p->aux_hdr.security_control.frame_counter_suppression << 5)
+        | (p->aux_hdr.security_control.frame_counter_size << 6)
     ;
-    memcpy(buf + pos, p->aux_hdr.frame_counter.u8, 4);
-    pos += 4;
+    if(p->aux_hdr.security_control.frame_counter_suppression == 0) {
+      /* We support only 4-byte counters */
+      memcpy(buf + pos, p->aux_hdr.frame_counter.u8, 4);
+      pos += 4;
+      if(p->aux_hdr.security_control.frame_counter_size == 1) {
+        pos++;
+      }
+    }
 
 #if LLSEC802154_USES_EXPLICIT_KEYS
     key_id_mode = p->aux_hdr.security_control.key_id_mode;
@@ -281,6 +362,8 @@ frame802154_parse(uint8_t *data, int len, frame802154_t *pf)
   uint8_t *p;
   frame802154_fcf_t fcf;
   int c;
+  int has_src_panid;
+  int has_dest_panid;
 #if LLSEC802154_USES_EXPLICIT_KEYS
   uint8_t key_id_mode;
 #endif /* LLSEC802154_USES_EXPLICIT_KEYS */
@@ -298,7 +381,7 @@ frame802154_parse(uint8_t *data, int len, frame802154_t *pf)
   fcf.ack_required = (p[0] >> 5) & 1;
   fcf.panid_compression = (p[0] >> 6) & 1;
 
-  fcf.sequence_number_suppression = p[0] & 1;
+  fcf.sequence_number_suppression = p[1] & 1;
   fcf.ie_list_present = (p[1] >> 1) & 1;
   fcf.dest_addr_mode = (p[1] >> 2) & 3;
   fcf.frame_version = (p[1] >> 4) & 3;
@@ -306,14 +389,24 @@ frame802154_parse(uint8_t *data, int len, frame802154_t *pf)
 
   /* copy fcf and seqNum */
   memcpy(&pf->fcf, &fcf, sizeof(frame802154_fcf_t));
-  pf->seq = p[2];
-  p += 3;                             /* Skip first three bytes */
+  p += 2;                             /* Skip first two bytes */
+
+  if(fcf.sequence_number_suppression == 0) {
+    pf->seq = p[0];
+    p++;
+  }
+
+  frame802154_has_panid(&fcf, &has_src_panid, &has_dest_panid);
 
   /* Destination address, if any */
   if(fcf.dest_addr_mode) {
-    /* Destination PAN */
-    pf->dest_pid = p[0] + (p[1] << 8);
-    p += 2;
+    if(has_dest_panid) {
+      /* Destination PAN */
+      pf->dest_pid = p[0] + (p[1] << 8);
+      p += 2;
+    } else {
+      pf->dest_pid = 0;
+    }
 
     /* Destination address */
 /*     l = addr_len(fcf.dest_addr_mode); */
@@ -340,9 +433,12 @@ frame802154_parse(uint8_t *data, int len, frame802154_t *pf)
   /* Source address, if any */
   if(fcf.src_addr_mode) {
     /* Source PAN */
-    if(!fcf.panid_compression) {
+    if(has_src_panid) {
       pf->src_pid = p[0] + (p[1] << 8);
       p += 2;
+      if(!has_dest_panid) {
+        pf->dest_pid = pf->src_pid;
+      }
     } else {
       pf->src_pid = pf->dest_pid;
     }
@@ -375,10 +471,17 @@ frame802154_parse(uint8_t *data, int len, frame802154_t *pf)
 #if LLSEC802154_USES_EXPLICIT_KEYS
     pf->aux_hdr.security_control.key_id_mode = (p[0] >> 3) & 3;
 #endif /* LLSEC802154_USES_EXPLICIT_KEYS */
+    pf->aux_hdr.security_control.frame_counter_suppression = p[0] >> 5;
+    pf->aux_hdr.security_control.frame_counter_size = p[0] >> 6;
     p += 1;
     
-    memcpy(pf->aux_hdr.frame_counter.u8, p, 4);
-    p += 4;
+    if(pf->aux_hdr.security_control.frame_counter_suppression == 0) {
+      memcpy(pf->aux_hdr.frame_counter.u8, p, 4);
+      p += 4;
+      if(pf->aux_hdr.security_control.frame_counter_size == 1) {
+        p ++;
+      }
+    }
     
 #if LLSEC802154_USES_EXPLICIT_KEYS
     key_id_mode = pf->aux_hdr.security_control.key_id_mode;

@@ -1,9 +1,7 @@
 CONTIKI_PROJECT=border-router
 all: $(CONTIKI_PROJECT) 
 
-TARGET ?= jn5168
-
-APPS = json
+TARGET ?= jn516x
 
 CONTIKI=../../..
 
@@ -18,23 +16,31 @@ PROJECT_SOURCEFILES += rich.c #rich-scheduler-interface.c
 CFLAGS += -DWITH_COAP
 CFLAGS += -DREST=coap_rest_implementation
 CFLAGS += -DUIP_CONF_TCP=0
+APPS += orchestra
+APPS += json
 APPS += er-coap
 APPS += rest-engine
+
+MODULES += core/net/mac/tsch
+
+include $(CONTIKI)/Makefile.include
 
 ifeq ($(PREFIX),)
  PREFIX = aaaa::1/64
 endif
 
-include $(CONTIKI)/Makefile.include
+#no flow control
+connect-router:	$(CONTIKI)/tools/tunslip6
+	sudo $(CONTIKI)/tools/tunslip6 -v1 -B 1000000 $(PREFIX)
 
 #using XON/XOFF flow control
 connect-router-sw:	$(CONTIKI)/tools/tunslip6
 	sudo $(CONTIKI)/tools/tunslip6 -v1 -X -B 1000000 $(PREFIX)
-	
+
 #using hw flow control	
 connect-router-hw:	$(CONTIKI)/tools/tunslip6
 	sudo $(CONTIKI)/tools/tunslip6 -v1 -H -B 1000000 $(PREFIX)
-	
+
 #using no flow control	
 connect-router-no:	$(CONTIKI)/tools/tunslip6
 	sudo $(CONTIKI)/tools/tunslip6 -v1 -B 1000000 $(PREFIX)

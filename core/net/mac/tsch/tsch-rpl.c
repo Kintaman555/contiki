@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Swedish Institute of Computer Science.
+ * Copyright (c) 2014, SICS Swedish ICT.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,8 @@
  *
  * \author Simon Duquennoy <simonduq@sics.se>
  */
+
+#if UIP_CONF_IPV6_RPL
 
 #include "contiki.h"
 #include "net/rpl/rpl.h"
@@ -76,7 +78,15 @@ tsch_rpl_callback_new_time_source(struct tsch_neighbor *old, struct tsch_neighbo
 void
 tsch_rpl_callback_new_dio_interval(uint8_t dio_interval)
 {
-  tsch_set_eb_period(((1UL << dio_interval) * CLOCK_SECOND) / 1000UL);
+  /* Transmit EBs only if we have a valid rank as per 6TiSCH minimal */
+  rpl_dag_t *dag = rpl_get_any_dag();
+  if(dag != NULL && dag->rank != INFINITE_RANK) {
+    tsch_set_eb_period(TSCH_EB_PERIOD);
+    /* Set join priority based on RPL rank */
+    tsch_set_join_priority(DAG_RANK(dag->rank, dag->instance) - 1);
+  } else {
+    tsch_set_eb_period(0);
+  }
 }
 
 /* Set TSCH time source based on current RPL preferred parent.
@@ -96,3 +106,5 @@ tsch_rpl_callback_parent_switch(rpl_parent_t *old, rpl_parent_t *new)
     }
   }
 }
+
+#endif /* UIP_CONF_IPV6_RPL */

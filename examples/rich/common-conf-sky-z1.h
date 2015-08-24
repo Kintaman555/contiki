@@ -34,6 +34,12 @@
 #ifndef __COMMON_CONF_SKY_Z1_H__
 #define __COMMON_CONF_SKY_Z1_H__
 
+#if WITH_TSCH_SECURITY
+/* We need longer slots to accommodate crypto operations */
+#undef TSCH_CONF_DEFAULT_TIMESLOT_LENGTH
+#define TSCH_CONF_DEFAULT_TIMESLOT_LENGTH 65000
+#endif /* WITH_TSCH_SECURITY */
+
  /* CoAP */
 #undef COAP_MAX_OPEN_TRANSACTIONS
 #define COAP_MAX_OPEN_TRANSACTIONS 2
@@ -81,9 +87,8 @@
 #undef DCOSYNCH_CONF_ENABLED
 #define DCOSYNCH_CONF_ENABLED 0
 
-/* Needed for TSCH */
 #undef CC2420_CONF_SFD_TIMESTAMPS
-#define CC2420_CONF_SFD_TIMESTAMPS 0
+#define CC2420_CONF_SFD_TIMESTAMPS 1
 
 /* NullRDC: check for autoack in S/W */
 #undef NULLRDC_CONF_802154_AUTOACK

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Swedish Institute of Computer Science.
+ * Copyright (c) 2014, SICS Swedish ICT.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,8 +50,6 @@
 #include "net/mac/tsch/tsch-private.h"
 #include "net/mac/tsch/tsch-queue.h"
 #include "net/mac/tsch/tsch-schedule.h"
-#include "net/rpl/rpl.h"
-#include "net/rpl/rpl-private.h"
 #include <string.h>
 
 #ifdef TSCH_CALLBACK_NEW_TIME_SOURCE
@@ -244,6 +242,9 @@ tsch_queue_add_packet(const linkaddr_t *addr, mac_callback_t sent, void *ptr)
         p = memb_alloc(&packet_memb);
         if(p != NULL) {
           /* Enqueue packet */
+#ifdef TSCH_CALLBACK_PACKET_READY
+          TSCH_CALLBACK_PACKET_READY();
+#endif
           p->qb = queuebuf_new_from_packetbuf();
           if(p->qb != NULL) {
             p->sent = sent;
@@ -355,7 +356,11 @@ tsch_queue_get_packet_for_nbr(const struct tsch_neighbor *n, struct tsch_link *l
                                                                     make sure the backoff has expired */
 #if WITH_TSCH_SLOTFRAME_SELECTOR
         int packet_attr_slotframe = queuebuf_attr(n->tx_array[get_index]->qb, PACKETBUF_ATTR_TSCH_SLOTFRAME);
-        if(packet_attr_slotframe && packet_attr_slotframe != link->slotframe_handle) {
+        int packet_attr_timeslot = queuebuf_attr(n->tx_array[get_index]->qb, PACKETBUF_ATTR_TSCH_TIMESLOT);
+        if(packet_attr_slotframe != 0xffff && packet_attr_slotframe != link->slotframe_handle) {
+          return NULL;
+        }
+        if(packet_attr_timeslot != 0xffff && packet_attr_timeslot != link->timeslot) {
           return NULL;
         }
 #endif
@@ -409,14 +414,14 @@ void
 tsch_queue_backoff_reset(struct tsch_neighbor *n)
 {
   n->backoff_window = 0;
-  n->backoff_exponent = MAC_MIN_BE;
+  n->backoff_exponent = TSCH_MAC_MIN_BE;
 }
 /* Increment backoff exponent, pick a new window */
 void
 tsch_queue_backoff_inc(struct tsch_neighbor *n)
 {
   /* Increment exponent */
-  n->backoff_exponent = MIN(n->backoff_exponent + 1, MAC_MAX_BE);
+  n->backoff_exponent = MIN(n->backoff_exponent + 1, TSCH_MAC_MAX_BE);
   /* Pick a window (number of shared slots to skip) */
   n->backoff_window = tsch_random_byte((1 << n->backoff_exponent) - 1);
   /* Add one to the window as we will decrement it at the end of the current slot

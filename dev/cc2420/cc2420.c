@@ -166,8 +166,6 @@ static int cc2420_receiving_packet(void);
 static int pending_packet(void);
 static int get_cca_threshold(void);
 static int cc2420_cca(void);
-static void setup_sfd_rising_edge(void);
-static rtimer_clock_t get_last_packet_timestamp(void);
 static void set_frame_filtering(uint8_t enable);
 static void set_poll_mode(uint8_t enable);
 static void set_auto_ack(uint8_t enable);
@@ -305,13 +303,17 @@ static radio_result_t
 get_object(radio_param_t param, void *dest, size_t size)
 {
   if(param == RADIO_PARAM_LAST_PACKET_TIMESTAMP) {
+#if CC2420_CONF_SFD_TIMESTAMPS
     if(size != sizeof(rtimer_clock_t) || !dest) {
       return RADIO_RESULT_INVALID_VALUE;
     }
 
-    *(rtimer_clock_t*)dest = get_last_packet_timestamp();
+    *(rtimer_clock_t*)dest = cc2420_sfd_start_time;
 
     return RADIO_RESULT_OK;
+#else
+    return RADIO_RESULT_NOT_SUPPORTED;
+#endif
   }
   return RADIO_RESULT_NOT_SUPPORTED;
 }
@@ -559,12 +561,12 @@ init_security(void)
 }
 /*---------------------------------------------------------------------------*/
 static void
-set_key(uint8_t *key)
+set_key(const uint8_t *key)
 {
   GET_LOCK();
   
   write_ram(key, CC2420RAM_KEY0, 16, WRITE_RAM_REVERSE);
-
+  
   RELEASE_LOCK();
 }
 /*---------------------------------------------------------------------------*/
@@ -582,7 +584,7 @@ encrypt(uint8_t *plaintext_and_result)
   while(get_status() & BV(CC2420_ENC_BUSY));
   
   read_ram(plaintext_and_result, CC2420RAM_SABUF, 16);
-
+  
   RELEASE_LOCK();
 }
 /*---------------------------------------------------------------------------*/
@@ -667,12 +669,6 @@ cc2420_init(void)
   cc2420_set_cca_threshold(CC2420_CONF_CCA_THRESH);
 
   flushrx();
-
-#if !CC2420_CONF_SFD_TIMESTAMPS
-  /* SFD timestamp interrupts are not used, se need to have SFD on rising
-   * edge only to be able to read timestamps after reception. */
-  setup_sfd_rising_edge();
-#endif
 
   set_poll_mode(0);
   CC2420_CLEAR_FIFOP_INT();
@@ -801,7 +797,7 @@ cc2420_prepare(const void *payload, unsigned short payload_len)
   total_len = payload_len + CHECKSUM_LEN;
   write_fifo_buf(&total_len, 1);
   write_fifo_buf(payload, payload_len);
-
+  
   RELEASE_LOCK();
   return 0;
 }
@@ -972,7 +968,7 @@ cc2420_read(void *buf, unsigned short bufsize)
   } else {
     getrxdata((uint8_t *) buf, len - FOOTER_LEN);
     getrxdata(footer, FOOTER_LEN);
-
+    
     if(footer[1] & FOOTER1_CRC_OK) {
       cc2420_last_rssi = footer[0] + RSSI_OFFSET;
       cc2420_last_correlation = footer[1] & FOOTER1_CORRELATION;
@@ -1000,7 +996,7 @@ cc2420_read(void *buf, unsigned short bufsize)
         }
       }
     }
-
+    
     RELEASE_LOCK();
     return len - FOOTER_LEN;
   }
@@ -1128,37 +1124,6 @@ cc2420_set_cca_threshold(int value)
   RELEASE_LOCK();
 }
 
-/* Configures timer B to capture SFD rising edge */
-static void
-setup_sfd_rising_edge()
-{
-  /* Need to select the special function! */
-  CC2420_SFD_PORT(SEL) = BV(CC2420_SFD_PIN);
-
-  /* start timer B - 32768 ticks per second */
-  TBCTL = TBSSEL_1 | TBCLR;
-
-  /* Capture mode: 1 - pos. edge */
-  TBCCTL1 = CM_1 | CAP | SCS;
-
-  /* Start Timer_B in continuous mode. */
-	TBCTL |= MC1; //it is already started?
-
-	/* Sync with RTIMER */
-  TBR = RTIMER_NOW();
-}
-
-/* Returns last packet timestamp */
-static rtimer_clock_t
-get_last_packet_timestamp(void)
-{
-#if CC2420_CONF_SFD_TIMESTAMPS
- return cc2420_sfd_start_time;
-#else
-  return TBCCR1;
-#endif
-}
-
 /* Set or unset frame autoack */
 static void
 set_auto_ack(uint8_t enable)
@@ -1209,10 +1174,10 @@ set_poll_mode(uint8_t enable)
 	  CC2420_CLEAR_FIFOP_INT();
 	  CC2420_DISABLE_FIFOP_INT();
 	} else {
-    /* Initialize and enable FIFOP interrupt */
-    CC2420_FIFOP_INT_INIT();
-    CC2420_ENABLE_FIFOP_INT();
-    CC2420_CLEAR_FIFOP_INT();
+	  /* Initialize and enable FIFOP interrupt */
+	  CC2420_FIFOP_INT_INIT();
+	  CC2420_ENABLE_FIFOP_INT();
+	  CC2420_CLEAR_FIFOP_INT();
 	}
 	RELEASE_LOCK();
 }

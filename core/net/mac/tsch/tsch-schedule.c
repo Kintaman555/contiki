@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Swedish Institute of Computer Science.
+ * Copyright (c) 2014, SICS Swedish ICT.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -84,25 +84,43 @@ LIST(slotframe_list);
 struct tsch_slotframe *
 tsch_schedule_add_slotframe(uint16_t handle, uint16_t size)
 {
+  if(size == 0) {
+    return NULL;
+  }
+
   if(tsch_schedule_get_slotframe_from_handle(handle)) {
     /* A slotframe with this handle already exists */
     return NULL;
-  } else {
-    if(tsch_get_lock()) {
-      struct tsch_slotframe *sf = memb_alloc(&slotframe_memb);
-      if(sf != NULL) {
-        /* Initialize the slotframe */
-        sf->handle = handle;
-        ASN_DIVISOR_INIT(sf->size, size);
-        LIST_STRUCT_INIT(sf, links_list);
-        /* Add the slotframe to the global list */
-        list_add(slotframe_list, sf);
-      }
-      tsch_release_lock();
-      return sf;
+  }
+
+  if(tsch_get_lock()) {
+    struct tsch_slotframe *sf = memb_alloc(&slotframe_memb);
+    if(sf != NULL) {
+      /* Initialize the slotframe */
+      sf->handle = handle;
+      ASN_DIVISOR_INIT(sf->size, size);
+      LIST_STRUCT_INIT(sf, links_list);
+      /* Add the slotframe to the global list */
+      list_add(slotframe_list, sf);
     }
+    PRINTF("TSCH-schedule: add_slotframe %u %u\n",
+        handle, size);
+    tsch_release_lock();
+    return sf;
   }
   return NULL;
+}
+/* Removes all slotframes, resulting in an empty schedule */
+int
+tsch_schedule_remove_all_slotframes()
+{
+  struct tsch_slotframe *sf;
+  while((sf = list_head(slotframe_list))) {
+    if(tsch_schedule_remove_slotframe(sf) == 0) {
+      return 0;
+    }
+  }
+  return 1;
 }
 /* Removes a slotframe Return 1 if success, 0 if failure */
 int
@@ -117,6 +135,7 @@ tsch_schedule_remove_slotframe(struct tsch_slotframe *slotframe)
 
     /* Now that the slotframe has no links, remove it. */
     if(tsch_get_lock()) {
+      PRINTF("TSCH-schedule: remove slotframe %u %u\n", slotframe->handle, slotframe->size.val);
       memb_free(&slotframe_memb, slotframe);
       list_remove(slotframe_list, slotframe);
       tsch_release_lock();
@@ -196,8 +215,8 @@ tsch_schedule_add_link(struct tsch_slotframe *slotframe,
         }
         linkaddr_copy(&l->addr, address);
 
-        PRINTF("TSCH-schedule: add_link %u %u %u %u %u\n",
-            slotframe->handle, link_options, timeslot, channel_offset, LOG_NODEID_FROM_LINKADDR(address));
+        PRINTF("TSCH-schedule: add_link %u %u %u %u %u %u\n",
+            slotframe->handle, link_options, link_type, timeslot, channel_offset, LOG_NODEID_FROM_LINKADDR(address));
 
         /* Release the lock before we update the neighbor (will take the lock) */
         tsch_release_lock();
@@ -457,6 +476,8 @@ void
 tsch_schedule_create_minimal()
 {
   struct tsch_slotframe *sf_min;
+  /* First, empty current schedule */
+  tsch_schedule_remove_all_slotframes();
   /* Build 6TiSCH minimal schedule.
    * We pick a slotframe length of TSCH_SCHEDULE_DEFAULT_LENGTH */
   sf_min = tsch_schedule_add_slotframe(0, TSCH_SCHEDULE_DEFAULT_LENGTH);
