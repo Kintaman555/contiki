@@ -9,6 +9,7 @@ import parseLogs
 import pygraphviz as pgv
 from plottingTools import *
 from numpy import *
+import matplotlib.pyplot as plt
 
 barcolor = '#0a51a7'
 linecolor = "none"
@@ -91,16 +92,19 @@ def getFile(base, name):
 
 def extractStats(metric, dir):
     dataFile = getFile(dir, metric + '_pernode.txt')
+    print dataFile, dir, metric + '_pernode.txt'
     if dataFile != None:
         gloablData = extractGlobal(dataFile)
+        print gloablData
         perNode = extractPerNode(dataFile)
         return {'global': gloablData, 'perNode': perNode}
     return None
 
 def main():
-  dir = "."
+  plt.rc('pdf',fonttype = 42)
+  dir = "pitestbed-xp/315-sb29-pp/short"
   allRes = {}
-               
+
   for m in metrics:
       stats_up = extractStats(m + " Up", dir)
       stats_down = extractStats(m + " Down", dir)

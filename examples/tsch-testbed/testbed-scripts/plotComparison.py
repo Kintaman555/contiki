@@ -8,6 +8,7 @@ from pylab import *
 import parseLogs
 import pygraphviz as pgv
 from plottingTools import *
+import matplotlib.pyplot as plt
 
 barcolor = '#0a51a7'
 linecolor = "none"
@@ -124,6 +125,7 @@ def extractStats(metric, dir):
     return None
 
 def main():
+  plt.rc('pdf',fonttype = 42)
   all_res = {}
   xp_dir = "experiments"
   metrics = ["End-to-end Delivery Ratio", "Latency", "Duty Cycle", "MAC Unicast Success"]

@@ -7,6 +7,7 @@ import math
 from pylab import *
 import parseLogs
 import pygraphviz as pgv
+import matplotlib.pyplot as plt
 
 N_NODES = 99
 N_NEIGHBORS = 15.7
@@ -50,7 +51,8 @@ def plotStat(all_res, field, ylabel, legendPos="lower right", legendBbox=None, l
             label=configs[mac]['l'],
             linestyle=getLineStyle(index),
             marker=getMarker(index),
-            color=getLineColor(index)
+            color=getLineColor(index),
+            linewidth=1.5,
             )
   ax.grid(True)
   if legend:
@@ -101,8 +103,9 @@ def extractStats(dir):
       return None
 
 def main():
+  plt.rc('pdf',fonttype = 42)
   all_res = {}
-  xp_dir = "."
+  xp_dir = "experiments/probing"
   for f in os.listdir(xp_dir):
     res = re.compile('Indriya_prb([\\d]+)_([^_]+)_[\\d]+_[\\d]+').match(f)
     if res != None:

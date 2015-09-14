@@ -7,6 +7,7 @@ import math
 from pylab import *
 import parseLogs
 import pygraphviz as pgv
+import matplotlib.pyplot as plt
 
 markers = ['s', 'o', '^', 'p', 'd']
 colors = ['#FF9900', '#00A876', '#0a51a7', '#FF5900', '#8FD9F2', 'black']
@@ -109,8 +110,9 @@ def extractStats(dir):
       return None
 
 def main():
+  plt.rc('pdf',fonttype = 42)
   all_res = {}
-  xp_dir = "experiments/indriya-experiments"
+  xp_dir = "experiments"
   for f in os.listdir(xp_dir):
     res = re.compile('Indriya_([^_]+)_[\\d]+_[\\d]+').match(f)
     if res != None:
