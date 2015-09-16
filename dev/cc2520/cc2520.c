@@ -97,6 +97,13 @@ static volatile uint16_t last_packet_timestamp;
 PROCESS(cc2520_process, "CC2520 driver");
 /*---------------------------------------------------------------------------*/
 
+/*---------------------------------------------------------------------------*/
+#define AUTOCRC (1 << 6)
+#define AUTOACK (1 << 5)
+#define FRAME_MAX_VERSION ((1 << 3) | (1 << 2))
+#define FRAME_FILTER_ENABLE (1 << 0)
+#define CORR_THR(n) (((n) & 0x1f) << 6)
+#define FIFOP_THR(n) ((n) & 0x7f)
 
 int cc2520_on(void);
 int cc2520_off(void);
@@ -111,12 +118,23 @@ static int cc2520_receiving_packet(void);
 static int pending_packet(void);
 static int cc2520_cca(void);
 /* static int detected_energy(void); */
+static uint8_t getreg(uint16_t regname);
+
+static void set_frame_filtering(uint8_t enable);
+static void set_poll_mode(uint8_t enable);
+static void set_send_on_cca(uint8_t enable);
+static void set_auto_ack(uint8_t enable);
 
 signed char cc2520_last_rssi;
 uint8_t cc2520_last_correlation;
 
 static uint8_t receive_on;
 static int channel;
+
+/* Are we currently in poll mode? */
+static uint8_t volatile poll_mode = 0;
+/* Do we perform a CCA before sending? */
+static uint8_t send_on_cca = WITH_SEND_CCA;
 
 static radio_result_t
 get_value(radio_param_t param, radio_value_t *value)
@@ -130,6 +148,32 @@ get_value(radio_param_t param, radio_value_t *value)
     return RADIO_RESULT_OK;
   case RADIO_PARAM_CHANNEL:
     *value = cc2520_get_channel();
+    return RADIO_RESULT_OK;
+  case RADIO_PARAM_RX_MODE:
+    *value = 0;
+    if(getreg(CC2520_FRMFILT0) & FRAME_FILTER_ENABLE) {
+      *value |= RADIO_RX_MODE_ADDRESS_FILTER;
+    }
+    if(getreg(CC2520_FRMCTRL0) & AUTOACK) {
+      *value |= RADIO_RX_MODE_AUTOACK;
+    }
+    if(poll_mode) {
+      *value |= RADIO_RX_MODE_POLL_MODE;
+    }
+    return RADIO_RESULT_OK;
+  case RADIO_PARAM_TX_MODE:
+    *value = 0;
+    if(send_on_cca) {
+      *value |= RADIO_TX_MODE_SEND_ON_CCA;
+    }
+    return RADIO_RESULT_OK;
+  case RADIO_PARAM_LAST_RSSI:
+    /* RSSI of the last packet received */
+    *value = cc2520_last_rssi;
+    return RADIO_RESULT_OK;
+  case RADIO_PARAM_LAST_LINK_QUALITY:
+    /* LQI of the last packet received */
+    *value = cc2520_last_correlation;
     return RADIO_RESULT_OK;
   case RADIO_CONST_CHANNEL_MIN:
     *value = 11;
@@ -162,6 +206,21 @@ set_value(radio_param_t param, radio_value_t value)
     }
     cc2520_set_channel(value);
     return RADIO_RESULT_OK;
+  case RADIO_PARAM_RX_MODE:
+    if(value & ~(RADIO_RX_MODE_ADDRESS_FILTER |
+        RADIO_RX_MODE_AUTOACK | RADIO_RX_MODE_POLL_MODE)) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    set_frame_filtering((value & RADIO_RX_MODE_ADDRESS_FILTER) != 0);
+    set_auto_ack((value & RADIO_RX_MODE_AUTOACK) != 0);
+    set_poll_mode((value & RADIO_RX_MODE_POLL_MODE) != 0);
+    return RADIO_RESULT_OK;
+  case RADIO_PARAM_TX_MODE:
+    if(value & ~(RADIO_TX_MODE_SEND_ON_CCA)) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    set_send_on_cca((value & RADIO_TX_MODE_SEND_ON_CCA) != 0);
+    return RADIO_RESULT_OK;
   default:
     return RADIO_RESULT_NOT_SUPPORTED;
   }
@@ -170,6 +229,17 @@ set_value(radio_param_t param, radio_value_t value)
 static radio_result_t
 get_object(radio_param_t param, void *dest, size_t size)
 {
+  if(param == RADIO_PARAM_LAST_PACKET_TIMESTAMP) {
+#if CC2520_CONF_SFD_TIMESTAMPS
+    if(size != sizeof(rtimer_clock_t) || !dest) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }    
+    *(rtimer_clock_t*)dest = cc2520_sfd_start_time;
+    return RADIO_RESULT_OK;
+#else
+    return RADIO_RESULT_NOT_SUPPORTED;
+#endif
+  }
   return RADIO_RESULT_NOT_SUPPORTED;
 }
 
@@ -240,7 +310,9 @@ static uint8_t locked, lock_on, lock_off;
 static void
 on(void)
 {
-  CC2520_ENABLE_FIFOP_INT();
+  if(!poll_mode) {
+    CC2520_ENABLE_FIFOP_INT();
+  }
   strobe(CC2520_INS_SRXON);
 
   BUSYWAIT_UNTIL(status() & (BV(CC2520_XOSC16M_STABLE)), RTIMER_SECOND / 100);
@@ -259,7 +331,9 @@ off(void)
 
   ENERGEST_OFF(ENERGEST_TYPE_LISTEN);
   strobe(CC2520_INS_SRFOFF);
-  CC2520_DISABLE_FIFOP_INT();
+  if(!poll_mode) {
+    CC2520_DISABLE_FIFOP_INT();
+  }
 
   if(!CC2520_FIFOP_IS_1) {
     flushrx();
@@ -300,13 +374,6 @@ set_txpower(uint8_t power)
 {
   setreg(CC2520_TXPOWER, power);
 }
-/*---------------------------------------------------------------------------*/
-#define AUTOCRC (1 << 6)
-#define AUTOACK (1 << 5)
-#define FRAME_MAX_VERSION ((1 << 3) | (1 << 2))
-#define FRAME_FILTER_ENABLE (1 << 0)
-#define CORR_THR(n) (((n) & 0x1f) << 6)
-#define FIFOP_THR(n) ((n) & 0x7f)
 /*---------------------------------------------------------------------------*/
 int
 cc2520_init(void)
@@ -374,16 +441,12 @@ cc2520_init(void)
   setreg(CC2520_ADCTEST1,    0x0E);
   setreg(CC2520_ADCTEST2,    0x03);
 
-  /* Set auto CRC on frame. */
-#if CC2520_CONF_AUTOACK
-  setreg(CC2520_FRMCTRL0,    AUTOCRC | AUTOACK);
-  setreg(CC2520_FRMFILT0,    FRAME_MAX_VERSION|FRAME_FILTER_ENABLE);
-#else
-  /* setreg(CC2520_FRMCTRL0,    0x60); */
   setreg(CC2520_FRMCTRL0,    AUTOCRC);
-  /* Disable filter on @ (remove if you want to address specific wismote) */
-  setreg(CC2520_FRMFILT0,    0x00);
-#endif /* CC2520_CONF_AUTOACK */
+  
+  /* Set auto-ack and frame filtering */
+  set_auto_ack(CC2520_CONF_AUTOACK);
+  set_frame_filtering(CC2520_CONF_AUTOACK);
+  
   /* SET_RXENMASK_ON_TX */
   setreg(CC2520_FRMCTRL1,          1);
   /* Set FIFOP threshold to maximum .*/
@@ -393,6 +456,8 @@ cc2520_init(void)
   cc2520_set_channel(26);
 
   flushrx();
+  
+  set_poll_mode(0);
 
   process_start(&cc2520_process, NULL);
   return 1;
@@ -426,26 +491,26 @@ cc2520_transmit(unsigned short payload_len)
 #define LOOP_20_SYMBOLS CC2520_CONF_SYMBOL_LOOP_COUNT
 #endif
 
-#if WITH_SEND_CCA
-  strobe(CC2520_INS_SRXON);
-  BUSYWAIT_UNTIL(status() & BV(CC2520_RSSI_VALID) , RTIMER_SECOND / 10);
-  strobe(CC2520_INS_STXONCCA);
-#else /* WITH_SEND_CCA */
-  strobe(CC2520_INS_STXON);
-#endif /* WITH_SEND_CCA */
+  if(send_on_cca) {
+    strobe(CC2520_INS_SRXON);
+    BUSYWAIT_UNTIL(status() & BV(CC2520_RSSI_VALID) , RTIMER_SECOND / 10);
+    strobe(CC2520_INS_STXONCCA);
+  } else {
+    strobe(CC2520_INS_STXON);
+  }
   for(i = LOOP_20_SYMBOLS; i > 0; i--) {
     if(CC2520_SFD_IS_1) {
+#if PACKETBUF_WITH_PACKET_TYPE
       {
         rtimer_clock_t sfd_timestamp;
         sfd_timestamp = cc2520_sfd_start_time;
-#if PACKETBUF_WITH_PACKET_TYPE
         if(packetbuf_attr(PACKETBUF_ATTR_PACKET_TYPE) ==
            PACKETBUF_ATTR_PACKET_TYPE_TIMESTAMP) {
           /* Write timestamp to last two bytes of packet in TXFIFO. */
           CC2520_WRITE_RAM(&sfd_timestamp, CC2520RAM_TXFIFO + payload_len - 1, 2);
         }
-#endif
       }
+#endif /* PACKETBUF_WITH_PACKET_TYPE */
 
       if(!(status() & BV(CC2520_TX_ACTIVE))) {
         /* SFD went high but we are not transmitting. This means that
@@ -486,7 +551,7 @@ cc2520_transmit(unsigned short payload_len)
     }
   }
 
-  /* If we are using WITH_SEND_CCA, we get here if the packet wasn't
+  /* If we send with cca (cca_on_send), we get here if the packet wasn't
      transmitted because of other channel activity. */
   RIMESTATS_ADD(contentiondrop);
   PRINTF("cc2520: do_send() transmission never started\n");
@@ -677,7 +742,7 @@ PROCESS_THREAD(cc2520_process, ev, data)
   PRINTF("cc2520_process: started\n");
 
   while(1) {
-    PROCESS_YIELD_UNTIL(ev == PROCESS_EVENT_POLL);
+    PROCESS_YIELD_UNTIL(!poll_mode && ev == PROCESS_EVENT_POLL);
 
     PRINTF("cc2520_process: calling receiver callback\n");
 
@@ -738,9 +803,13 @@ cc2520_read(void *buf, unsigned short bufsize)
     cc2520_last_rssi = footer[0];
     cc2520_last_correlation = footer[1] & FOOTER1_CORRELATION;
 
-
-    packetbuf_set_attr(PACKETBUF_ATTR_RSSI, cc2520_last_rssi);
-    packetbuf_set_attr(PACKETBUF_ATTR_LINK_QUALITY, cc2520_last_correlation);
+    if(!poll_mode) {
+      /* Not in poll mode: packetbuf should not be accessed in interrupt context.
+       * In poll mode, the last packet RSSI and link quality can be obtained through
+       * RADIO_PARAM_LAST_RSSI and RADIO_PARAM_LAST_LINK_QUALITY */
+      packetbuf_set_attr(PACKETBUF_ATTR_RSSI, cc2520_last_rssi);
+      packetbuf_set_attr(PACKETBUF_ATTR_LINK_QUALITY, cc2520_last_correlation);
+    }
 
     RIMESTATS_ADD(llrx);
 
@@ -749,15 +818,17 @@ cc2520_read(void *buf, unsigned short bufsize)
     len = FOOTER_LEN;
   }
 
-  if(CC2520_FIFOP_IS_1) {
-    if(!CC2520_FIFO_IS_1) {
-      /* Clean up in case of FIFO overflow!  This happens for every
-       * full length frame and is signaled by FIFOP = 1 and FIFO =
-       * 0. */
-      flushrx();
-    } else {
-      /* Another packet has been received and needs attention. */
-      process_poll(&cc2520_process);
+  if(!poll_mode) {
+    if(CC2520_FIFOP_IS_1) {
+      if(!CC2520_FIFO_IS_1) {
+        /* Clean up in case of FIFO overflow!  This happens for every
+         * full length frame and is signaled by FIFOP = 1 and FIFO =
+         * 0. */
+        flushrx();
+      } else {
+        /* Another packet has been received and needs attention. */
+        process_poll(&cc2520_process);
+      }
     }
   }
 
@@ -894,5 +965,69 @@ cc2520_set_cca_threshold(int value)
   GET_LOCK();
   setreg(CC2520_CCACTRL0, value & 0xff);
   RELEASE_LOCK();
+}
+/*---------------------------------------------------------------------------*/
+/* Set or unset frame autoack */
+static void
+set_auto_ack(uint8_t enable)
+{
+  GET_LOCK();
+
+  uint16_t reg = getreg(CC2520_FRMCTRL0);
+  if(enable) {
+    reg |= AUTOACK;
+  } else {
+    reg &= ~(AUTOACK);
+  }
+  /* Writing RAM requires crystal oscillator to be stable. */
+  BUSYWAIT_UNTIL((status() & (BV(CC2520_XOSC16M_STABLE))), RTIMER_SECOND / 10);
+  setreg(CC2520_FRMCTRL0, reg);
+  RELEASE_LOCK();
+}
+/*---------------------------------------------------------------------------*/
+/* Set or unset frame filtering */
+static void
+set_frame_filtering(uint8_t enable)
+{
+ GET_LOCK();
+
+ /* Turn on/off address decoding. */
+ uint16_t reg;
+ if(enable) {
+   reg = FRAME_MAX_VERSION | FRAME_FILTER_ENABLE;
+ } else {
+   reg = 0;
+ }
+
+  /* Writing RAM requires crystal oscillator to be stable. */
+ BUSYWAIT_UNTIL((status() & (BV(CC2520_XOSC16M_STABLE))), RTIMER_SECOND / 10);
+ setreg(CC2520_FRMFILT0, reg);
+ RELEASE_LOCK();
+}
+/*---------------------------------------------------------------------------*/
+/* Enable or disable radio interrupts (both FIFOP and SFD timer capture) */
+static void
+set_poll_mode(uint8_t enable)
+{
+ GET_LOCK();
+ poll_mode = enable;
+ if(enable) {
+   /* Disable FIFOP interrupt */
+   CC2520_CLEAR_FIFOP_INT();
+   CC2520_DISABLE_FIFOP_INT();
+ } else {
+   /* Initialize and enable FIFOP interrupt */
+   CC2520_FIFOP_INT_INIT();
+   CC2520_ENABLE_FIFOP_INT();
+   CC2520_CLEAR_FIFOP_INT();
+ }
+ RELEASE_LOCK();
+}
+/*---------------------------------------------------------------------------*/
+/* Enable or disable CCA before sending */
+static void
+set_send_on_cca(uint8_t enable)
+{
+  send_on_cca = enable;
 }
 /*---------------------------------------------------------------------------*/

@@ -239,16 +239,16 @@
 #undef CONTIKI_VERSION_STRING
 #define CONTIKI_VERSION_STRING "Contiki RICH-3.x"
 
-#if CONTIKI_TARGET_SKY || CONTIKI_TARGET_Z1
-
-#include "common-conf-sky-z1.h"
-
-#endif /* CONTIKI_TARGET_SKY || CONTIKI_TARGET_Z1 */
-
 #if CONTIKI_TARGET_JN516X
-
 #include "common-conf-jn516x.h"
-
 #endif /* CONTIKI_TARGET_JN516X */
+
+#if CONTIKI_TARGET_WISMOTE
+#include "common-conf-wismote.h"
+#endif /* CONTIKI_TARGET_WISMOTE */
+
+#if CONTIKI_TARGET_SKY || CONTIKI_TARGET_Z1
+#include "common-conf-sky-z1.h"
+#endif /* CONTIKI_TARGET_SKY || CONTIKI_TARGET_Z1 */
 
 #endif /* __COMMON_CONF_H__ */

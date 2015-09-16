@@ -91,6 +91,10 @@
 
 #define CONTIKIMAC_CONF_BROADCAST_RATE_LIMIT 0
 
+/* The TSCH default slot length of 10ms is a bit too short for this platform,
+ * use 15ms instead. */
+#define TSCH_CONF_DEFAULT_TIMESLOT_LENGTH 15000
+
 #define IEEE802154_CONF_PANID       0xABCD
 
 #define SHELL_VARS_CONF_RAM_BEGIN 0x1100
