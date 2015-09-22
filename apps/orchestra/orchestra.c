@@ -27,9 +27,11 @@
  * SUCH DAMAGE.
  *
  */
+
 /**
  * \file
- *         Orchestra
+ *         Orchestra: an autonomous scheduler for TSCH exploiting RPL state.
+ *         See "Orchestra: Robust Mesh Networks Through Autonomously Scheduled TSCH", ACM SenSys'15
  *
  * \author Simon Duquennoy <simonduq@sics.se>
  */
@@ -40,6 +42,9 @@
 #include "net/ipv6/uip-icmp6.h"
 #include "net/rpl/rpl-private.h"
 #include "net/rime/rime.h" /* Needed for so-called rime-sniffer */
+
+#define DEBUG DEBUG_PRINT
+#include "net/ip/uip-debug.h"
 
 /* A net-layer sniffer for packets sent and received */
 static void orchestra_packet_received(void);
@@ -101,7 +106,7 @@ orchestra_callback_child_removed(linkaddr_t *addr)
 }
 /*---------------------------------------------------------------------------*/
 void
-orchestra_callback_packet_ready()
+orchestra_callback_packet_ready(void)
 {
   int i;
   /* By default, use any slotframe, any timeslot */
@@ -117,7 +122,7 @@ orchestra_callback_packet_ready()
     }
   }
 
-#if WITH_TSCH_SLOTFRAME_SELECTOR
+#if TSCH_WITH_LINK_SELECTOR
   packetbuf_set_attr(PACKETBUF_ATTR_TSCH_SLOTFRAME, slotframe);
   packetbuf_set_attr(PACKETBUF_ATTR_TSCH_TIMESLOT, timeslot);
 #endif
@@ -143,7 +148,7 @@ orchestra_callback_new_time_source(struct tsch_neighbor *old, struct tsch_neighb
 }
 /*---------------------------------------------------------------------------*/
 void
-orchestra_init()
+orchestra_init(void)
 {
   int i;
   /* Snoop on packet transmission to know if our parent knows about us
@@ -153,7 +158,9 @@ orchestra_init()
   /* Initialize all Orchestra rules */
   for(i = 0; i < NUM_RULES; i++) {
     if(all_rules[i]->init != NULL) {
+      PRINTF("Orchestra: initializing rule %u\n", i);
       all_rules[i]->init(i);
     }
   }
+  PRINTF("Orchestra: initialization done\n");
 }

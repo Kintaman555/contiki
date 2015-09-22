@@ -27,18 +27,17 @@
  * SUCH DAMAGE.
  *
  */
-/**
- * \file
- *         Interaction between TSCH and RPL
- *
- * \author Simon Duquennoy <simonduq@sics.se>
- */
+
 
 #ifndef __TSCH_RPL_H__
 #define __TSCH_RPL_H__
 
+/********** Includes **********/
+
 #include "net/rpl/rpl.h"
 #include "net/mac/tsch/tsch-queue.h"
+
+/********** Functions *********/
 
 /* To use, set #define TSCH_CALLBACK_JOINING_NETWORK tsch_rpl_callback_joining_network */
 void tsch_rpl_callback_joining_network();
@@ -46,9 +45,6 @@ void tsch_rpl_callback_joining_network();
  * (cleanup neighbor state, reset Trickle timer etc)
  * To use, set #define TSCH_CALLBACK_LEAVING_NETWORK tsch_rpl_callback_leaving_network */
 void tsch_rpl_callback_leaving_network();
-/* Called whenever TSCH swtiches time source
-To use, set #define TSCH_CALLBACK_NEW_TIME_SOURCE tsch_rpl_callback_new_time_source */
-void tsch_rpl_callback_new_time_source(struct tsch_neighbor *old, struct tsch_neighbor *new);
 /* Set TSCH EB period based on current RPL DIO period.
  * To use, set #define RPL_CALLBACK_PARENT_SWITCH tsch_rpl_callback_new_dio_interval */
 void tsch_rpl_callback_new_dio_interval(uint8_t dio_interval);

@@ -30,24 +30,50 @@
  *
  */
 
-/**
- * \file
- *         Log functions for TSCH, meant for logging from interrupt
- *         during a link operation. Saves ASN and other link information
- *         and adds the log to a ringbuf for later printout.
- * \author
- *         Simon Duquennoy <simonduq@sics.se>
- *
- */
+#ifndef __TSCH_LOG_H__
+#define __TSCH_LOG_H__
+
+/********** Includes **********/
 
 #include "contiki.h"
 #include "sys/rtimer.h"
 #include "net/mac/tsch/tsch-private.h"
 
-#ifndef __TSCH_LOG_H__
-#define __TSCH_LOG_H__
+/******** Configuration *******/
 
-#if WITH_TSCH_LOG
+/* The length of the log queue, i.e. maximum number postponed log messages */
+#ifdef TSCH_LOG_CONF_QUEUE_LEN
+#define TSCH_LOG_QUEUE_LEN TSCH_LOG_CONF_QUEUE_LEN
+#else /* TSCH_LOG_CONF_QUEUE_LEN */
+#define TSCH_LOG_QUEUE_LEN 8
+#endif /* TSCH_LOG_CONF_QUEUE_LEN */
+
+/* Returns an integer ID from a link-layer address */
+#ifdef TSCH_LOG_CONF_ID_FROM_LINKADDR
+#define TSCH_LOG_ID_FROM_LINKADDR(addr) TSCH_LOG_CONF_ID_FROM_LINKADDR(addr)
+#else /* TSCH_LOG_ID_FROM_LINKADDR */
+#define TSCH_LOG_ID_FROM_LINKADDR(addr) ((addr) ? (addr)->u8[LINKADDR_SIZE-1] : 0)
+#endif /* TSCH_LOG_ID_FROM_LINKADDR */
+
+/* TSCH log levels:
+ * 0: no log
+ * 1: basic PRINTF enabled
+ * 2: basic PRINTF enabled and tsch-log module enabled */
+#ifdef TSCH_LOG_CONF_LEVEL
+#define TSCH_LOG_LEVEL TSCH_LOG_CONF_LEVEL
+#else /* TSCH_LOG_CONF_LEVEL */
+#define TSCH_LOG_LEVEL 2
+#endif /* TSCH_LOG_CONF_LEVEL */
+
+#if TSCH_LOG_LEVEL < 2 /* For log level 0 or 1, the logging functions do nothing */
+
+#define tsch_log_init()
+#define tsch_log_process_pending()
+#define TSCH_LOG_ADD(log_type, init_code)
+
+#else /* TSCH_LOG_LEVEL */
+
+/************ Types ***********/
 
 /* Structure for a log. Union of different types of logs */
 struct tsch_log_t {
@@ -58,9 +84,8 @@ struct tsch_log_t {
   struct asn_t asn;
   struct tsch_link *link;
   union {
-    char message[64];
+    char message[48];
     struct {
-      //struct app_data appdata;
       int mac_tx_status;
       int dest;
       int drift;
@@ -70,7 +95,6 @@ struct tsch_log_t {
       uint8_t drift_used;
     } tx;
     struct {
-      //struct app_data appdata;
       int src;
       int drift;
       int estimated_drift;
@@ -82,6 +106,8 @@ struct tsch_log_t {
   };
 };
 
+/********** Functions *********/
+
 /* Prepare addition of a new log.
  * Returns pointer to log structure if success, NULL otherwise */
 struct tsch_log_t *tsch_log_prepare_add();
@@ -92,6 +118,10 @@ void tsch_log_init();
 /* Process pending log messages */
 void tsch_log_process_pending();
 
+/************ Macros **********/
+
+/* Use this macro to add a log to the queue (will be printed out
+ * later, after leaving interrupt context) */
 #define TSCH_LOG_ADD(log_type, init_code) do { \
     struct tsch_log_t *log = tsch_log_prepare_add(); \
     if(log != NULL) { \
@@ -101,12 +131,6 @@ void tsch_log_process_pending();
     } \
   } while(0);
 
-#else /* WITH_TSCH_LOG */
-
-#define tsch_log_init()
-#define tsch_log_process_pending()
-#define TSCH_LOG_ADD(log_type, init_code)
-
-#endif /* WITH_TSCH_LOG */
+#endif /* TSCH_LOG_LEVEL */
 
 #endif /* __TSCH_LOG_H__ */

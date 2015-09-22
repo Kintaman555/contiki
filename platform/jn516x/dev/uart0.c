@@ -46,15 +46,18 @@
 #include "uart-driver.h"
 
 /* Valid range for TXBUFSIZE and RXBUFSIZE: 16-2047 */
+<<<<<<< HEAD
 #define RXBUFSIZE 63
 #if UART_XONXOFF_FLOW_CTRL
 #define TXBUFSIZE 16
 #else
 #define TXBUFSIZE 1281
 #endif
+=======
+>>>>>>> origin/rich-3.x
 
-static unsigned char txbuf_data[TXBUFSIZE];
-static unsigned char rxbuf_data[RXBUFSIZE];
+static unsigned char txbuf_data[UART_TX_BUFFER_SIZE];
+static unsigned char rxbuf_data[UART_RX_BUFFER_SIZE];
 static int (*uart0_input)(unsigned char c);
 
 uint8_t
@@ -77,5 +80,5 @@ uart0_writeb(unsigned char c)
 void
 uart0_init(uint8_t br)
 {
-  uart_driver_init(E_AHI_UART_0, br, txbuf_data, TXBUFSIZE, rxbuf_data, RXBUFSIZE, uart0_input);
+  uart_driver_init(E_AHI_UART_0, br, txbuf_data, UART_TX_BUFFER_SIZE, rxbuf_data, UART_RX_BUFFER_SIZE, uart0_input);
 }

@@ -48,7 +48,7 @@
 #endif /* NETSTACK_CONF_MAC */
 
 #ifndef NETSTACK_CONF_RDC
-#define NETSTACK_CONF_RDC     tschrdc_driver
+#define NETSTACK_CONF_RDC     nordc_driver
 #endif /* NETSTACK_CONF_RDC */
 
 #ifndef NETSTACK_CONF_RADIO
@@ -104,8 +104,6 @@
 
 /* Network setup for IPv6 */
 #if NETSTACK_CONF_WITH_IPV6
-
-#define UIP_CONF_IPV6                   1
 
 /* Network setup for IPv6 */
 #define NETSTACK_CONF_NETWORK sicslowpan_driver

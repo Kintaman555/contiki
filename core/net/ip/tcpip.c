@@ -155,6 +155,7 @@ unsigned char tcpip_is_forwarding; /* Forwarding right now? */
 PROCESS(tcpip_process, "TCP/IP stack");
 
 /*---------------------------------------------------------------------------*/
+#if UIP_TCP || UIP_CONF_IP_FORWARD
 static void
 start_periodic_tcp_timer(void)
 {
@@ -162,6 +163,7 @@ start_periodic_tcp_timer(void)
     etimer_restart(&periodic);
   }
 }
+#endif /* UIP_TCP || UIP_CONF_IP_FORWARD */
 /*---------------------------------------------------------------------------*/
 static void
 check_for_tcp_syn(void)
@@ -529,10 +531,7 @@ void
 tcpip_input(void)
 {
   process_post_synch(&tcpip_process, PACKET_INPUT, NULL);
-  uip_len = 0;
-#if NETSTACK_CONF_WITH_IPV6
-  uip_ext_len = 0;
-#endif /*NETSTACK_CONF_WITH_IPV6*/
+  uip_clear_buf();
 }
 /*---------------------------------------------------------------------------*/
 #if NETSTACK_CONF_WITH_IPV6
@@ -548,13 +547,13 @@ tcpip_ipv6_output(void)
 
   if(uip_len > UIP_LINK_MTU) {
     UIP_LOG("tcpip_ipv6_output: Packet to big");
-    uip_len = 0;
+    uip_clear_buf();
     return;
   }
 
   if(uip_is_addr_unspecified(&UIP_IP_BUF->destipaddr)){
     UIP_LOG("tcpip_ipv6_output: Destination address unspecified");
-    uip_len = 0;
+    uip_clear_buf();
     return;
   }
 
@@ -591,7 +590,7 @@ tcpip_ipv6_output(void)
 #else
           PRINTF("tcpip_ipv6_output: Destination off-link but no route\n");
 #endif /* !UIP_FALLBACK_INTERFACE */
-          uip_len = 0;
+          uip_clear_buf();
           return;
         }
 
@@ -643,7 +642,7 @@ tcpip_ipv6_output(void)
 
 #if UIP_CONF_IPV6_RPL
     if(rpl_update_header_final(nexthop)) {
-      uip_len = 0;
+      uip_clear_buf();
       return;
     }
 #endif /* UIP_CONF_IPV6_RPL */
@@ -651,7 +650,7 @@ tcpip_ipv6_output(void)
     if(nbr == NULL) {
 #if UIP_ND6_SEND_NA
       if((nbr = uip_ds6_nbr_add(nexthop, NULL, 0, NBR_INCOMPLETE)) == NULL) {
-        uip_len = 0;
+        uip_clear_buf();
         return;
       } else {
 #if UIP_CONF_IPV6_QUEUE_PKT
@@ -689,7 +688,7 @@ tcpip_ipv6_output(void)
           uip_packetqueue_set_buflen(&nbr->packethandle, uip_len);
         }
 #endif /*UIP_CONF_IPV6_QUEUE_PKT*/
-        uip_len = 0;
+        uip_clear_buf();
         return;
       }
       /* Send in parallel if we are running NUD (nbc state is either STALE,
@@ -719,15 +718,14 @@ tcpip_ipv6_output(void)
       }
 #endif /*UIP_CONF_IPV6_QUEUE_PKT*/
 
-      uip_len = 0;
+      uip_clear_buf();
       return;
     }
     return;
   }
   /* Multicast IP destination address. */
   tcpip_output(NULL);
-  uip_len = 0;
-  uip_ext_len = 0;
+  uip_clear_buf();
 }
 #endif /* NETSTACK_CONF_WITH_IPV6 */
 /*---------------------------------------------------------------------------*/

@@ -46,33 +46,38 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define CONFIG_VIA_BUTTON 1
+#define CONFIG_VIA_BUTTON PLATFORM_HAS_BUTTON
 #if CONFIG_VIA_BUTTON
 #include "button-sensor.h"
 #endif /* CONFIG_VIA_BUTTON */
 
 /*---------------------------------------------------------------------------*/
-PROCESS(unicast_sender_process, "RICH Node");
-AUTOSTART_PROCESSES(&unicast_sender_process, &sensors_process);
+PROCESS(node_process, "RICH Node");
+#if CONFIG_VIA_BUTTON
+AUTOSTART_PROCESSES(&node_process, &sensors_process);
+#else /* CONFIG_VIA_BUTTON */
+AUTOSTART_PROCESSES(&node_process);
+#endif /* CONFIG_VIA_BUTTON */
 
 /*---------------------------------------------------------------------------*/
-PROCESS_THREAD(unicast_sender_process, ev, data)
+PROCESS_THREAD(node_process, ev, data)
 {
   PROCESS_BEGIN();
 
   /* 3 possible roles:
    * - role_6ln: simple node, will join any network, secured or not
-   * - role_6dg: DAG root, will advertise (unsecured) beacons
-   * - role_6dg_sec: DAG root, will advertise secured beacons
+   * - role_6dr: DAG root, will advertise (unsecured) beacons
+   * - role_6dr_sec: DAG root, will advertise secured beacons
    * */
-  static enum { role_6ln, role_6dg, role_6dg_sec } node_role;
+  static int is_coordinator = 0;
+  static enum { role_6ln, role_6dr, role_6dr_sec } node_role;
 
   /* Set node with ID == 1 as coordinator, handy in Cooja. */
   if(node_id == 1) {
     if(LLSEC802154_CONF_SECURITY_LEVEL) {
-      node_role = role_6dg_sec;
+      node_role = role_6dr_sec;
     } else {
-      node_role = role_6dg;
+      node_role = role_6dr;
     }
   } else {
     node_role = role_6ln;
@@ -80,7 +85,7 @@ PROCESS_THREAD(unicast_sender_process, ev, data)
 
 #if CONFIG_VIA_BUTTON
   {
-#define CONFIG_WAIT_TIME 10
+#define CONFIG_WAIT_TIME 5
     static struct etimer et;
 
     SENSORS_ACTIVATE(button_sensor);
@@ -88,7 +93,7 @@ PROCESS_THREAD(unicast_sender_process, ev, data)
 
     while(!etimer_expired(&et)) {
       printf("Init: current role: %s. Will start in %u seconds.\n",
-          node_role == role_6ln ? "6ln" : (node_role == role_6dg) ? "6dg" : "6dg-sec",
+          node_role == role_6ln ? "6ln" : (node_role == role_6dr) ? "6dr" : "6dr-sec",
           CONFIG_WAIT_TIME);
       PROCESS_WAIT_EVENT_UNTIL(((ev == sensors_event) &&
                                 (data == &button_sensor) && button_sensor.value(0) > 0)
@@ -103,12 +108,14 @@ PROCESS_THREAD(unicast_sender_process, ev, data)
 #endif /* CONFIG_VIA_BUTTON */
 
   printf("Init: node starting with role %s\n",
-      node_role == role_6ln ? "6ln" : (node_role == role_6dg) ? "6dg" : "6dg-sec");
+      node_role == role_6ln ? "6ln" : (node_role == role_6dr) ? "6dr" : "6dr-sec");
 
-  tsch_is_pan_secured = LLSEC802154_CONF_SECURITY_LEVEL && (node_role == role_6dg_sec);
-  tsch_is_coordinator = node_role > role_6ln;
+#if WITH_TSCH
+  tsch_set_pan_secured(LLSEC802154_CONF_SECURITY_LEVEL && (node_role == role_6dr_sec));
+#endif /* WITH_TSCH */
+  is_coordinator = node_role > role_6ln;
 
-  if(tsch_is_coordinator) {
+  if(is_coordinator) {
     uip_ipaddr_t prefix;
     uip_ip6addr(&prefix, 0xaaaa, 0, 0, 0, 0, 0, 0, 0);
     rich_init(&prefix);

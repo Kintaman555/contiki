@@ -34,8 +34,8 @@
  * \file
  *         TSCH packet format management
  * \author
- *         Beshr Al Nahas <beshr@sics.se>
  *         Simon Duquennoy <simonduq@sics.se>
+ *         Beshr Al Nahas <beshr@sics.se>
  */
 
 #include "contiki.h"
@@ -44,17 +44,21 @@
 #include "net/mac/tsch/tsch-private.h"
 #include "net/mac/tsch/tsch-schedule.h"
 #include "net/mac/tsch/tsch-security.h"
+#include "net/mac/tsch/tsch-log.h"
 #include "net/mac/frame802154.h"
 #include "net/mac/framer-802154.h"
 #include "net/netstack.h"
-#include "net/packetbuf.h"
 #include "net/llsec/anti-replay.h"
 #include "lib/ccm-star.h"
 #include "lib/aes-128.h"
 #include <stdio.h>
 #include <string.h>
 
+#if TSCH_LOG_LEVEL >= 1
+#define DEBUG DEBUG_PRINT
+#else /* TSCH_LOG_LEVEL */
 #define DEBUG DEBUG_NONE
+#endif /* TSCH_LOG_LEVEL */
 #include "net/ip/uip-debug.h"
 
 /* Construct enhanced ACK packet and return ACK length */
@@ -77,18 +81,18 @@ tsch_packet_create_eack(uint8_t *buf, int buf_size,
   p.fcf.panid_compression = 0;
   p.dest_pid = IEEE802154_PANID;
   p.seq = seqno;
-#if TSCH_PACKET_DEST_ADDR_IN_ACK
+#if TSCH_PACKET_EACK_WITH_DEST_ADDR
   if(dest_addr != NULL) {
     p.fcf.dest_addr_mode = FRAME802154_LONGADDRMODE;
     linkaddr_copy((linkaddr_t*)&p.dest_addr, dest_addr);
   }
 #endif
-#if TSCH_PACKET_SRC_ADDR_IN_ACK
+#if TSCH_PACKET_EACK_WITH_SRC_ADDR
   p.fcf.src_addr_mode = FRAME802154_LONGADDRMODE;
   p.src_pid = IEEE802154_PANID;
   linkaddr_copy((linkaddr_t*)&p.src_addr, &linkaddr_node_addr);
 #endif
-#if LLSEC802154_SECURITY_LEVEL
+#if TSCH_SECURITY_ENABLED
   if(tsch_is_pan_secured) {
     p.fcf.security_enabled = 1;
     p.aux_hdr.security_control.security_level = TSCH_SECURITY_KEY_SEC_LEVEL_ACK;
@@ -97,7 +101,7 @@ tsch_packet_create_eack(uint8_t *buf, int buf_size,
     p.aux_hdr.security_control.frame_counter_size = 1;
     p.aux_hdr.key_index = TSCH_SECURITY_KEY_INDEX_ACK;
   }
-#endif
+#endif /* TSCH_SECURITY_ENABLED */
 
   if((curr_len = frame802154_create(&p, buf)) == 0) {
     return 0;
@@ -118,7 +122,7 @@ tsch_packet_create_eack(uint8_t *buf, int buf_size,
 
 /* Parse enhanced ACK packet, extract drift and nack */
 int
-tsch_packet_parse_eack(uint8_t *buf, int buf_size,
+tsch_packet_parse_eack(const uint8_t *buf, int buf_size,
     uint8_t seqno, frame802154_t *frame, struct ieee802154_ies *ies, uint8_t *hdr_len)
 {
   uint8_t curr_len = 0;
@@ -130,7 +134,7 @@ tsch_packet_parse_eack(uint8_t *buf, int buf_size,
   }
 
   /* Parse 802.15.4-2006 frame, i.e. all fields before Information Elements */
-  if((ret = frame802154_parse(buf, buf_size, frame)) < 3) {
+  if((ret = frame802154_parse((uint8_t*)buf, buf_size, frame)) < 3) {
     return 0;
   }
   if(hdr_len != NULL) {
@@ -157,13 +161,13 @@ tsch_packet_parse_eack(uint8_t *buf, int buf_size,
 
   if(frame->fcf.ie_list_present) {
     int mic_len = 0;
-#if LLSEC802154_SECURITY_LEVEL
+#if TSCH_SECURITY_ENABLED
     /* Check if there is space for the security MIC (if any) */
     mic_len = tsch_security_mic_len(frame);
     if(buf_size < curr_len + mic_len) {
       return 0;
     }
-#endif
+#endif /* TSCH_SECURITY_ENABLED */
     /* Parse information elements. We need to substract the MIC length, as the exact payload len is needed while parsing */
     if((ret = frame802154e_parse_information_elements(buf + curr_len, buf_size - curr_len - mic_len, ies)) == -1) {
       return 0;
@@ -190,7 +194,7 @@ tsch_packet_create_eb(uint8_t *buf, int buf_size, uint8_t seqno,
   frame802154_t p;
   struct ieee802154_ies ies;
 
-  if(buf_size < PACKETBUF_SIZE) {
+  if(buf_size < TSCH_PACKET_MAX_LEN) {
     return 0;
   }
 
@@ -213,16 +217,16 @@ tsch_packet_create_eb(uint8_t *buf, int buf_size, uint8_t seqno,
   p.dest_addr[0] = 0xff;
   p.dest_addr[1] = 0xff;
 
-#if LLSEC802154_SECURITY_LEVEL
+#if TSCH_SECURITY_ENABLED
   if(tsch_is_pan_secured) {
-    p.fcf.security_enabled = packetbuf_attr(PACKETBUF_ATTR_SECURITY_LEVEL) > 0;
-    p.aux_hdr.security_control.security_level = packetbuf_attr(PACKETBUF_ATTR_SECURITY_LEVEL);
-    p.aux_hdr.security_control.key_id_mode = packetbuf_attr(PACKETBUF_ATTR_KEY_ID_MODE);
+    p.fcf.security_enabled = TSCH_SECURITY_KEY_SEC_LEVEL_EB > 0;
+    p.aux_hdr.security_control.security_level = TSCH_SECURITY_KEY_SEC_LEVEL_EB;
+    p.aux_hdr.security_control.key_id_mode = 1;
     p.aux_hdr.security_control.frame_counter_suppression = 1;
     p.aux_hdr.security_control.frame_counter_size = 1;
-    p.aux_hdr.key_index = packetbuf_attr(PACKETBUF_ATTR_KEY_INDEX);
+    p.aux_hdr.key_index = TSCH_SECURITY_KEY_INDEX_EB;
   }
-#endif
+#endif /* TSCH_SECURITY_ENABLED */
 
   if((curr_len = frame802154_create(&p, buf)) == 0) {
     return 0;
@@ -232,30 +236,27 @@ tsch_packet_create_eb(uint8_t *buf, int buf_size, uint8_t seqno,
   memset(&ies, 0, sizeof(ies));
 
   /* Add TSCH timeslot timing IE. */
-  /* ies.ie_tsch_timeslot_id = 1;
-  ies.ie_tsch_timeslot.cca_offset = RTIMERTICKS_TO_US(tsch_timing_cca_offset);
-  ies.ie_tsch_timeslot.cca = RTIMERTICKS_TO_US(tsch_timing_cca);
-  ies.ie_tsch_timeslot.tx_offset = RTIMERTICKS_TO_US(tsch_timing_tx_offset);
-  ies.ie_tsch_timeslot.rx_offset = RTIMERTICKS_TO_US(tsch_timing_rx_offset);
-  ies.ie_tsch_timeslot.rx_ack_delay = RTIMERTICKS_TO_US(tsch_timing_rx_ack_delay);
-  ies.ie_tsch_timeslot.tx_ack_delay = RTIMERTICKS_TO_US(tsch_timing_tx_ack_delay);
-  ies.ie_tsch_timeslot.rx_wait = RTIMERTICKS_TO_US(tsch_timing_rx_wait);
-  ies.ie_tsch_timeslot.ack_wait = RTIMERTICKS_TO_US(tsch_timing_ack_wait);
-  ies.ie_tsch_timeslot.rx_tx = RTIMERTICKS_TO_US(tsch_timing_rx_tx);
-  ies.ie_tsch_timeslot.max_ack = RTIMERTICKS_TO_US(tsch_timing_max_ack);
-  ies.ie_tsch_timeslot.max_tx = RTIMERTICKS_TO_US(tsch_timing_max_tx);
-  ies.ie_tsch_timeslot.timeslot_length = RTIMERTICKS_TO_US(tsch_timing_timeslot_length);
-  */
-
+#if TSCH_PACKET_EB_WITH_TIMESLOT_TIMING
+  {
+    int i;
+    ies.ie_tsch_timeslot_id = 1;
+    for(i = 0; i < tsch_ts_elements_count; i++) {
+      ies.ie_tsch_timeslot[i] = RTIMERTICKS_TO_US(tsch_timing[i]);
+    }
+  }
+#endif /* TSCH_PACKET_EB_WITH_TIMESLOT_TIMING */
+  
   /* Add TSCH hopping sequence IE */
-  /* if(tsch_hopping_sequence_length.val <= sizeof(ies.ie_hopping_sequence_list)) {
+#if TSCH_PACKET_EB_WITH_HOPPING_SEQUENCE
+  if(tsch_hopping_sequence_length.val <= sizeof(ies.ie_hopping_sequence_list)) {
     ies.ie_channel_hopping_sequence_id = 1;
     ies.ie_hopping_sequence_len = tsch_hopping_sequence_length.val;
     memcpy(ies.ie_hopping_sequence_list, tsch_hopping_sequence, ies.ie_hopping_sequence_len);
   }
-  */
+#endif /* TSCH_PACKET_EB_WITH_HOPPING_SEQUENCE */
 
   /* Add Slotframe and Link IE */
+#if TSCH_PACKET_EB_WITH_SLOTFRAME_AND_LINK
   {
     /* Send slotframe 0 with link at timeslot 0 */
     struct tsch_slotframe *sf0 = tsch_schedule_get_slotframe_from_handle(0);
@@ -270,6 +271,7 @@ tsch_packet_create_eb(uint8_t *buf, int buf_size, uint8_t seqno,
       ies.ie_tsch_slotframe_and_link.links[0].link_options = link0->link_options;
     }
   }
+#endif /* TSCH_PACKET_EB_WITH_SLOTFRAME_AND_LINK */
 
   /* First add header-IE termination IE to stipulate that next come payload IEs */
   if((ret = frame80215e_create_ie_header_list_termination_1(buf+curr_len, buf_size-curr_len, &ies)) == -1) {
@@ -340,7 +342,7 @@ tsch_packet_update_eb(uint8_t *buf, int buf_size, uint8_t tsch_sync_ie_offset)
 
 /* Parse a IEEE 802.15.4e TSCH Enhanced Beacon (EB) */
 int
-tsch_packet_parse_eb(uint8_t *buf, int buf_size,
+tsch_packet_parse_eb(const uint8_t *buf, int buf_size,
     frame802154_t *frame, struct ieee802154_ies *ies, uint8_t *hdr_len, int frame_without_mic)
 {
   uint8_t curr_len = 0;
@@ -351,13 +353,13 @@ tsch_packet_parse_eb(uint8_t *buf, int buf_size,
   }
 
   /* Parse 802.15.4-2006 frame, i.e. all fields before Information Elements */
-  if((ret = frame802154_parse(buf, buf_size, frame)) == 0) {
-    LOG("TSCH:! parse_eb: failed to parse frame\n");
+  if((ret = frame802154_parse((uint8_t*)buf, buf_size, frame)) == 0) {
+    PRINTF("TSCH:! parse_eb: failed to parse frame\n");
     return 0;
   }
 
   if(frame->fcf.frame_type != FRAME802154_BEACONFRAME) {
-    LOG("TSCH:! parse_eb: frame is not a beacon. Frame type %u, FCF %02x %02x\n", frame->fcf.frame_type, buf[0], buf[1]);
+    PRINTF("TSCH:! parse_eb: frame is not a beacon. Frame type %u, FCF %02x %02x\n", frame->fcf.frame_type, buf[0], buf[1]);
     return 0;
   }
 
@@ -373,18 +375,18 @@ tsch_packet_parse_eb(uint8_t *buf, int buf_size,
   if(frame->fcf.ie_list_present) {
     /* Check if there is space for the security MIC (if any) */
     int mic_len = 0;
-#if LLSEC802154_SECURITY_LEVEL
+#if TSCH_SECURITY_ENABLED
     if(!frame_without_mic) {
       mic_len = tsch_security_mic_len(frame);
       if(buf_size < curr_len + mic_len) {
         return 0;
       }
     }
-#endif
+#endif /* TSCH_SECURITY_ENABLED */
 
     /* Parse information elements. We need to substract the MIC length, as the exact payload len is needed while parsing */
     if((ret = frame802154e_parse_information_elements(buf + curr_len, buf_size - curr_len - mic_len, ies)) == -1) {
-      LOG("TSCH:! parse_eb: failed to parse IEs\n");
+      PRINTF("TSCH:! parse_eb: failed to parse IEs\n");
       return 0;
     }
     curr_len += ret;

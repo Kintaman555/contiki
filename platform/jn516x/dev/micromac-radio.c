@@ -98,29 +98,19 @@
 #define MICROMAC_CONF_CCA_THR 39 /* approximately -85 dBm */
 #endif /* MICROMAC_CONF_CCA_THR */
 
-#define RADIO_TXPOWER_MAX  3
-#define RADIO_TXPOWER_MIN  0
-
-/* Default Tx power */
-#ifndef MICROMAC_CONF_TX_POWER
-#define MICROMAC_CONF_TX_POWER RADIO_TXPOWER_MAX
+#if (JENNIC_CHIP == JN5169)
+#define OUTPUT_POWER_MAX      10
+#define OUTPUT_POWER_MIN      (-32)
+#define ABS_OUTPUT_POWER_MIN  (32)
+#else
+#define OUTPUT_POWER_MAX      0
+#define OUTPUT_POWER_MIN      (-32)
 #endif
 
-/* Output power configuration */
-struct output_config {
-  int8_t power;
-  uint8_t config;
-};
-static const struct output_config output_power[] = {
-  { 2, 3 },  /* 0xff */
-  { -10, 2 }, /* 0xef */
-  { -22, 1 }, /* 0xe7 */
-  { -34, 0 }, /* 0xe3 */
-};
-
-#define OUTPUT_NUM (sizeof(output_power) / sizeof(struct output_config))
-#define OUTPUT_POWER_MAX   0
-#define OUTPUT_POWER_MIN -25
+/* Default Tx power [dBm] (between OUTPUT_POWER_MIN and OUTPUT_POWER_MAX) */
+#ifndef MICROMAC_CONF_TX_POWER
+#define MICROMAC_CONF_TX_POWER 0
+#endif
 
 /* Autoack */
 #ifndef MICROMAC_CONF_AUTOACK
@@ -144,6 +134,7 @@ static const struct output_config output_power[] = {
 
 /* Local variables */
 static volatile signed char radio_last_rssi;
+static volatile uint8_t radio_last_correlation; /* LQI */
 
 /* Did we miss a request to turn the radio on due to overflow? */
 static volatile uint8_t missed_radio_on_request = 0;
@@ -152,9 +143,17 @@ static volatile uint8_t missed_radio_on_request = 0;
 static uint8_t poll_mode = 0;
 /* (Software) frame filtering enabled by default */
 static uint8_t frame_filtering = 1;
+/* (Software) autoack */
+static uint8_t autoack_enabled = MICROMAC_CONF_AUTOACK;
+/* CCA before sending? Disabled by default. */
+static uint8_t send_on_cca = 0;
 
 /* Current radio channel */
 static int current_channel;
+
+/* Current set point tx power
+   Actual tx power may be different. Use get_txpower() for actual power */
+static int current_tx_power;
 
 /* an integer between 0 and 255, used only with cca() */
 static uint8_t cca_thershold = MICROMAC_CONF_CCA_THR;
@@ -189,24 +188,21 @@ static int off(void);
 static int is_packet_for_us(uint8_t *buf, int len, int do_send_ack);
 static void set_frame_filtering(uint8_t enable);
 static rtimer_clock_t get_packet_timestamp(void);
-static void set_txpower(uint8_t power);
+static void set_txpower(int8_t power);
 void set_channel(int c);
 static void radio_interrupt_handler(uint32 mac_event);
 static int get_detected_energy(void);
 static int get_rssi(void);
+static void read_last_rssi(void);
 
 /*---------------------------------------------------------------------------*/
 PROCESS(micromac_radio_process, "micromac_radio_driver");
 /*---------------------------------------------------------------------------*/
 
 /* Custom Radio parameters */
-#ifndef RADIO_PARAM_LAST_RSSI
-#define RADIO_PARAM_LAST_RSSI 0x80
-#endif /* RADIO_PARAM_LAST_RSSI */
-#ifndef RADIO_PARAM_LAST_PACKET_TIMESTAMP
-#define RADIO_PARAM_LAST_PACKET_TIMESTAMP 0x81
-#endif /* RADIO_PARAM_LAST_PACKET_TIMESTAMP */
 #ifndef RADIO_RX_MODE_POLL_MODE
+#define RADIO_PARAM_LAST_RSSI 0x80
+#define RADIO_PARAM_LAST_PACKET_TIMESTAMP 0x81
 #define RADIO_RX_MODE_POLL_MODE        (1 << 2)
 #endif /* RADIO_RX_MODE_POLL_MODE */
 
@@ -304,8 +300,7 @@ init(void)
     vMMAC_ConfigureInterruptSources(0);
   } else {
     vMMAC_EnableInterrupts(&radio_interrupt_handler);
-  }
-  vMMAC_ConfigureRadio();
+  } vMMAC_ConfigureRadio();
   set_channel(MICROMAC_CONF_CHANNEL);
   set_txpower(MICROMAC_CONF_TX_POWER);
 
@@ -330,8 +325,7 @@ init(void)
     return 0;
   } else {
     rx_frame_buffer = &input_array[put_index];
-  }
-  input_frame_buffer = rx_frame_buffer;
+  } input_frame_buffer = rx_frame_buffer;
 
   process_start(&micromac_radio_process, NULL);
 
@@ -401,7 +395,8 @@ transmit(unsigned short payload_len)
 
   /* Transmit and wait */
   vMMAC_StartPhyTransmit(&tx_frame_buffer,
-                         E_MMAC_TX_START_NOW | E_MMAC_TX_NO_CCA);
+                         E_MMAC_TX_START_NOW |
+                         (send_on_cca ? E_MMAC_TX_USE_CCA : E_MMAC_TX_NO_CCA));
 
   if(poll_mode) {
     BUSYWAIT_UNTIL(u32MMAC_PollInterruptSource(E_MMAC_INT_TX_COMPLETE), MAX_PACKET_DURATION);
@@ -439,8 +434,7 @@ transmit(unsigned short payload_len)
     RIMESTATS_ADD(noacktx);
   } else {
     ret = RADIO_TX_ERR;
-  }
-  return ret;
+  } return ret;
 }
 /*---------------------------------------------------------------------------*/
 static int
@@ -456,8 +450,8 @@ prepare(const void *payload, unsigned short payload_len)
   }
   if(payload_len > 127 || payload == NULL) {
     return 1;
+    /* Copy payload to (soft) Ttx buffer */
   }
-  /* Copy payload to (soft) Ttx buffer */
   memcpy(tx_frame_buffer.uPayload.au8Byte, payload, payload_len);
   i = payload_len;
 #if CRC_SW
@@ -493,6 +487,7 @@ void
 set_channel(int c)
 {
   current_channel = c;
+  /* will fine tune TX power as well */
   vMMAC_SetChannel(current_channel);
 }
 /*---------------------------------------------------------------------------*/
@@ -508,7 +503,6 @@ is_broadcast_addr(uint8_t mode, uint8_t *addr)
   return 1;
 }
 /*---------------------------------------------------------------------------*/
-#if MICROMAC_CONF_AUTOACK
 /* Send an ACK */
 static void
 send_ack(const frame802154_t *frame)
@@ -523,7 +517,6 @@ send_ack(const frame802154_t *frame)
   send(&buffer, sizeof(buffer));
   in_ack_transmission = 0;
 }
-#endif /* MICROMAC_CONF_AUTOACK */
 /*---------------------------------------------------------------------------*/
 /* Check if a packet is for us */
 static int
@@ -545,12 +538,10 @@ is_packet_for_us(uint8_t *buf, int len, int do_send_ack)
       }
       if(!is_broadcast_addr(frame.fcf.dest_addr_mode, frame.dest_addr)) {
         result = linkaddr_cmp((linkaddr_t *)frame.dest_addr, &linkaddr_node_addr);
-#if MICROMAC_CONF_AUTOACK
-        if(result && do_send_ack) {
+        if(autoack_enabled && result && do_send_ack) {
           /* this is a unicast frame and sending ACKs is enabled */
           send_ack(&frame);
         }
-#endif
         return result;
       }
     }
@@ -590,33 +581,82 @@ read(void *buf, unsigned short bufsize)
         if(frame_filtering &&
            !is_packet_for_us(input_frame_buffer->uPayload.au8Byte, len, 0)) {
           len = 0;
+        } else {
+          read_last_rssi();
         }
       }
       if(len != 0) {
         bufsize = MIN(len, bufsize);
         memcpy(buf, input_frame_buffer->uPayload.au8Byte, bufsize);
         RIMESTATS_ADD(llrx);
+        if(!poll_mode) {
+          /* Not in poll mode: packetbuf should not be accessed in interrupt context */
+          packetbuf_set_attr(PACKETBUF_ATTR_RSSI, radio_last_rssi);
+          packetbuf_set_attr(PACKETBUF_ATTR_LINK_QUALITY, radio_last_correlation);
+        }
       }
     } else {
       len = 0;
       /* Disable further read attempts */
-    }
-    input_frame_buffer->u8PayloadLength = 0;
+    } input_frame_buffer->u8PayloadLength = 0;
   }
 
   return len;
 }
 /*---------------------------------------------------------------------------*/
 static void
-set_txpower(uint8_t power)
+set_txpower(int8_t power)
 {
-  vJPT_RadioSetPower(power);
+  if(power > OUTPUT_POWER_MAX) {
+    current_tx_power = OUTPUT_POWER_MAX;
+  } else {
+    if(power < OUTPUT_POWER_MIN) {
+      current_tx_power = OUTPUT_POWER_MIN;
+    } else {
+      current_tx_power = power;
+    }
+  }
+  vMMAC_SetChannelAndPower(current_channel, current_tx_power);
 }
-/*---------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------*/
 static int
 get_txpower(void)
 {
-  return u8JPT_RadioGetPower();
+  int actual_tx_power;
+#if (JENNIC_CHIP == JN5169)
+  /* Actual tx power value rounded to nearest integer number */
+  const static int8 power_table [] = {
+    -32, -30, -29, -29,   /* -32 .. -29 */ 
+    -28, -28, -28, -28,   /* -28 .. -25 */
+    -21, -21, -21,  -2,   /* -24 .. -21 */
+    -20, -19, -18, -17,   /* -20 .. -17 */
+    -17, -17, -17, -10,   /* -16 .. -13 */
+    -10, -10, -10,  -9,   /* -12 .. -09 */
+     -8,  -7,  -6,  -6,   /* -08 .. -05 */
+     -6,  -6,   1,   1,   /* -04 .. -01 */
+      1,   1,   2,   3,   /*  00 ..  03 */
+      4,   5,   6,   7,   /*  04 ..  07 */
+      9,   9,  10 };      /*  08 ..  10 */
+  if(current_tx_power > OUTPUT_POWER_MAX) {
+    actual_tx_power = OUTPUT_POWER_MAX;
+  } else if(current_tx_power < OUTPUT_POWER_MIN) {
+    actual_tx_power = OUTPUT_POWER_MIN;
+  } else {
+    actual_tx_power = power_table[current_tx_power + ABS_OUTPUT_POWER_MIN];
+  }
+#else
+  /* Other JN516x chips */
+  if(current_tx_power < (-24)) {
+    actual_tx_power = OUTPUT_POWER_MIN;
+  } else if(current_tx_power < (-12)) {
+    actual_tx_power = (-20);
+  } else if(current_tx_power < 0) {
+    actual_tx_power = (-9);
+  } else {
+    actual_tx_power = OUTPUT_POWER_MAX;
+  }
+#endif
+  return (int)actual_tx_power;
 }
 /*---------------------------------------------------------------------------*/
 static int
@@ -631,6 +671,14 @@ get_rssi(void)
 {
   /* this approximate formula for RSSI is taken from NXP internal docs */
   return (7 * get_detected_energy() - 1970) / 20;
+}
+/*---------------------------------------------------------------------------*/
+static void
+read_last_rssi(void)
+{
+  uint8_t radio_last_rx_energy;
+  radio_last_rx_energy = u8MMAC_GetRxLqi((uint8_t *)&radio_last_correlation);
+  radio_last_rssi = i16JPT_ConvertEnergyTodBm(radio_last_rx_energy);
 }
 /*---------------------------------------------------------------------------*/
 int
@@ -653,10 +701,10 @@ pending_packet(void)
 static int
 cca(void)
 {
-  bool_t isChannelBusy = bJPT_CCA(current_channel,
-                                  E_JPT_CCA_MODE_CARRIER_OR_ENERGY,
-                                  cca_thershold);
-  return isChannelBusy == FALSE;
+  bool_t is_channel_busy = bJPT_CCA(current_channel,
+                                    E_JPT_CCA_MODE_CARRIER_OR_ENERGY,
+                                    cca_thershold);
+  return is_channel_busy == FALSE;
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -667,8 +715,6 @@ radio_interrupt_handler(uint32 mac_event)
   int get_index;
   int put_index;
   int packet_for_me = 0;
-  uint8_t radio_last_rx_energy;
-  uint8_t radio_last_correlation; /* LQI (a.k.a. MQI according to NXP) */
 
   if(mac_event & E_MMAC_INT_TX_COMPLETE) {
     /* Transmission attempt has finished */
@@ -694,9 +740,7 @@ radio_interrupt_handler(uint32 mac_event)
           rx_frame_buffer->u8PayloadLength = 0;
         } else {
           /* read and cache RSSI and LQI values */
-          radio_last_rx_energy = u8MMAC_GetRxLqi(&radio_last_correlation);
-          radio_last_rssi = i16JPT_ConvertEnergyTodBm(radio_last_rx_energy);
-
+          read_last_rssi();
           /* Put received frame in queue */
           ringbufindex_put(&input_ringbuf);
 
@@ -788,7 +832,13 @@ set_frame_filtering(uint8_t enable)
   frame_filtering = enable;
 }
 /*---------------------------------------------------------------------------*/
-void
+static void
+set_autoack(uint8_t enable)
+{
+  autoack_enabled = enable;
+}
+/*---------------------------------------------------------------------------*/
+static void
 set_poll_mode(uint8_t enable)
 {
   poll_mode = enable;
@@ -803,6 +853,12 @@ set_poll_mode(uint8_t enable)
       E_MMAC_INT_RX_COMPLETE | E_MMAC_INT_TX_COMPLETE);
     vMMAC_EnableInterrupts(&radio_interrupt_handler);
   }
+}
+/* Enable or disable CCA before sending */
+static void
+set_send_on_cca(uint8_t enable)
+{
+  send_on_cca = enable;
 }
 /*---------------------------------------------------------------------------*/
 static radio_result_t
@@ -825,23 +881,21 @@ get_value(radio_param_t param, radio_value_t *value)
     if(frame_filtering) {
       *value |= RADIO_RX_MODE_ADDRESS_FILTER;
     }
-    if(MICROMAC_CONF_AUTOACK) {
+    if(autoack_enabled) {
       *value |= RADIO_RX_MODE_AUTOACK;
     }
     if(poll_mode) {
       *value |= RADIO_RX_MODE_POLL_MODE;
     }
     return RADIO_RESULT_OK;
-  case RADIO_PARAM_TXPOWER:
-    v = get_txpower();
-    *value = OUTPUT_POWER_MIN;
-    /* Find the actual estimated output power in conversion table */
-    for(i = 0; i < OUTPUT_NUM; i++) {
-      if(v >= output_power[i].config) {
-        *value = output_power[i].power;
-        break;
-      }
+  case RADIO_PARAM_TX_MODE:
+    *value = 0;
+    if(send_on_cca) {
+      *value |= RADIO_TX_MODE_SEND_ON_CCA;
     }
+    return RADIO_RESULT_OK;
+  case RADIO_PARAM_TXPOWER:
+    *value = get_txpower();
     return RADIO_RESULT_OK;
   case RADIO_PARAM_RSSI:
     *value = get_rssi();
@@ -896,25 +950,22 @@ set_value(radio_param_t param, radio_value_t value)
                  RADIO_RX_MODE_AUTOACK | RADIO_RX_MODE_POLL_MODE)) {
       return RADIO_RESULT_INVALID_VALUE;
     }
-    if(((value & RADIO_RX_MODE_AUTOACK) != 0) != MICROMAC_CONF_AUTOACK) {
-      /* We do not support runtime enabling/disabling of autoack */
+    set_frame_filtering((value & RADIO_RX_MODE_ADDRESS_FILTER) != 0);
+    set_autoack((value & RADIO_RX_MODE_AUTOACK) != 0);
+    set_poll_mode((value & RADIO_RX_MODE_POLL_MODE) != 0);
+    return RADIO_RESULT_OK;
+  case RADIO_PARAM_TX_MODE:
+    if(value & ~(RADIO_TX_MODE_SEND_ON_CCA)) {
       return RADIO_RESULT_INVALID_VALUE;
     }
-    set_frame_filtering((value & RADIO_RX_MODE_ADDRESS_FILTER) != 0);
-    set_poll_mode((value & RADIO_RX_MODE_POLL_MODE) != 0);
-
+    set_send_on_cca((value & RADIO_TX_MODE_SEND_ON_CCA) != 0);
     return RADIO_RESULT_OK;
   case RADIO_PARAM_TXPOWER:
     if(value < OUTPUT_POWER_MIN || value > OUTPUT_POWER_MAX) {
       return RADIO_RESULT_INVALID_VALUE;
       /* Find the closest higher PA_LEVEL for the desired output power */
     }
-    for(i = 1; i < OUTPUT_NUM; i++) {
-      if(value > output_power[i].power) {
-        break;
-      }
-    }
-    set_txpower(output_power[i - 1].config);
+    set_txpower(value);
     return RADIO_RESULT_OK;
   case RADIO_PARAM_CCA_THRESHOLD:
     cca_thershold = value;

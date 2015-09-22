@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Swedish Institute of Computer Science.
+ * Copyright (c) 2015, SICS Swedish ICT.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,14 +42,18 @@
 #define DEBUG DEBUG_PRINT
 #include "net/ip/uip-debug.h"
 
-#define CONFIG_VIA_BUTTON 1
+#define CONFIG_VIA_BUTTON PLATFORM_HAS_BUTTON
 #if CONFIG_VIA_BUTTON
 #include "button-sensor.h"
 #endif /* CONFIG_VIA_BUTTON */
 
 /*---------------------------------------------------------------------------*/
 PROCESS(node_process, "RPL Node");
+#if CONFIG_VIA_BUTTON
 AUTOSTART_PROCESSES(&node_process, &sensors_process);
+#else /* CONFIG_VIA_BUTTON */
+AUTOSTART_PROCESSES(&node_process);
+#endif /* CONFIG_VIA_BUTTON */
 
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(node_process, ev, data)
@@ -80,7 +84,7 @@ PROCESS_THREAD(node_process, ev, data)
                                 (data == &button_sensor) && button_sensor.value(0) > 0)
                                || etimer_expired(&et));
       if(ev == sensors_event && data == &button_sensor && button_sensor.value(0) > 0) {
-        node_role = (node_role + 1) % 3;
+        node_role = (node_role + 1) % 2;
         etimer_restart(&et);
       }
     }
@@ -99,7 +103,6 @@ PROCESS_THREAD(node_process, ev, data)
     rpl_tools_init(&prefix);
   } else {
     rpl_tools_init(NULL);
-  }
-  PROCESS_END();
+  } PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/

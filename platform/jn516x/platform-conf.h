@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Swedish Institute of Computer Science
+ * Copyright (c) 2015, SICS Swedish ICT.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -134,10 +134,12 @@
 #define UART_RATE_1000000       11
 
 #define PLATFORM_HAS_LEDS    1
-#define PLATFORM_HAS_BUTTON  0 /* sensor driver not implemented */
-#define PLATFORM_HAS_LIGHT   0 /* sensor driver not implemented */
+#define PLATFORM_HAS_BUTTON  (SENSOR_BOARD_DR1174 == 1)
+#define PLATFORM_HAS_LIGHT   (SENSOR_BOARD_DR1175 == 1)
+#define PLATFORM_HAS_HT      (SENSOR_BOARD_DR1175 == 1)
+#define PLATFORM_HAS_POT     (SENSOR_BOARD_DR1199 == 1)
 #define PLATFORM_HAS_BATTERY 0 /* sensor driver not implemented */
-#define PLATFORM_HAS_SHT11   0 /* sensor driver not implemented */
+#define PLATFORM_HAS_SHT11   0
 #define PLATFORM_HAS_RADIO   1
 
 /* CPU target speed in Hz
@@ -212,6 +214,9 @@ typedef uint32_t rtimer_clock_t;
 #define UART_BAUD_RATE UART_RATE_1000000
 #endif /* UART_BAUD_RATE */
 
+#ifndef UART1_BAUD_RATE
+#define UART1_BAUD_RATE UART_RATE_1000000
+#endif
 #define ENABLE_ADVANCED_BAUD_SELECTION (UART_BAUD_RATE > UART_RATE_115200)
 
 /* Set this to zero only if we are using SLIP */
@@ -224,4 +229,35 @@ typedef uint32_t rtimer_clock_t;
 #define USE_EXTERNAL_OSCILLATOR 0
 #endif /* USE_EXTERNAL_OSCILLATOR */
 
+/* Extension of LED definitions from leds.h for various JN516x dev boards 
+JN516x Dongle:
+    LEDS_RED        Red LED on dongle
+    LEDS_GREEN      Green LED on dongle
+    Note: Only one LED can be switch on at the same time
+      
+DR1174-only:
+    LEDS_GP0        LED D3 on DR1174
+    LEDS_GP1        LED D6 on DR1174
+    
+DR1174+DR1199:
+    LEDS_RED        LED D1 on DR1199                      
+    LEDS_GREEN      LED D2 on DR1199
+    LEDS_BLUE       LED D3 on DR1199
+    LEDS_GP0        LED D3 on DR1174
+    LEDS_GP1        LED D6 on DR1174
+    
+DR1174+DR1175:
+    LEDS_RED        Red led in RGB-led with level control on DR1175    
+    LEDS_GREEN      Green led in RGB-led with level control on DR1175    
+    LEDS_BLUE       Blue led in RGB-led with level control on DR1175    
+    LEDS_WHITE      White power led with level control on DR1175
+    LEDS_GP0        LEDS D3 on DR1174
+    LEDS_GP1        LEDS D6 on DR1174
+*/
+#define LEDS_WHITE    8
+#define LEDS_GP0      16
+#define LEDS_GP1      32 
+#define LEDS_GP2      64
+#define LEDS_GP3      128
+#define LEDS_CONF_ALL 255
 #endif /* PLATFORM_CONF_H */

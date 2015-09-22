@@ -60,6 +60,11 @@
 #define DEBUG DEBUG_NONE
 #include "net/ip/uip-debug.h"
 
+/* A configurable function called after every RPL parent switch */
+#ifdef RPL_CALLBACK_PARENT_SWITCH
+void RPL_CALLBACK_PARENT_SWITCH(rpl_parent_t *old, rpl_parent_t *new);
+#endif /* RPL_CALLBACK_PARENT_SWITCH */
+
 /*---------------------------------------------------------------------------*/
 extern rpl_of_t RPL_OF;
 static rpl_of_t * const objective_functions[] = {&RPL_OF};
@@ -188,7 +193,7 @@ rpl_set_preferred_parent(rpl_dag_t *dag, rpl_parent_t *p)
     PRINTF("\n");
 
 #ifdef RPL_CALLBACK_PARENT_SWITCH
-    tsch_rpl_callback_parent_switch(dag->preferred_parent, p);
+    RPL_CALLBACK_PARENT_SWITCH(dag->preferred_parent, p);
 #endif /* RPL_CALLBACK_PARENT_SWITCH */
 
     /* Always keep the preferred parent locked, so it remains in the
@@ -1410,12 +1415,6 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
     uip_ds6_defrt_add(from, RPL_DEFAULT_ROUTE_INFINITE_LIFETIME ? 0 : RPL_LIFETIME(instance, instance->default_lifetime));
   }
   p->dtsn = dio->dtsn;
-}
-/*---------------------------------------------------------------------------*/
-void
-rpl_lock_parent(rpl_parent_t *p)
-{
-  nbr_table_lock(rpl_parents, p);
 }
 /*---------------------------------------------------------------------------*/
 /** @} */

@@ -30,41 +30,70 @@
  *
  */
 
-/**
- * \file
- *         Per-neighbor packet queues for TSCH MAC.
- *         The list of neighbor uses a lock, but per-neighbor packet array are lockfree.
- *				 Read-only operation on neighbor and packets are allowed from interrupts and outside of them.
- *				 *Other operations are allowed outside of interrupt only.*
- * \author
- *         Beshr Al Nahas <beshr@sics.se>
- *         Simon Duquennoy <simonduq@sics.se>
- */
-
 #ifndef __TSCH_QUEUE_H__
 #define __TSCH_QUEUE_H__
+
+/********** Includes **********/
 
 #include "contiki.h"
 #include "lib/ringbufindex.h"
 #include "net/linkaddr.h"
 #include "net/mac/tsch/tsch-schedule.h"
 
-/* The maximum number of packets in the system: must be power of two to enable atomic ringbuf operations */
-#ifdef TSCH_CONF_QUEUE_NUM_PER_NEIGHBOR
-#define TSCH_QUEUE_NUM_PER_NEIGHBOR TSCH_CONF_QUEUE_NUM_PER_NEIGHBOR
+/******** Configuration *******/
+
+/* The maximum number of outgoing packets towards each neighbor
+ * Must be power of two to enable atomic ringbuf operations.
+ * Note: the total number of outgoing packets in the system (for
+ * all neighbors) is defined via QUEUEBUF_CONF_NUM */
+#ifdef TSCH_QUEUE_CONF_NUM_PER_NEIGHBOR
+#define TSCH_QUEUE_NUM_PER_NEIGHBOR TSCH_QUEUE_CONF_NUM_PER_NEIGHBOR
 #else
 #define TSCH_QUEUE_NUM_PER_NEIGHBOR 8
 #endif
 
-#if (TSCH_QUEUE_NUM_PER_NEIGHBOR & (TSCH_QUEUE_NUM_PER_NEIGHBOR-1)) != 0
-#error TSCH_QUEUE_NUM_PER_NEIGHBOR must be power of two
-#endif
-
-#ifdef TSCH_CONF_QUEUE_MAX_NEIGHBOR_QUEUES
-#define TSCH_QUEUE_MAX_NEIGHBOR_QUEUES TSCH_CONF_QUEUE_MAX_NEIGHBOR_QUEUES
+/* The number of neighbor queues. There two queues allocated for
+ * one EBs, one for broadcasts. Other queues are real neighbors */
+#ifdef TSCH_QUEUE_CONF_MAX_NEIGHBOR_QUEUES
+#define TSCH_QUEUE_MAX_NEIGHBOR_QUEUES TSCH_QUEUE_CONF_MAX_NEIGHBOR_QUEUES
 #else
 #define TSCH_QUEUE_MAX_NEIGHBOR_QUEUES 8
 #endif
+
+/* TSCH CSMA-CA parameters, see IEEE 802.15.4e-2012 */
+/* Min backoff exponent */
+#ifdef TSCH_CONF_MAC_MIN_BE
+#define TSCH_MAC_MIN_BE TSCH_CONF_MAC_MIN_BE
+#else
+#define TSCH_MAC_MIN_BE 1
+#endif
+/* Max backoff exponent */
+#ifdef TSCH_CONF_MAC_MAX_BE
+#define TSCH_MAC_MAX_BE TSCH_CONF_MAC_MAX_BE
+#else
+#define TSCH_MAC_MAX_BE 7
+#endif
+/* Max number of re-transmissions */
+#ifdef TSCH_CONF_MAC_MAX_FRAME_RETRIES
+#define TSCH_MAC_MAX_FRAME_RETRIES TSCH_CONF_MAC_MAX_FRAME_RETRIES
+#else
+#define TSCH_MAC_MAX_FRAME_RETRIES 8
+#endif
+
+/*********** Callbacks *********/
+
+/* Called by TSCH when switching time source */
+#ifdef TSCH_CALLBACK_NEW_TIME_SOURCE
+struct tsch_neighbor;
+void TSCH_CALLBACK_NEW_TIME_SOURCE(struct tsch_neighbor *old, struct tsch_neighbor *new);
+#endif
+
+/* Called by TSCH every time a packet is ready to be added to the send queue */
+#ifdef TSCH_CALLBACK_PACKET_READY
+void TSCH_CALLBACK_PACKET_READY(void);
+#endif
+
+/************ Types ***********/
 
 /* TSCH packet information */
 struct tsch_packet {
@@ -96,9 +125,13 @@ struct tsch_neighbor {
   struct ringbufindex tx_ringbuf;
 };
 
+/***** External Variables *****/
+
 /* Broadcast and EB virtual neighbors */
 extern struct tsch_neighbor *n_broadcast;
 extern struct tsch_neighbor *n_eb;
+
+/********** Functions *********/
 
 /* Add a TSCH neighbor */
 struct tsch_neighbor *tsch_queue_add_nbr(const linkaddr_t *addr);
@@ -110,7 +143,7 @@ struct tsch_neighbor *tsch_queue_get_time_source();
 int tsch_queue_update_time_source(const linkaddr_t *new_addr);
 /* Add packet to neighbor queue. Use same lockfree implementation as ringbuf.c (put is atomic) */
 struct tsch_packet *tsch_queue_add_packet(const linkaddr_t *addr, mac_callback_t sent, void *ptr);
-/* Returns the number of packets currently in the queue */
+/* Returns the number of packets currently a given neighbor queue */
 int tsch_queue_packet_count(const linkaddr_t *addr);
 /* Remove first packet from a neighbor queue. The packet is stored in a separate
  * dequeued packet list, for later processing. Return the packet. */
@@ -140,6 +173,5 @@ void tsch_queue_backoff_inc(struct tsch_neighbor *n);
 void tsch_queue_update_all_backoff_windows(const linkaddr_t *dest_addr);
 /* Initialize TSCH queue module */
 void tsch_queue_init(void);
-void tsch_queue_dump_nbrs();
 
 #endif /* __TSCH_QUEUE_H__ */

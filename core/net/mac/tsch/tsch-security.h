@@ -30,61 +30,98 @@
  *
  */
 
-/**
- * \file
- *         TSCH security header file
- * \author
- *         Simon Duquennoy <simonduq@sics.se>
- */
-
 #ifndef __TSCH_SECURITY_H__
 #define __TSCH_SECURITY_H__
+
+/********** Includes **********/
 
 #include "contiki.h"
 #include "net/mac/tsch/tsch-asn.h"
 #include "net/mac/tsch/tsch-private.h"
-#include "net/mac/tsch/frame802154e.h"
+#include "net/mac/frame802154.h"
+#include "net/mac/frame802154e-ie.h"
 
+/******** Configuration *******/
+
+/* To enable TSCH security:
+ * - set LLSEC802154_CONF_SECURITY_LEVEL
+ * - set LLSEC802154_CONF_USES_EXPLICIT_KEYS
+ * - unset LLSEC802154_CONF_USES_FRAME_COUNTER
+ * */
+#define TSCH_SECURITY_ENABLED (LLSEC802154_CONF_SECURITY_LEVEL != 0)
+#if TSCH_SECURITY_ENABLED && !LLSEC802154_CONF_USES_EXPLICIT_KEYS
+#error TSCH_SECURITY_ENABLED set but LLSEC802154_CONF_USES_EXPLICIT_KEYS unset
+#endif /* TSCH_SECURITY_ENABLED */
+#if TSCH_SECURITY_ENABLED && LLSEC802154_CONF_USES_FRAME_COUNTER
+#error TSCH_SECURITY_ENABLED set but LLSEC802154_CONF_USES_FRAME_COUNTER set
+#endif /* TSCH_SECURITY_ENABLED */
+
+/* K1, defined in 6TiSCH minimal, is well-known (offers no security) and used for EBs only */
+#ifdef TSCH_SECURITY_CONF_K1
+#define TSCH_SECURITY_K1 TSCH_SECURITY_CONF_K1
+#else /* TSCH_SECURITY_CONF_K1 */
+#define TSCH_SECURITY_K1 { 0x36, 0x54, 0x69, 0x53, 0x43, 0x48, 0x20, 0x6D, 0x69, 0x6E, 0x69, 0x6D, 0x61, 0x6C, 0x31, 0x35 }
+#endif /* TSCH_SECURITY_CONF_K1 */
+
+/* K2, defined in 6TiSCH minimal, is used for all but EB traffic */
+#ifdef TSCH_SECURITY_CONF_K2
+#define TSCH_SECURITY_K2 TSCH_SECURITY_CONF_K2
+#else /* TSCH_SECURITY_CONF_K2 */
+#define TSCH_SECURITY_K2 { 0xde, 0xad, 0xbe, 0xef, 0xfa, 0xce, 0xca, 0xfe, 0xde, 0xad, 0xbe, 0xef, 0xfa, 0xce, 0xca, 0xfe }
+#endif /* TSCH_SECURITY_CONF_K2 */
+
+/* Key used for EBs */
 #ifdef TSCH_SECURITY_CONF_KEY_INDEX_EB
 #define TSCH_SECURITY_KEY_INDEX_EB TSCH_SECURITY_CONF_KEY_INDEX_EB
 #else
-#define TSCH_SECURITY_KEY_INDEX_EB 1
+#define TSCH_SECURITY_KEY_INDEX_EB 1 /* Use K1 as per 6TiSCH minimal */
 #endif
 
+/* Security level for EBs */
 #ifdef TSCH_SECURITY_CONF_SEC_LEVEL_EB
 #define TSCH_SECURITY_KEY_SEC_LEVEL_EB TSCH_SECURITY_CONF_SEC_LEVEL_EB
 #else
-#define TSCH_SECURITY_KEY_SEC_LEVEL_EB 1 /* MIC-32 */
+#define TSCH_SECURITY_KEY_SEC_LEVEL_EB 1 /* MIC-32, as per 6TiSCH minimal */
 #endif
 
+/* Key used for ACK */
 #ifdef TSCH_SECURITY_CONF_KEY_INDEX_ACK
 #define TSCH_SECURITY_KEY_INDEX_ACK TSCH_SECURITY_CONF_KEY_INDEX_ACK
 #else
-#define TSCH_SECURITY_KEY_INDEX_ACK 2
+#define TSCH_SECURITY_KEY_INDEX_ACK 2 /* Use K2 as per 6TiSCH minimal */
 #endif
 
+/* Security level for ACKs */
 #ifdef TSCH_SECURITY_CONF_SEC_LEVEL_ACK
 #define TSCH_SECURITY_KEY_SEC_LEVEL_ACK TSCH_SECURITY_CONF_SEC_LEVEL_ACK
 #else
-#define TSCH_SECURITY_KEY_SEC_LEVEL_ACK 5 /* Ecnryption + MIC-32 */
+#define TSCH_SECURITY_KEY_SEC_LEVEL_ACK 5 /* Encryption + MIC-32, as per 6TiSCH minimal */
 #endif
 
+/* Key used for Other (Data, Cmd) */
 #ifdef TSCH_SECURITY_CONF_KEY_INDEX_OTHER
 #define TSCH_SECURITY_KEY_INDEX_OTHER TSCH_SECURITY_CONF_KEY_INDEX_OTHER
 #else
-#define TSCH_SECURITY_KEY_INDEX_OTHER 2
+#define TSCH_SECURITY_KEY_INDEX_OTHER 2 /* Use K2 as per 6TiSCH minimal */
 #endif
 
+/* Security level for Other (Data, Cmd) */
 #ifdef TSCH_SECURITY_CONF_SEC_LEVEL_OTHER
-#define TSCH_SECURITY_KEY_SEC_LEVEL_ACK TSCH_SECURITY_CONF_SEC_LEVEL_OTHER
+#define TSCH_SECURITY_KEY_SEC_LEVEL_OTHER TSCH_SECURITY_CONF_SEC_LEVEL_OTHER
 #else
-#define TSCH_SECURITY_KEY_SEC_LEVEL_OTHER 5 /* Ecnryption + MIC-32 */
+#define TSCH_SECURITY_KEY_SEC_LEVEL_OTHER 5 /* Encryption + MIC-32, as per 6TiSCH minimal */
 #endif
+
+/************ Types ***********/
+
+typedef uint8_t aes_key[16];
+
+/********** Functions *********/
 
 int tsch_security_mic_len(frame802154_t *frame);
 int tsch_security_secure_frame(uint8_t *hdr, uint8_t *outbuf,
     int hdrlen, int datalen, struct asn_t *asn);
-int tsch_security_parse_frame(uint8_t *hdr, int hdrlen, int datalen,
+int tsch_security_parse_frame(const uint8_t *hdr, int hdrlen, int datalen,
     frame802154_t *frame, const linkaddr_t *sender, struct asn_t *asn);
 
 #endif /* __TSCH_SECURITY_H__ */
