@@ -45,17 +45,14 @@
 #include "dev/uart0.h"
 #include "uart-driver.h"
 
-/* Valid range for TXBUFSIZE and RXBUFSIZE: 16-2047 */
-<<<<<<< HEAD
+/* Valid range for TXBUFSIZE and RXBUFSIZE: 16-2047 *
 #define RXBUFSIZE 63
 #if UART_XONXOFF_FLOW_CTRL
 #define TXBUFSIZE 16
 #else
 #define TXBUFSIZE 1281
 #endif
-=======
->>>>>>> origin/rich-3.x
-
+*/
 static unsigned char txbuf_data[UART_TX_BUFFER_SIZE];
 static unsigned char rxbuf_data[UART_RX_BUFFER_SIZE];
 static int (*uart0_input)(unsigned char c);

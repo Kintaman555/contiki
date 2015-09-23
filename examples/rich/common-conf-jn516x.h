@@ -74,21 +74,12 @@
 #undef TSCH_CONF_DEQUEUED_ARRAY_SIZE
 #define TSCH_CONF_DEQUEUED_ARRAY_SIZE 32
 
-<<<<<<< HEAD
-#undef TSCH_CONF_QUEUE_MAX_NEIGHBOR_QUEUES
-#define TSCH_CONF_QUEUE_MAX_NEIGHBOR_QUEUES 8
-
-/* The neighbor table size */
-#undef NBR_TABLE_CONF_MAX_NEIGHBORS
-#define NBR_TABLE_CONF_MAX_NEIGHBORS 10
-=======
 #undef TSCH_QUEUE_CONF_MAX_NEIGHBOR_QUEUES
 #define TSCH_QUEUE_CONF_MAX_NEIGHBOR_QUEUES 16
 
 /* The neighbor table size */
 #undef NBR_TABLE_CONF_MAX_NEIGHBORS
 #define NBR_TABLE_CONF_MAX_NEIGHBORS 16
->>>>>>> origin/rich-3.x
 
 /* The routing table size */
 #undef UIP_CONF_MAX_ROUTES

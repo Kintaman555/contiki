@@ -39,12 +39,7 @@
 #define WITH_COAP_RESOURCES 1
 #define WITH_TSCH 1
 #define WITH_TSCH_SECURITY 0
-<<<<<<< HEAD
-#define WITH_TSCH_LOG 1
-=======
 #define TSCH_LOG_CONF_LEVEL 2
-#define WITH_COAP_RESOURCES 0
->>>>>>> origin/rich-3.x
 
 #define TSCH_CONFIG_DEFAULT                  0
 #define TSCH_CONFIG_6TISCH_MINIMAL           1
