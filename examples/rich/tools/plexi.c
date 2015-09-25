@@ -33,10 +33,15 @@
 
 #include "plexi.h"
 
+MEMB(plexi_vicinity_mem, plexi_proximate, PLEXI_MAX_PROXIMATES);
+LIST(plexi_vicinity);
+
 static void plexi_dag_event_handler(void);
-static void plexi_nbrs_event_handler(void);
+static void plexi_vicinity_event_handler(void);
+//static void plexi_neighbors_event_handler(void);
 static void plexi_get_dag_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
-static void plexi_get_neighbors_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
+static void plexi_get_vicinity_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
+//static void plexi_get_neighbors_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
 static void plexi_get_slotframe_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
 static void plexi_post_slotframe_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
 static void plexi_delete_slotframe_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
@@ -47,6 +52,12 @@ static void plexi_post_links_handler(void* request, void* response, uint8_t *buf
 int jsonparse_find_field(struct jsonparse_state *js, char *field_buf, int field_buf_len);
 static int na_to_linkaddr(const char *na_inbuf, int bufsize, linkaddr_t *linkaddress);
 static int linkaddr_to_na(char* buf, linkaddr_t *addr);
+
+/* A net-layer sniffer for packets sent and received */
+static void plexi_packet_received(void);
+static void plexi_packet_sent(int mac_status);
+RIME_SNIFFER(plexi_sniffer, plexi_packet_received, plexi_packet_sent);
+
 
 #define MAX_DATA_LEN REST_MAX_CHUNK_SIZE
 #define NO_LOCK 0
@@ -178,13 +189,101 @@ static void route_changed_callback(int event, uip_ipaddr_t *route, uip_ipaddr_t 
 /**************************************************************************************************/
 /** Observable neighbor list resource and event handler to obtain all neighbor data 			  */ 
 /**************************************************************************************************/
-EVENT_RESOURCE(resource_6top_nbrs,								/* name */
-		"obs;title=\"6top neighbours\"",						/* attributes */
-		plexi_get_neighbors_handler,							/* GET handler */
-		NULL,													/* POST handler */
-		NULL,													/* PUT handler */
-		NULL,													/* DELETE handler */
-		plexi_nbrs_event_handler);								/* event handler */
+EVENT_RESOURCE(resource_vicinity,							/* name */
+		"obs;title=\"6top neighbours\"",					/* attributes */
+		plexi_get_vicinity_handler,							/* GET handler */
+		NULL,												/* POST handler */
+		NULL,												/* PUT handler */
+		NULL,												/* DELETE handler */
+		plexi_vicinity_event_handler);						/* event handler */
+
+static void plexi_packet_received(void) {
+	short int to_add = 1;
+	short int to_remove = 1-PLEXI_MAX_PROXIMATES;
+	plexi_proximate *p;
+	for(p = list_head(plexi_vicinity); p != NULL; p = list_item_next(p)) {
+		if(linkaddr_cmp(p->proximate, packetbuf_addr(PACKETBUF_ADDR_SENDER))) {
+			p->since = clock_time();
+			p->pheromone += PLEXI_PHEROMONE_CHUNK;
+			to_add = 0;
+		}
+		to_remove++;
+	}
+	if(to_remove) {
+		plexi_proximate *weakest = NULL;
+		for(p = list_head(plexi_vicinity); p != NULL; p = list_item_next(p)) {
+			if( weakest==NULL || p->pheromone < weakest->pheromone) {
+				weakest = p;
+			}
+		}
+		if(weakest) {
+			list_remove(plexi_vicinity, weakest);
+			memb_free(&plexi_vicinity_mem, weakest);
+			weakest = NULL;
+		}
+	}
+	if(to_add) {
+		plexi_proximate *prox = memb_alloc(&plexi_vicinity_mem);
+		linkaddr_copy(prox->proximate, packetbuf_addr(PACKETBUF_ADDR_SENDER));
+		prox->since = clock_time();
+		prox->pheromone = PLEXI_PHEROMONE_CHUNK;
+		list_add(plexi_vicinity, &prox);
+	}
+}
+
+
+static void plexi_packet_sent(int mac_status) {
+	if(mac_status == MAC_TX_OK) {
+		short int to_add = 1;
+		short int to_remove = 1-PLEXI_MAX_PROXIMATES;
+		plexi_proximate *p;
+		for(p = list_head(plexi_vicinity); p != NULL; p = list_item_next(p)) {
+			if(linkaddr_cmp(p->proximate, packetbuf_addr(PACKETBUF_ADDR_RECEIVER))) {
+				p->since = clock_time();
+				p->pheromone += PLEXI_PHEROMONE_CHUNK;
+				to_add = 0;
+			}
+			to_remove++;
+		}
+		if(to_remove) {
+			plexi_proximate *weakest = NULL;
+			for(p = list_head(plexi_vicinity); p != NULL; p = list_item_next(p)) {
+				if( weakest==NULL || p->pheromone < weakest->pheromone) {
+					weakest = p;
+				}
+			}
+			if(weakest) {
+				list_remove(plexi_vicinity, weakest);
+				memb_free(&plexi_vicinity_mem, weakest);
+				weakest = NULL;
+			}
+		}
+		if(to_add) {
+			plexi_proximate *prox = memb_alloc(&plexi_vicinity_mem);
+			linkaddr_copy(prox->proximate, packetbuf_addr(PACKETBUF_ADDR_RECEIVER));
+			prox->since = clock_time();
+			prox->pheromone = PLEXI_PHEROMONE_CHUNK;
+			list_add(plexi_vicinity, &prox);
+		}
+	}
+}
+
+
+static void plexi_get_vicinity_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset) {
+	if(inbox_msg_lock != NO_LOCK && inbox_msg_lock != NEIGHBORS_GET_LOCK) {
+		coap_set_status_code(response, SERVICE_UNAVAILABLE_5_03);
+		coap_set_payload(response, "Server too busy. Retry later.", 29);
+		return;
+	}
+	inbox_msg_lock = NO_LOCK;
+	content_len = 0;
+	unsigned int accept = -1;
+	REST.get_header_accept(request, &accept);
+	if(accept == -1 || accept == REST.type.APPLICATION_JSON) {
+
+	}
+
+}
 
 /** Builds the JSON response to requests for 6top/nbrs resource.								   *
  * The response consists of an object with the neighbors and the time elapsed since the last       *
@@ -194,26 +293,24 @@ EVENT_RESOURCE(resource_6top_nbrs,								/* name */
 		...																						   *
 		"IP address of neigbor 2":time in miliseconds											   *
 	}																							   *
-*/
-static void plexi_get_neighbors_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset) {
+*
+static void plexi_get_vicinity_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset) {
 	if(inbox_msg_lock != NO_LOCK && inbox_msg_lock != NEIGHBORS_GET_LOCK) {
 		coap_set_status_code(response, SERVICE_UNAVAILABLE_5_03);
 		coap_set_payload(response, "Server too busy. Retry later.", 29);
 		return;
 	}
 	inbox_msg_lock = NO_LOCK;
+	content_len = 0;
 	unsigned int accept = -1;
 	REST.get_header_accept(request, &accept);
-	/* make sure the request accepts JSON reply or does not specify the response type */
 	if(accept == -1 || accept == REST.type.APPLICATION_JSON) {
-		content_len = 0;
 		CONTENT_PRINTF("{");
 		uip_ds6_nbr_t *nbr;	
 		clock_time_t now = clock_time();
 		int first_item = 1;
 		uip_ipaddr_t *last_next_hop = NULL;
 		uip_ipaddr_t *curr_next_hop = NULL;
-		/* iterate over all link-layer neighbours and calculate the time elapsed since last interaction */
 		for(nbr = nbr_table_head(ds6_neighbors); nbr != NULL; nbr = nbr_table_next(ds6_neighbors, nbr)) {
 			curr_next_hop = (uip_ipaddr_t *)uip_ds6_nbr_get_ipaddr(nbr);
 			if(curr_next_hop != last_next_hop) {
@@ -225,7 +322,6 @@ static void plexi_get_neighbors_handler(void *request, void *response, uint8_t *
 								UIP_HTONS(curr_next_hop->u16[4]), UIP_HTONS(curr_next_hop->u16[5]),
 								UIP_HTONS(curr_next_hop->u16[6]), UIP_HTONS(curr_next_hop->u16[7])
 				);
-				/* For every neighbor record the time since it was added to routing table or the time since a packet was sent to */
 				const uip_lladdr_t *nbr_lladdr = uip_ds6_nbr_get_ll((const uip_ds6_nbr_t *)nbr);
 				if(nbr_lladdr != NULL) {
 					rpl_parent_t *p = rpl_get_parent((uip_lladdr_t *)nbr_lladdr);
@@ -245,11 +341,68 @@ static void plexi_get_neighbors_handler(void *request, void *response, uint8_t *
 		REST.set_response_payload(response, (uint8_t *)content, content_len);
 	}
 }
-
+*/
 /* Notifies all clients who observe changes to the 6top/nbrs resource */
-static void plexi_nbrs_event_handler() {
-	REST.notify_subscribers(&resource_6top_nbrs);
+static void plexi_vicinity_event_handler() {
+	REST.notify_subscribers(&resource_vicinity);
 }
+
+/**************************************************************************************************/
+/** Observable neighbor list resource and event handler to obtain all neighbor data 			  */
+/**************************************************************************************************/
+//EVENT_RESOURCE(resource_6top_nbrs,								/* name */
+//		"obs;title=\"6top neighbours\"",						/* attributes */
+//		plexi_get_neighbors_handler,							/* GET handler */
+//		NULL,													/* POST handler */
+//		NULL,													/* PUT handler */
+//		NULL,													/* DELETE handler */
+//		plexi_neighbors_event_handler);								/* event handler */
+
+/*
+if(inbox_msg_lock != NO_LOCK && inbox_msg_lock != NEIGHBORS_GET_LOCK) {
+	coap_set_status_code(response, SERVICE_UNAVAILABLE_5_03);
+	coap_set_payload(response, "Server too busy. Retry later.", 29);
+	return;
+}
+inbox_msg_lock = NO_LOCK;
+content_len = 0;
+unsigned int accept = -1;
+REST.get_header_accept(request, &accept);
+if(accept == -1 || accept == REST.type.APPLICATION_JSON) {
+	char *end;
+
+	char *uri_path = NULL;
+	const char *query = NULL;
+	int uri_len = REST.get_url(request, (const char**)(&uri_path));
+	*(uri_path+uri_len) = '\0';
+	int base_len = strlen(resource_6top_links.url);
+
+	int query_len = REST.get_query(request, &query);
+	char *query_tna = NULL;
+	int query_tna_len = REST.get_query_variable(request, LINK_CHANNEL_LABEL, (const char**)(&query_tna));
+	if(query_tna)  *(query_tna+query_tna_len) = '\0';
+	if(query_len > 0 && !query_tna) {
+		coap_set_status_code(response, NOT_IMPLEMENTED_5_01);
+		coap_set_payload(response, "Supports queries only on tna", 28);
+		return;
+	}
+
+	char *uri_subresource = uri_path+base_len;
+	if(*uri_subresource == '/')
+		uri_subresource++;
+	if((uri_len > base_len + 1 && strcmp(NEIGHBORS_ASN_LABEL,uri_subresource) && strcmp(NEIGHBORS_TNA_LABEL,uri_subresource) \
+			&& strcmp(NEIGHBORS_RSSI_LABEL,uri_subresource) && strcmp(NEIGHBORS_LQI_LABEL,uri_subresource) \
+			&& strcmp(NEIGHBORS_AGE_LABEL,uri_subresource))) {
+		coap_set_status_code(response, NOT_FOUND_4_04);
+		coap_set_payload(response, "Invalid subresource", 19);
+		return;
+	}
+*/
+/* Notifies all clients who observe changes to the 6top/nbrs resource */
+//static void plexi_neighbors_event_handler() {
+//	REST.notify_subscribers(&resource_6top_nbrs);
+//}
+
 
 /**************************************************************************************************
  **              Slotframe Resource to GET, POST or DELETE slotframes               			  * 
@@ -1006,10 +1159,12 @@ static void plexi_post_links_handler(void* request, void* response, uint8_t *buf
 
 void rich_scheduler_interface_init() {
   static struct uip_ds6_notification n;
+  rime_sniffer_add(&plexi_sniffer);
   rest_init_engine();
   rest_activate_resource(&resource_rpl_dag, DAG_RESOURCE);
-  rest_activate_resource(&resource_6top_nbrs, NEIGHBORS_RESOURCE);
-  rest_activate_resource(&resource_6top_slotframe,  FRAME_RESOURCE);
+  rest_activate_resource(&resource_vicinity, VICINITY_RESOURCE);
+  //rest_activate_resource(&resource_6top_nbrs, NEIGHBORS_RESOURCE);
+  rest_activate_resource(&resource_6top_slotframe, FRAME_RESOURCE);
   rest_activate_resource(&resource_6top_links, LINK_RESOURCE);
   /* A callback for routing table changes */
   uip_ds6_notification_add(&n, route_changed_callback);

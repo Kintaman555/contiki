@@ -38,11 +38,15 @@
 #define DAG_PARENT_LABEL "parent"
 #define DAG_CHILD_LABEL "child"
 
+#define VICINITY_RESOURCE "mac/vicinity"
+#define VICINITY_AGE_LABEL "age"
+#define VICINITY_PHEROMONE_LABEL "pheromone"
+
 #define NEIGHBORS_RESOURCE "6top/nbrList"
-#define NEIGHBORS_ASN "asn"
-#define NEIGHBORS_TNA "tna"
-#define NEIGHBORS_RSSI "rssi"
-#define NEIGHBORS_LQI "lqi"
+#define NEIGHBORS_ASN_LABEL "asn"
+#define NEIGHBORS_TNA_LABEL "tna"
+#define NEIGHBORS_RSSI_LABEL "rssi"
+#define NEIGHBORS_LQI_LABEL "lqi"
 
 #define FRAME_RESOURCE "6top/slotFrame"
 #define FRAME_ID_LABEL "frame"
@@ -55,6 +59,17 @@
 #define LINK_OPTION_LABEL "option"
 #define LINK_TYPE_LABEL "type"
 #define LINK_TARGET_LABEL "target"
- 
+
+#define PLEXI_PHEROMONE_CHUNK 1
+#define PLEXI_PHEROMONE_DECAY_TIMESLOTS 100
+#define PLEXI_MAX_PROXIMATES 15
+
+typedef struct plexi_proximate_struct plexi_proximate;
+struct plexi_proximate_struct {
+	struct plexi_proximate_struct *next;
+	linkaddr_t *proximate;
+	clock_time_t since;
+	uint8_t pheromone;
+};
 
 void rich_scheduler_interface_init();
