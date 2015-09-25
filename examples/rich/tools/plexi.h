@@ -38,7 +38,11 @@
 #define DAG_PARENT_LABEL "parent"
 #define DAG_CHILD_LABEL "child"
 
-#define NEIGHBORS_RESOURCE "6top/neighbors"
+#define NEIGHBORS_RESOURCE "6top/nbrList"
+#define NEIGHBORS_ASN "asn"
+#define NEIGHBORS_TNA "tna"
+#define NEIGHBORS_RSSI "rssi"
+#define NEIGHBORS_LQI "lqi"
 
 #define FRAME_RESOURCE "6top/slotFrame"
 #define FRAME_ID_LABEL "frame"

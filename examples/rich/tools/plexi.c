@@ -342,11 +342,9 @@ static void plexi_get_slotframe_handler(void* request, void* response, uint8_t *
 			return;
 		}
 		int item_counter = 0;
-		int to_print = 0;
 		CONTENT_PRINTF("[");
 		struct tsch_slotframe* slotframe = (struct tsch_slotframe*)tsch_schedule_get_next_slotframe(NULL);
 		while(slotframe) {
-			to_print = 0;
 			if(!query_value || (!strncmp(FRAME_ID_LABEL,query,sizeof(FRAME_ID_LABEL)-1) && slotframe->handle == value) || \
 				(!strncmp(FRAME_SLOTS_LABEL,query,sizeof(FRAME_SLOTS_LABEL)-1) && slotframe->size.val == value)) {
 				if(item_counter > 0) {
@@ -354,9 +352,6 @@ static void plexi_get_slotframe_handler(void* request, void* response, uint8_t *
 				} else if(query_value && uri_len == base_len && !strncmp(FRAME_ID_LABEL,query,sizeof(FRAME_ID_LABEL)-1) && slotframe->handle == value) {
 					content_len = 0;
 				}
-				to_print = 1;
-			}
-			if(to_print) {
 				item_counter++;
 				if(!strcmp(FRAME_ID_LABEL,uri_subresource)) {
 					CONTENT_PRINTF("%u",slotframe->handle);
@@ -681,10 +676,11 @@ static void plexi_get_links_handler(void *request, void *response, uint8_t *buff
 		if((uri_len > base_len + 1 && strcmp(LINK_ID_LABEL,uri_subresource) && strcmp(FRAME_ID_LABEL,uri_subresource) \
 			 && strcmp(LINK_SLOT_LABEL,uri_subresource) && strcmp(LINK_CHANNEL_LABEL,uri_subresource) \
 			 && strcmp(LINK_OPTION_LABEL,uri_subresource) && strcmp(LINK_TYPE_LABEL,uri_subresource) \
-			  && strcmp(LINK_TARGET_LABEL,uri_subresource)))
+			  && strcmp(LINK_TARGET_LABEL,uri_subresource))) {
 			coap_set_status_code(response, NOT_FOUND_4_04);
 			coap_set_payload(response, "Invalid subresource", 19);
 			return;
+		}
 		struct tsch_slotframe* slotframe = (struct tsch_slotframe*)tsch_schedule_get_next_slotframe(NULL);
 		int first_item = 1;
 		while(slotframe) {
@@ -780,51 +776,104 @@ static void plexi_delete_links_handler(void *request, void *response, uint8_t *b
 	}
 	inbox_msg_lock = NO_LOCK;
 	content_len = 0;
-	const char *uri_path = NULL;
-	int uri_len = REST.get_url(request, &uri_path);
-	int base_len = strlen(resource_6top_links.url);
-	const char *query = NULL;
-	const char *query_value = NULL;
-	int query_len = REST.get_query(request, &query);
-	int query_value_len = REST.get_query_variable(request, LINK_ID_LABEL, &query_value);
-	/* Check that there is a subresource, and that we have enough space to store it */
-	if(uri_len == base_len && query && query_value) {
+	unsigned int accept = -1;
+	REST.get_header_accept(request, &accept);
+
+	if(accept == -1 || accept == REST.type.APPLICATION_JSON) {
 		char *end;
-		int id = (unsigned)strtoul(query_value, &end, 10);
-		/* Actually remove the slotframe */
-		struct tsch_link *link = tsch_schedule_get_link_from_handle(id);
-		int slotframe = link->slotframe_handle;
-		int slot = link->timeslot;
-		int channel = link->channel_offset;
-		int options = link->link_options;
-		int type = link->link_type;
-		if(link) {
-			struct tsch_slotframe *sf = tsch_schedule_get_slotframe_from_handle(slotframe);
-			if(sf) {
-				if(tsch_schedule_remove_link(sf, link)) {
-					printf("PLEXI: deleted link {\"%s\":%u,\"%s\":%u,\"%s\":%u,\"%s\":%u,\"%s\":%u,\"%s\":%u}", \
-						LINK_ID_LABEL, id, FRAME_ID_LABEL, slotframe, LINK_SLOT_LABEL, slot, \
-							LINK_CHANNEL_LABEL, channel, LINK_OPTION_LABEL, options, LINK_TYPE_LABEL, type);
-					CONTENT_PRINTF("{\"%s\":%u,\"%s\":%u,\"%s\":%u,\"%s\":%u,\"%s\":%u,\"%s\":%u}", \
-						LINK_ID_LABEL, id, FRAME_ID_LABEL, slotframe, LINK_SLOT_LABEL, slot, \
-							LINK_CHANNEL_LABEL, channel, LINK_OPTION_LABEL, options, LINK_TYPE_LABEL, type);
-					REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
-					REST.set_response_payload(response, (uint8_t *)content, content_len);
-				} else {
-					coap_set_status_code(response, INTERNAL_SERVER_ERROR_5_00);
-					coap_set_payload(response, "Link could not be added", 23);
-					return;
-				}
-			} else {
-				coap_set_status_code(response, NOT_FOUND_4_04);
-				coap_set_payload(response, "Slotframe handle not found", 26);
-				return;
-			}
-		} else {
-			coap_set_status_code(response, NOT_FOUND_4_04);
-			coap_set_payload(response, "Link handle not found", 21);
+
+		char *uri_path = NULL;
+		const char *query = NULL;
+		int uri_len = REST.get_url(request, (const char**)(&uri_path));
+		*(uri_path+uri_len) = '\0';
+		int base_len = strlen(resource_6top_links.url);
+
+		/* Parse the query options and support only the slotframe, the slotoffset and channeloffset queries */
+		int query_len = REST.get_query(request, &query);
+		char *query_frame = NULL, *query_slot = NULL, *query_channel = NULL;
+		unsigned long frame = -1, slot = -1, channel = -1;
+		short int flag = 0;
+		int query_frame_len = REST.get_query_variable(request, FRAME_ID_LABEL, (const char**)(&query_frame));
+		int query_slot_len = REST.get_query_variable(request, LINK_SLOT_LABEL, (const char**)(&query_slot));
+		int query_channel_len = REST.get_query_variable(request, LINK_CHANNEL_LABEL, (const char**)(&query_channel));
+		if(query_frame) {
+			*(query_frame+query_frame_len) = '\0';
+			frame = (unsigned)strtoul(query_frame, &end, 10);
+			flag|=4;
+		}
+		if(query_slot) {
+			*(query_slot+query_slot_len) = '\0';
+			slot = (unsigned)strtoul(query_slot, &end, 10);
+			flag|=2;
+		}
+		if(query_channel) {
+			*(query_channel+query_channel_len) = '\0';
+			channel = (unsigned)strtoul(query_channel, &end, 10);
+			flag|=1;
+		}
+		if(query_len > 0 && (!flag || (query_frame && frame < 0) || (query_slot && slot < 0) || (query_channel && channel < 0))) {
+			coap_set_status_code(response, NOT_IMPLEMENTED_5_01);
+			coap_set_payload(response, "Supports queries only on slot frame id and/or slotoffset and channeloffset", 74);
 			return;
 		}
+
+		/* Parse subresources and make sure you can filter the results */
+		if(uri_len > base_len + 1) {
+			coap_set_status_code(response, NOT_IMPLEMENTED_5_01);
+			coap_set_payload(response, "Subresources are not supported for DELETE method", 48);
+			return;
+		}
+
+		struct tsch_slotframe* slotframe = (struct tsch_slotframe*)tsch_schedule_get_next_slotframe(NULL);
+		int first_item = 1;
+		while(slotframe) {
+			if(!(flag&4) || frame == slotframe->handle) {
+				struct tsch_link* link = (struct tsch_link*)tsch_schedule_get_next_link_of(slotframe, NULL);
+				while(link) {
+					struct tsch_link* next_link = (struct tsch_link*)tsch_schedule_get_next_link_of(slotframe, link);
+					int link_handle = link->handle;
+					int link_slotframe_handle = link->slotframe_handle;
+					int link_timeslot = link->timeslot;
+					int link_channel_offset = link->channel_offset;
+					int link_link_options = link->link_options;
+					int link_link_type = link->link_type;
+					char na[32];
+					*na = '\0';
+					if(!linkaddr_cmp(&link->addr, &linkaddr_null)) linkaddr_to_na(na, &link->addr);
+
+					int deleted = tsch_schedule_remove_link(slotframe,link);
+					if(((!(flag&2) && !(flag&1)) || ((flag&2) && !(flag&1) && slot == link_timeslot) || (!(flag&2) && (flag&1) && channel == link_channel_offset) || ((flag&2) && (flag&1) && slot == link_timeslot && channel == link_channel_offset)) && deleted) {
+						if(first_item) {
+							if(flag < 7)
+								CONTENT_PRINTF("[");
+							first_item = 0;
+						} else {
+							CONTENT_PRINTF(",");
+						}
+						printf("PLEXI: deleted link {\"%s\":%u,\"%s\":%u,\"%s\":%u,\"%s\":%u,\"%s\":%u,\"%s\":%u}", \
+							LINK_ID_LABEL, link_handle, FRAME_ID_LABEL, link_slotframe_handle, LINK_SLOT_LABEL, link_timeslot, \
+							LINK_CHANNEL_LABEL, link_channel_offset, LINK_OPTION_LABEL, link_link_options, LINK_TYPE_LABEL, link_link_type);
+						CONTENT_PRINTF("{\"%s\":%u,\"%s\":%u,\"%s\":%u,\"%s\":%u,\"%s\":%u,\"%s\":%u",\
+							LINK_ID_LABEL, link_handle, FRAME_ID_LABEL, link_slotframe_handle, \
+							LINK_SLOT_LABEL, link_timeslot, LINK_CHANNEL_LABEL, link_channel_offset,\
+							LINK_OPTION_LABEL, link_link_options, LINK_TYPE_LABEL, link_link_type);
+						if(strlen(na) > 0) CONTENT_PRINTF(",\"%s\":\"%s\"",LINK_TARGET_LABEL,na);
+						CONTENT_PRINTF("}");
+					}
+					link = next_link;
+				}
+			}
+			slotframe = (struct tsch_slotframe*)tsch_schedule_get_next_slotframe(slotframe);
+		}
+		if(flag < 7)
+			CONTENT_PRINTF("]");
+		REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
+		if(flag != 7 || !first_item)
+			REST.set_response_payload(response, (uint8_t *)content, content_len);
+		coap_set_status_code(response, DELETED_2_02);
+	} else {
+		coap_set_status_code(response, NOT_ACCEPTABLE_4_06);
+		return;
 	}
 }
 
