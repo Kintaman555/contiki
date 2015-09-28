@@ -60,14 +60,16 @@
 #define LINK_TYPE_LABEL "type"
 #define LINK_TARGET_LABEL "target"
 
-#define PLEXI_PHEROMONE_CHUNK 1
-#define PLEXI_PHEROMONE_DECAY_TIMESLOTS 100
+#define PLEXI_PHEROMONE_CHUNK 10
+#define PLEXI_PHEROMONE_DECAY 3
+#define PLEXI_PHEROMONE_WINDOW 10 * CLOCK_SECOND
+
 #define PLEXI_MAX_PROXIMATES 15
 
 typedef struct plexi_proximate_struct plexi_proximate;
 struct plexi_proximate_struct {
 	struct plexi_proximate_struct *next;
-	linkaddr_t *proximate;
+	linkaddr_t proximate;
 	clock_time_t since;
 	uint8_t pheromone;
 };
