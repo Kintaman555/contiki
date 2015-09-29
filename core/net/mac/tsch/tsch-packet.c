@@ -39,6 +39,7 @@
  */
 
 #include "contiki.h"
+#include "net/packetbuf.h"
 #include "net/mac/tsch/tsch.h"
 #include "net/mac/tsch/tsch-packet.h"
 #include "net/mac/tsch/tsch-private.h"
@@ -96,7 +97,7 @@ tsch_packet_create_eack(uint8_t *buf, int buf_size,
   if(tsch_is_pan_secured) {
     p.fcf.security_enabled = 1;
     p.aux_hdr.security_control.security_level = TSCH_SECURITY_KEY_SEC_LEVEL_ACK;
-    p.aux_hdr.security_control.key_id_mode = 1;
+    p.aux_hdr.security_control.key_id_mode = FRAME802154_1_BYTE_KEY_ID_MODE;
     p.aux_hdr.security_control.frame_counter_suppression = 1;
     p.aux_hdr.security_control.frame_counter_size = 1;
     p.aux_hdr.key_index = TSCH_SECURITY_KEY_INDEX_ACK;
@@ -147,9 +148,13 @@ tsch_packet_parse_eack(const uint8_t *buf, int buf_size,
     return 0;
   }
 
+  /* Check destination PAN ID */
+  if(frame802154_check_dest_panid(frame) == 0) {
+    return 0;
+  }
+
   /* Check destination address (if any) */
-  ret = frame802154_packet_extract_addresses(frame, NULL, &dest);
-  if(ret == 0 ||
+  if(frame802154_extract_linkaddr(frame, NULL, &dest) == 0 ||
       (!linkaddr_cmp(&dest, &linkaddr_node_addr)
           && !linkaddr_cmp(&dest, &linkaddr_null))) {
     return 0;
@@ -219,12 +224,12 @@ tsch_packet_create_eb(uint8_t *buf, int buf_size, uint8_t seqno,
 
 #if TSCH_SECURITY_ENABLED
   if(tsch_is_pan_secured) {
-    p.fcf.security_enabled = TSCH_SECURITY_KEY_SEC_LEVEL_EB > 0;
-    p.aux_hdr.security_control.security_level = TSCH_SECURITY_KEY_SEC_LEVEL_EB;
-    p.aux_hdr.security_control.key_id_mode = 1;
+    p.fcf.security_enabled = packetbuf_attr(PACKETBUF_ATTR_SECURITY_LEVEL) > 0;
+    p.aux_hdr.security_control.security_level = packetbuf_attr(PACKETBUF_ATTR_SECURITY_LEVEL);
+    p.aux_hdr.security_control.key_id_mode = packetbuf_attr(PACKETBUF_ATTR_KEY_ID_MODE);
     p.aux_hdr.security_control.frame_counter_suppression = 1;
     p.aux_hdr.security_control.frame_counter_size = 1;
-    p.aux_hdr.key_index = TSCH_SECURITY_KEY_INDEX_EB;
+    p.aux_hdr.key_index = packetbuf_attr(PACKETBUF_ATTR_KEY_INDEX);
   }
 #endif /* TSCH_SECURITY_ENABLED */
 
@@ -358,8 +363,15 @@ tsch_packet_parse_eb(const uint8_t *buf, int buf_size,
     return 0;
   }
 
-  if(frame->fcf.frame_type != FRAME802154_BEACONFRAME) {
-    PRINTF("TSCH:! parse_eb: frame is not a beacon. Frame type %u, FCF %02x %02x\n", frame->fcf.frame_type, buf[0], buf[1]);
+  if(frame->fcf.frame_version < FRAME802154_IEEE802154E_2012
+      || frame->fcf.frame_type != FRAME802154_BEACONFRAME) {
+    PRINTF("TSCH:! parse_eb: frame is not a valid TSCH beacon. Frame version %u, type %u, FCF %02x %02x\n",
+        frame->fcf.frame_version, frame->fcf.frame_type, buf[0], buf[1]);
+    PRINTF("TSCH:! parse_eb: frame was from 0x%x/", frame->src_pid);
+    PRINTLLADDR((const uip_lladdr_t *)&frame->src_addr);
+    PRINTF(" to 0x%x/", frame->dest_pid);
+    PRINTLLADDR((const uip_lladdr_t *)&frame->dest_addr);
+    PRINTF("\n");
     return 0;
   }
 
@@ -373,7 +385,7 @@ tsch_packet_parse_eb(const uint8_t *buf, int buf_size,
     ies->ie_join_priority = 0xff; /* Use max value in case the Beacon does not include a join priority */
   }
   if(frame->fcf.ie_list_present) {
-    /* Check if there is space for the security MIC (if any) */
+    /* Calculate space needed for the security MIC, if any, before attempting to parse IEs */
     int mic_len = 0;
 #if TSCH_SECURITY_ENABLED
     if(!frame_without_mic) {

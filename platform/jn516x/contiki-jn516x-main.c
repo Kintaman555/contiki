@@ -45,6 +45,7 @@
 
 #include "dev/watchdog.h"
 #include <AppHardwareApi.h>
+#include <BbcAndPhyRegs.h>
 #include <recal.h>
 #include "dev/uart0.h"
 
@@ -433,6 +434,8 @@ main(void)
       if(rtimer_arch_get_time_until_next_wakeup() > RTIMER_SECOND / 2000) {
         /* PRINTF("ContikiMain: Calibrating the DCO\n"); */
         eAHI_AttemptCalibration();
+        /* Patch to allow CpuDoze after calibration */
+        vREG_PhyWrite(REG_PHY_IS, REG_PHY_INT_VCO_CAL_MASK);
         last_dco_calibration_time = clock_seconds();
       }
     }
