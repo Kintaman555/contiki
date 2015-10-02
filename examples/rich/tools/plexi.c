@@ -44,6 +44,9 @@
 #define LINK_GET_LOCK 6
 #define LINK_DEL_LOCK 7
 #define LINK_POST_LOCK 8
+#define STATS_GET_LOCK 9
+#define STATS_DEL_LOCK 10
+#define STATS_POST_LOCK 11
 
 #define DEBUG DEBUG_PRINT
 #define SM_UPDATE_INTERVAL (60 * CLOCK_SECOND)
@@ -71,6 +74,11 @@ static void plexi_get_links_handler(void *request, void *response, uint8_t *buff
 static void plexi_delete_links_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
 static void plexi_post_links_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
 
+static void plexi_stats_event_handler(void);
+static void plexi_get_stats_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
+static void plexi_delete_stats_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
+static void plexi_post_stats_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
+
 int jsonparse_find_field(struct jsonparse_state *js, char *field_buf, int field_buf_len);
 static int na_to_linkaddr(const char *na_inbuf, int bufsize, linkaddr_t *linkaddress);
 static int linkaddr_to_na(char* buf, linkaddr_t *addr);
@@ -79,8 +87,12 @@ static int linkaddr_to_na(char* buf, linkaddr_t *addr);
 static void plexi_packet_received(void);
 static void plexi_packet_sent(int mac_status);
 
+
 MEMB(plexi_vicinity_mem, plexi_proximate, PLEXI_MAX_PROXIMATES);
 LIST(plexi_vicinity);
+
+MEMB(plexi_stats_mem, plexi_stats, PLEXI_MAX_STATISTICS);
+
 RIME_SNIFFER(plexi_sniffer, plexi_packet_received, plexi_packet_sent);
 
 static struct ctimer ct;
@@ -209,6 +221,9 @@ static void plexi_packet_received(void) {
 	short int to_add = 1;
 	short int to_remove = 1-PLEXI_MAX_PROXIMATES;
 	linkaddr_t* sender = (linkaddr_t*)packetbuf_addr(PACKETBUF_ADDR_SENDER);
+	linkaddr_t* self = (linkaddr_t*)packetbuf_addr(PACKETBUF_ADDR_RECEIVER);
+	uint32_t asn = 4096*TSCH_CLOCK_TO_SLOTS(clock_time()/4096, TSCH_CONF_DEFAULT_TIMESLOT_LENGTH);
+	
 	plexi_proximate *p;
 	char buf[32];
 	linkaddr_to_na(buf, sender);
@@ -459,7 +474,7 @@ static void plexi_neighbors_event_handler() {
  **************************************************************************************************/
 
 PARENT_RESOURCE(resource_6top_slotframe,		/* name */
-		"obs;title=\"6top Slotframe\";",     	/* attributes */
+		"title=\"6top Slotframe\";",     	/* attributes */
 		plexi_get_slotframe_handler,			/*GET handler*/
 		plexi_post_slotframe_handler,			/*POST handler*/
 		NULL,									/*PUT handler*/
@@ -777,7 +792,7 @@ static void plexi_delete_slotframe_handler(void* request, void* response, uint8_
 /** Resource and handler to GET, POST and DELETE links 											  */ 
 /**************************************************************************************************/
 PARENT_RESOURCE(resource_6top_links,		/* name */
-		"obs;title=\"6top links\"",			/* attributes */
+		"title=\"6top links\"",			/* attributes */
 		plexi_get_links_handler,			/* GET handler */
 		plexi_post_links_handler,			/* POST handler */
 		NULL,								/* PUT handler */
@@ -1207,10 +1222,400 @@ static void plexi_post_links_handler(void* request, void* response, uint8_t *buf
 	}
 }
 
+
+/**************************************************************************************************/
+/** Resource and handler to GET, POST and DELETE statistics										  */ 
+/**************************************************************************************************/
+PARENT_RESOURCE(resource_6top_stats,								/* name */
+               "title=\"6top Statistics\"",					/* attributes */
+               plexi_get_stats_handler,							/* GET handler */
+               plexi_post_stats_handler,						/* POST handler */
+               NULL,											/* PUT handler */
+               plexi_delete_stats_handler);						/* DELETE handler */
+
+
+static void plexi_get_stats_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset) {
+	if(inbox_msg_lock != NO_LOCK && inbox_msg_lock != STATS_GET_LOCK) {
+		coap_set_status_code(response, SERVICE_UNAVAILABLE_5_03);
+		coap_set_payload(response, "Server too busy. Retry later", 28);
+		return;
+	}
+	inbox_msg_lock = NO_LOCK;
+	content_len = 0;
+	unsigned int accept = -1;
+	REST.get_header_accept(request, &accept);
+	
+	if(accept == -1 || accept == REST.type.APPLICATION_JSON) {
+		char *end;
+
+		char *uri_path = NULL;
+		const char *query = NULL;
+		int uri_len = REST.get_url(request, (const char**)(&uri_path));
+		*(uri_path+uri_len) = '\0';
+		int base_len = strlen(resource_6top_links.url);
+		uint8_t flags = 0;
+
+		/* Parse the query options and support only the slotframe, the slotoffset and channeloffset queries */
+		int query_len = REST.get_query(request, &query);
+		char *query_frame = NULL, \
+			*query_slot = NULL, \
+			*query_channel = NULL, \
+			*query_tna = NULL, \
+			*query_metric = NULL, \
+			*query_enable = NULL;
+		int frame = -1, metric = NONE, enable = ANY;
+		int slot = -1, channel = -1;
+		linkaddr_t tna;
+		int query_frame_len = REST.get_query_variable(request, FRAME_ID_LABEL, (const char**)(&query_frame));
+		int query_slot_len = REST.get_query_variable(request, LINK_SLOT_LABEL, (const char**)(&query_slot));
+		int query_channel_len = REST.get_query_variable(request, LINK_CHANNEL_LABEL, (const char**)(&query_channel));
+		int query_tna_len = REST.get_query_variable(request, LINK_TARGET_LABEL, (const char**)(&query_tna));
+		int query_metric_len = REST.get_query_variable(request, STATS_METRIC_LABEL, (const char**)(&query_metric));
+		int query_enable_len = REST.get_query_variable(request, STATS_ENABLE_LABEL, (const char**)(&query_enable));
+		if(query_frame) {
+			*(query_frame+query_frame_len) = '\0';
+			frame = (unsigned)strtoul(query_frame, &end, 10);
+			flags|=1;
+		}
+		if(query_slot) {
+			*(query_slot+query_slot_len) = '\0';
+			slot = (unsigned)strtoul(query_slot, &end, 10);
+			flags|=2;
+		}
+		if(query_channel) {
+			*(query_channel+query_channel_len) = '\0';
+			channel = (unsigned)strtoul(query_channel, &end, 10);
+			flags|=4;
+		}
+		if(query_tna) {
+			*(query_tna+query_tna_len) = '\0';
+			na_to_linkaddr(query_tna, query_tna_len, &tna);
+			flags|=8;
+		}
+		if(query_metric) {
+			*(query_metric+query_metric_len) = '\0';
+			if(!strcmp(STATS_ETX_LABEL, query_metric)) {
+				metric = ETX;
+			} else if(!strcmp(STATS_RSSI_LABEL, query_metric)) {
+				metric = RSSI;
+			} else if(!strcmp(STATS_LQI_LABEL, query_metric)) {
+				metric = LQI;
+			} else {
+				coap_set_status_code(response, NOT_FOUND_4_04);
+				coap_set_payload(response, "Unrecognized metric", 19);
+				return;
+			}
+			flags|=16;
+		}
+		if(query_enable) {
+			*(query_enable+query_enable_len) = '\0';
+			if(!strcmp("y", query_enable) || !strcmp("yes", query_enable) || !strcmp("true", query_enable) || !strcmp("1", query_enable))
+				enable = ENABLE;
+			else if(!strcmp("n", query_enable) || !strcmp("no", query_enable) || !strcmp("false", query_enable) || !strcmp("0", query_enable))
+				enable = DISABLE;
+			flags|=32;
+		}
+		if(query_len > 0 && (!flags || (query_frame && frame < 0) || (query_slot && slot < 0) || (query_channel && channel < 0))) {
+			coap_set_status_code(response, NOT_IMPLEMENTED_5_01);
+			coap_set_payload(response, "Supports queries only on slot frame id and/or slotoffset and channeloffset", 74);
+			return;
+		}
+
+		/* Parse subresources and make sure you can filter the results */
+		char *uri_subresource = uri_path+base_len;
+		if(*uri_subresource == '/')
+			uri_subresource++;
+		if((uri_len > base_len + 1 && strcmp(FRAME_ID_LABEL,uri_subresource) && strcmp(LINK_SLOT_LABEL,uri_subresource) \
+			  && strcmp(LINK_CHANNEL_LABEL,uri_subresource) && strcmp(STATS_WINDOW_LABEL,uri_subresource) \
+			  && strcmp(STATS_METRIC_LABEL,uri_subresource) && strcmp(STATS_VALUE_LABEL,uri_subresource) \
+			  && strcmp(LINK_TARGET_LABEL,uri_subresource) && strcmp(STATS_ENABLE_LABEL,uri_subresource))) {
+			coap_set_status_code(response, NOT_FOUND_4_04);
+			coap_set_payload(response, "Invalid subresource", 19);
+			return;
+		}
+		struct tsch_slotframe *slotframe_ptr = NULL;
+		if(flags&1){
+			slotframe_ptr = (struct tsch_slotframe*)tsch_schedule_get_slotframe_from_handle(frame);
+		} else {
+			slotframe_ptr = (struct tsch_slotframe*)tsch_schedule_get_next_slotframe(NULL);
+		}
+		if(!slotframe_ptr) {
+			coap_set_status_code(response, NOT_FOUND_4_04);
+			coap_set_payload(response, "No slotframes found", 19);
+			return;
+		}
+		int first_item = 1;
+		do {
+			struct tsch_link* link = NULL;
+			if(flags&2) {
+				link = (struct tsch_link*)tsch_schedule_get_link_from_timeslot(slotframe_ptr, slot);
+			} else {
+				link = (struct tsch_link*)tsch_schedule_get_next_link_of(slotframe_ptr, NULL);
+			}
+			if(!link) continue;
+			do {
+				if((!(flags&4) || link->channel_offset == channel) && (!(flags&8) || linkaddr_cmp(&link->addr, &tna))) {
+					plexi_stats *last_stats = NULL;
+					if(memb_inmemb(&plexi_stats_mem, link->data)) {
+						last_stats = (plexi_stats*)link->data;
+						while(last_stats != NULL) {
+							if( (!(flags&16) || metric == last_stats->metric) && \
+								  (!(flags&32) || enable == ANY || enable == last_stats->enable) ) {
+								if(first_item) {
+									CONTENT_PRINTF("[");
+									first_item = 0;
+								} else {
+									CONTENT_PRINTF(",");
+								}
+								if(!strcmp(FRAME_ID_LABEL,uri_subresource)) {
+									CONTENT_PRINTF("%u",link->slotframe_handle);
+								} else if(!strcmp(LINK_SLOT_LABEL,uri_subresource)) {
+									CONTENT_PRINTF("%u",link->timeslot);
+								} else if(!strcmp(LINK_CHANNEL_LABEL,uri_subresource)) {
+									CONTENT_PRINTF("%u",link->channel_offset);
+								} else if(!strcmp(STATS_METRIC_LABEL,uri_subresource)) {
+									if(last_stats->metric == ETX) {
+										CONTENT_PRINTF("%s",STATS_ETX_LABEL);
+									} else if(last_stats->metric == RSSI) {
+										CONTENT_PRINTF("%s",STATS_RSSI_LABEL);
+									} else if(last_stats->metric == LQI) {
+										CONTENT_PRINTF("%s",STATS_LQI_LABEL);
+									}
+								} else if(!strcmp(STATS_ENABLE_LABEL,uri_subresource)) {
+									if(last_stats->enable == ENABLE) {
+										CONTENT_PRINTF("1");
+									} else if(last_stats->enable == DISABLE) {
+										CONTENT_PRINTF("0");
+									}
+								} else if(!strcmp(LINK_TARGET_LABEL,uri_subresource)) {
+									if(!linkaddr_cmp(&link->addr, &linkaddr_null)) {
+										char na[32];
+										linkaddr_to_na(na, &link->addr);
+										CONTENT_PRINTF("\"%s\"",na);
+									}
+								} else {
+									CONTENT_PRINTF("{\"%s\":%u,\"%s\":%u,\"%s\":%u",\
+										FRAME_ID_LABEL, link->slotframe_handle, LINK_SLOT_LABEL, link->timeslot, \
+										LINK_CHANNEL_LABEL, link->channel_offset);
+									if(last_stats->metric == ETX) {
+										CONTENT_PRINTF(",\"%s\":\"%s\"", STATS_METRIC_LABEL, STATS_ETX_LABEL);
+									} else if(last_stats->metric == RSSI) {
+										CONTENT_PRINTF(",\"%s\":\"%s\"", STATS_METRIC_LABEL, STATS_RSSI_LABEL);
+									} else if(last_stats->metric == LQI) {
+										CONTENT_PRINTF(",\"%s\":\"%s\"", STATS_METRIC_LABEL, STATS_LQI_LABEL);
+									}
+									if(last_stats->enable == ENABLE) {
+										CONTENT_PRINTF(",\"%s\":1",STATS_ENABLE_LABEL);
+									} else if(last_stats->enable == DISABLE) {
+										CONTENT_PRINTF(",\"%s\":0",STATS_ENABLE_LABEL);
+									}
+									if(!linkaddr_cmp(&link->addr, &linkaddr_null)) {
+										char na[32];
+										linkaddr_to_na(na, &link->addr);
+										CONTENT_PRINTF(",\"%s\":\"%s\"",LINK_TARGET_LABEL,na);
+									}
+									CONTENT_PRINTF("}");
+								}
+							}
+							last_stats = last_stats->next;
+						}
+					}
+				}
+			} while(!(flags&2) && (link = (struct tsch_link*)tsch_schedule_get_next_link_of(slotframe_ptr, link)));
+		} while(!(flags&1) && (slotframe_ptr = (struct tsch_slotframe*)tsch_schedule_get_next_slotframe(slotframe_ptr)));
+		
+		if(!first_item) {
+			CONTENT_PRINTF("]");
+			REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
+			REST.set_response_payload(response, (uint8_t *)content, content_len);
+		} else {
+			coap_set_status_code(response, NOT_FOUND_4_04);
+			return;
+		}
+	} else {
+		coap_set_status_code(response, NOT_ACCEPTABLE_4_06);
+		return;
+	}
+}
+
+static void plexi_delete_stats_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset) {
+	
+}
+
+static void plexi_post_stats_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset) {
+	if(inbox_msg_lock != NO_LOCK && inbox_msg_lock != STATS_POST_LOCK) {
+		coap_set_status_code(response, SERVICE_UNAVAILABLE_5_03);
+		coap_set_payload(response, "Server too busy. Retry later.", 29);
+		return;
+	}
+	inbox_msg_lock = NO_LOCK;
+	content_len = 0;
+	unsigned int accept = -1;
+	REST.get_header_accept(request, &accept);
+	if(accept == -1 || accept == REST.type.APPLICATION_JSON) {
+	
+		int state;
+		const uint8_t *request_content;
+		int request_content_len;
+		char field_buf[32] = "";
+		char value_buf[32] = "";
+
+		request_content_len = REST.get_request_payload(request, &request_content);
+		struct jsonparse_state js;
+		jsonparse_setup(&js, (const char *)request_content, request_content_len);
+	
+		plexi_stats stats;
+		int channel, slot, slotframe;
+		linkaddr_t tna;
+		uint8_t flags = 0;
+		int to_initialize = 0;
+		/* Parse json input */
+		while((state=jsonparse_find_field(&js, field_buf, sizeof(field_buf)))) {
+			switch(state) {
+				case '{': /* New element */
+					stats.window = 0;
+					stats.enable = (uint8_t)DISABLE;
+					stats.metric = (uint8_t)NONE;
+					stats.value = 0;
+					channel = -1;
+					slot = -1;
+					slotframe = -1;
+					break;
+				case '}': { /* End of current element */
+					if(stats.metric == NONE) {
+						coap_set_status_code(response, BAD_REQUEST_4_00);
+						coap_set_payload(response, "Invalid statistics configuration (metric missing)", 49);
+						return;
+					}
+					struct tsch_slotframe *slotframe_ptr = NULL;
+					if(flags&1){
+						slotframe_ptr = (struct tsch_slotframe*)tsch_schedule_get_slotframe_from_handle(slotframe);
+					} else {
+						slotframe_ptr = (struct tsch_slotframe*)tsch_schedule_get_next_slotframe(NULL);
+					}
+					if(!slotframe_ptr) {
+						coap_set_status_code(response, NOT_FOUND_4_04);
+						coap_set_payload(response, "No slotframes found", 19);
+						return;
+					}
+					do {
+						struct tsch_link* link = NULL;
+						if(flags&2) {
+							link = (struct tsch_link*)tsch_schedule_get_link_from_timeslot(slotframe_ptr, slot);
+						} else {
+							link = (struct tsch_link*)tsch_schedule_get_next_link_of(slotframe_ptr, NULL);
+						}
+						if(!link) continue;
+						do {
+							if(!(flags&4) || link->channel_offset == channel) {
+								if(!(flags&8) || linkaddr_cmp(&link->addr, &tna)) {
+									plexi_stats *last_stats = NULL, *previous_stats = NULL;
+									if(memb_inmemb(&plexi_stats_mem, link->data)) {
+										last_stats = (plexi_stats*)link->data;
+										while(last_stats != NULL) {
+											if(stats.metric == last_stats->metric) break;
+											previous_stats = last_stats;
+											last_stats = previous_stats->next;
+										}
+									}
+									if(last_stats == NULL) {
+										plexi_stats *link_stats = memb_alloc(&plexi_stats_mem);
+										if(link_stats == NULL) {
+											coap_set_status_code(response, INTERNAL_SERVER_ERROR_5_00);
+											coap_set_payload(response, "Not enough memory (too many statistics)", 39);
+											return;
+										}
+										link_stats->next = NULL;
+										link_stats->window = stats.window;
+										link_stats->metric = stats.metric;
+										link_stats->value = 0;
+										link_stats->enable = stats.enable;
+										if(to_initialize) link_stats->value = stats.value;
+										if(previous_stats != NULL) previous_stats->next = link_stats;
+										else link->data = (void*)link_stats;
+									} else {
+										last_stats->window = stats.window;
+										last_stats->enable = stats.enable;
+										last_stats->value = stats.value;
+									}
+								}
+							}
+						} while(!(flags&2) && (link = (struct tsch_link*)tsch_schedule_get_next_link_of(slotframe_ptr, link)));
+					} while(!(flags&1) && (slotframe_ptr = (struct tsch_slotframe*)tsch_schedule_get_next_slotframe(slotframe_ptr)));
+					coap_set_status_code(response, CHANGED_2_04);
+					return;
+				}
+				case JSON_TYPE_NUMBER: //Try to remove the if statement and change { to [ on line 601.
+					if(!strncmp(field_buf, FRAME_ID_LABEL, sizeof(field_buf))) {
+						slotframe = jsonparse_get_value_as_int(&js);
+						flags |= 1;
+					} else if(!strncmp(field_buf, LINK_SLOT_LABEL, sizeof(field_buf))) {
+						slot = jsonparse_get_value_as_int(&js);
+						flags |= 2;
+					} else if(!strncmp(field_buf, LINK_CHANNEL_LABEL, sizeof(field_buf))) {
+						channel = jsonparse_get_value_as_int(&js);
+						flags |= 4;
+					} else if(!strncmp(field_buf, STATS_VALUE_LABEL, sizeof(field_buf))) {
+						stats.value = (uint16_t)jsonparse_get_value_as_int(&js);
+						to_initialize = 1;
+					} else if(!strncmp(field_buf, STATS_ENABLE_LABEL, sizeof(field_buf))) {
+						int x = (uint16_t)jsonparse_get_value_as_int(&js);
+						if(x == 1) stats.enable = (uint8_t)ENABLE;
+						else stats.enable = (uint8_t)DISABLE;
+					}
+					break;
+				case JSON_TYPE_STRING:
+					if(!strncmp(field_buf, LINK_TARGET_LABEL, sizeof(field_buf))) {
+						jsonparse_copy_value(&js, value_buf, sizeof(value_buf));
+						int x = na_to_linkaddr(value_buf, sizeof(value_buf), &tna);
+						if(!x) {
+							coap_set_status_code(response, BAD_REQUEST_4_00);
+							coap_set_payload(response, "Invalid target node address", 27);
+							return;
+						}
+						flags |= 8;
+					} else if(!strncmp(field_buf, STATS_ENABLE_LABEL, sizeof(field_buf))) {
+						jsonparse_copy_value(&js, value_buf, sizeof(value_buf));
+						if(!strcmp("y",value_buf) || !strcmp("yes",value_buf) || !strcmp("true",value_buf)) {
+							stats.enable = (uint8_t)ENABLE;
+						} else if(!strcmp("n",value_buf) || !strcmp("no",value_buf) || !strcmp("false",value_buf)) {
+							stats.enable = (uint8_t)DISABLE;
+						}
+					} else if(!strncmp(field_buf, STATS_METRIC_LABEL, sizeof(field_buf))) {
+						jsonparse_copy_value(&js, value_buf, sizeof(value_buf));
+						if(!strncmp(value_buf,STATS_ETX_LABEL,sizeof(STATS_ETX_LABEL))) stats.metric = (uint8_t)ETX;
+						else if(!strncmp(value_buf,STATS_RSSI_LABEL,sizeof(STATS_RSSI_LABEL))) stats.metric = (uint8_t)RSSI;
+						else if(!strncmp(value_buf,STATS_LQI_LABEL,sizeof(STATS_LQI_LABEL))) stats.metric = (uint8_t)LQI;
+						else {
+							coap_set_status_code(response, NOT_IMPLEMENTED_5_01);
+							coap_set_payload(response, "Unknown metric", 14);
+							return;
+						}
+					}
+					break;
+			}
+		}
+		/* Check if json parsing succeeded */
+		if(js.error == JSON_ERROR_OK) {
+			REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
+			REST.set_response_payload(response, (uint8_t *)content, content_len);	 
+		} else {
+			coap_set_status_code(response, BAD_REQUEST_4_00);
+			coap_set_payload(response, "Can only support JSON payload format", 36);
+		}
+	} else {
+		coap_set_status_code(response, NOT_ACCEPTABLE_4_06);
+		return;
+	}
+}
+
+
+
 void rich_scheduler_interface_init() {
 	static struct uip_ds6_notification n;
 	rime_sniffer_add(&plexi_sniffer);
 	memb_init(&plexi_vicinity_mem);
+	memb_init(&plexi_stats_mem);
 	list_init(plexi_vicinity);
 	ctimer_set(&ct, 10*PLEXI_PHEROMONE_WINDOW, plexi_vicinity_updater, NULL);
 
@@ -1220,6 +1625,7 @@ void rich_scheduler_interface_init() {
 	rest_activate_resource(&resource_6top_nbrs, NEIGHBORS_RESOURCE);
 	rest_activate_resource(&resource_6top_slotframe, FRAME_RESOURCE);
 	rest_activate_resource(&resource_6top_links, LINK_RESOURCE);
+	rest_activate_resource(&resource_6top_stats, STATS_RESOURCE);
 	/* A callback for routing table changes */
 	uip_ds6_notification_add(&n, route_changed_callback);
 	// TODO: add notification when ds6_neighbors change
