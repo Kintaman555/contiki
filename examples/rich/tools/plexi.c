@@ -732,7 +732,7 @@ static void plexi_post_slotframe_handler(void* request, void* response, uint8_t 
 					fd = 0;
 					break;
 				case '}': { /* End of current element */
-					struct tsch_slotframe *slotframe = tsch_schedule_get_slotframe_by_handle(fd);
+					struct tsch_slotframe *slotframe = tsch_schedule_get_slotframe_from_handle(fd);
 					if(!first_item) {
 						CONTENT_PRINTF(",");
 					}
@@ -816,7 +816,7 @@ static void plexi_delete_slotframe_handler(void* request, void* response, uint8_
 			*(query_value+query_value_len) = '\0';
 			int id = (unsigned)strtoul((const char*)query_value, &end, 10);
 			/* Actually remove the slotframe */
-			struct tsch_slotframe *sf = tsch_schedule_get_slotframe_by_handle(id);
+			struct tsch_slotframe *sf = tsch_schedule_get_slotframe_from_handle(id);
 			if(sf && tsch_schedule_remove_slotframe(sf)) {
 				int slots = sf->size.val;
 				printf("PLEXI: deleted slotframe {%s:%u, %s:%u}\n", FRAME_ID_LABEL, id, FRAME_SLOTS_LABEL, slots);
@@ -1259,7 +1259,7 @@ static void plexi_post_links_handler(void* request, void* response, uint8_t *buf
 				case '}': { //* End of current element *
 					struct tsch_slotframe *slotframe;
 					struct tsch_link *link;
-					slotframe = (struct tsch_slotframe*)tsch_schedule_get_slotframe_by_handle((uint16_t)fd);
+					slotframe = (struct tsch_slotframe*)tsch_schedule_get_slotframe_from_handle((uint16_t)fd);
 					if(slotframe) {
 						if((link = (struct tsch_link *)tsch_schedule_add_link(slotframe, (uint8_t)lo, lt, &na, (uint16_t)so, (uint16_t)co))) {
 							char buf[32];
@@ -1451,7 +1451,7 @@ static void plexi_get_stats_handler(void *request, void *response, uint8_t *buff
 		}
 		struct tsch_slotframe *slotframe_ptr = NULL;
 		if(flags&1){
-			slotframe_ptr = (struct tsch_slotframe*)tsch_schedule_get_slotframe_by_handle(frame);
+			slotframe_ptr = (struct tsch_slotframe*)tsch_schedule_get_slotframe_from_handle(frame);
 		} else {
 			slotframe_ptr = (struct tsch_slotframe*)tsch_schedule_get_next_slotframe(NULL);
 		}
@@ -1617,7 +1617,7 @@ static void plexi_post_stats_handler(void* request, void* response, uint8_t *buf
 					}
 					struct tsch_slotframe *slotframe_ptr = NULL;
 					if(flags&1){
-						slotframe_ptr = (struct tsch_slotframe*)tsch_schedule_get_slotframe_by_handle(slotframe);
+						slotframe_ptr = (struct tsch_slotframe*)tsch_schedule_get_slotframe_from_handle(slotframe);
 					} else {
 						slotframe_ptr = (struct tsch_slotframe*)tsch_schedule_get_next_slotframe(NULL);
 					}
@@ -1857,9 +1857,9 @@ static void plexi_packet_received(void) {
 	linkaddr_t* sender = (linkaddr_t*)packetbuf_addr(PACKETBUF_ADDR_SENDER);
 #if TSCH_WITH_LINK_SELECTOR
 	linkaddr_t* self = (linkaddr_t*)packetbuf_addr(PACKETBUF_ADDR_RECEIVER);
-	struct tsch_slotframe *slotframe = tsch_schedule_get_slotframe_by_handle((uint16_t)packetbuf_attr(PACKETBUF_ATTR_TSCH_SLOTFRAME));
+	struct tsch_slotframe *slotframe = tsch_schedule_get_slotframe_from_handle((uint16_t)packetbuf_attr(PACKETBUF_ATTR_TSCH_SLOTFRAME));
 	uint16_t slotoffset = (uint16_t)packetbuf_attr(PACKETBUF_ATTR_TSCH_TIMESLOT);
-	struct tsch_link *link = (struct tsch_link*)tsch_schedule_get_link_from_timeslot(slotframe,slotoffset);
+	struct tsch_link *link = tsch_schedule_get_link_from_timeslot(slotframe,slotoffset);
 	if(memb_inmemb(&plexi_stats_mem, link->data)) {
 		plexi_stats *stats = (plexi_stats*)link->data;
 		while(stats!=NULL) {
@@ -1918,9 +1918,9 @@ static void plexi_packet_sent(int mac_status) {
 		linkaddr_t* receiver = (linkaddr_t*)packetbuf_addr(PACKETBUF_ADDR_RECEIVER);
 #if TSCH_WITH_LINK_SELECTOR
 		printf("PLEXI 2\n");
-		struct tsch_slotframe *slotframe = tsch_schedule_get_slotframe_by_handle((uint16_t)packetbuf_attr(PACKETBUF_ATTR_TSCH_SLOTFRAME));
+		struct tsch_slotframe *slotframe = tsch_schedule_get_slotframe_from_handle((uint16_t)packetbuf_attr(PACKETBUF_ATTR_TSCH_SLOTFRAME));
 		uint16_t slotoffset = (uint16_t)packetbuf_attr(PACKETBUF_ATTR_TSCH_TIMESLOT);
-		struct tsch_link *link = (struct tsch_link*)tsch_schedule_get_link_from_timeslot(slotframe,slotoffset);
+		struct tsch_link *link = tsch_schedule_get_link_from_timeslot(slotframe,slotoffset);
 		if(memb_inmemb(&plexi_stats_mem, link->data)) {
 			plexi_stats *stats = (plexi_stats*)link->data;
 			while(stats!=NULL) {
