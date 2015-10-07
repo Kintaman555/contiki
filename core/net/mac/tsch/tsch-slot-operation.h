@@ -85,6 +85,9 @@ struct input_packet {
   struct asn_t rx_asn; /* ASN when the packet was received */
   int len; /* Packet len */
   uint16_t rssi; /* RSSI for this packet */
+  uint16_t slotoffset; 
+  uint16_t channeloffset;
+  uint8_t slotframe_id;
 };
 
 /***** External Variables *****/

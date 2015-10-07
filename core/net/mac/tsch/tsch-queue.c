@@ -93,6 +93,21 @@ tsch_random_byte(uint8_t window)
   tsch_random_seed = tsch_random_seed * 1103515245 + 12345;
   return ((uint32_t)(tsch_random_seed / 65536) % 32768) & window;
 }
+
+
+struct tsch_neighbor *
+tsch_queue_get_nbr_next(struct tsch_neighbor *previous) {
+	if(!tsch_is_locked()) {
+		if(previous == NULL) {
+			return list_head(neighbor_list);
+		} else {
+			return list_item_next(previous);
+		}
+	}
+	return NULL;
+}
+
+
 /* Add a TSCH neighbor */
 struct tsch_neighbor *
 tsch_queue_add_nbr(const linkaddr_t *addr)

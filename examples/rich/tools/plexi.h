@@ -34,6 +34,8 @@
  * \author Simon Duquennoy <simonduq@sics.se>
  */
 
+#include "../common-conf.h"
+
 #define DAG_RESOURCE "rpl/dag"
 #define DAG_PARENT_LABEL "parent"
 #define DAG_CHILD_LABEL "child"
@@ -45,8 +47,6 @@
 #define NEIGHBORS_RESOURCE "6top/nbrList"
 #define NEIGHBORS_ASN_LABEL "asn"
 #define NEIGHBORS_TNA_LABEL "tna"
-#define NEIGHBORS_RSSI_LABEL "rssi"
-#define NEIGHBORS_LQI_LABEL "lqi"
 
 #define FRAME_RESOURCE "6top/slotFrame"
 #define FRAME_ID_LABEL "frame"
@@ -59,6 +59,7 @@
 #define LINK_OPTION_LABEL "option"
 #define LINK_TYPE_LABEL "type"
 #define LINK_TARGET_LABEL "target"
+#define LINK_STATS_LABEL "stats"
 
 #define STATS_RESOURCE "6top/stats"
 #define STATS_METRIC_LABEL "metric"
@@ -69,6 +70,7 @@
 #define STATS_ETX_LABEL "etx"
 #define STATS_RSSI_LABEL "rssi"
 #define STATS_LQI_LABEL "lqi"
+#define STATS_PDR_LABEL "pdr"
 
 #define PLEXI_PHEROMONE_CHUNK 10
 #define PLEXI_PHEROMONE_DECAY 3
@@ -98,10 +100,11 @@ typedef enum {
 	//macDuplicateFrameCount = 8,
 	//macRXSuccessCount = 9,
 	//macNACKcount = 10,
-	//PDR = 11,
+	PDR = 11,
 	ETX = 12,
 	RSSI = 13,
-	LQI = 14
+	LQI = 14,
+	ASN = 15
 } STATISTIC_METRIC;
 
 typedef enum { ENABLE, DISABLE, ANY } STATISTIC_METRIC_ACTIVITY;
@@ -109,6 +112,7 @@ typedef enum { ENABLE, DISABLE, ANY } STATISTIC_METRIC_ACTIVITY;
 typedef struct plexi_stats_struct plexi_stats;
 struct plexi_stats_struct {
 	plexi_stats *next;
+	uint16_t id;
 	uint8_t enable;
 	uint16_t window;
 	uint8_t metric;

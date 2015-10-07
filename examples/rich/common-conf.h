@@ -89,7 +89,7 @@
 #define NETSTACK_CONF_ROUTING_NEIGHBOR_REMOVED_CALLBACK orchestra_callback_child_removed
 
 #endif /* TSCH_CONFIG == TSCH_CONFIG_ORCHESTRA */
-
+#define TSCH_CONF_WITH_LINK_SELECTOR 1
 #if TSCH_CONFIG == TSCH_CONFIG_6TISCH_MINIMAL
 /* For now, defaults used at the 2015 Prague plugtest
  * rather than from WG drafts */

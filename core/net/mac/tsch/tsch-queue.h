@@ -133,6 +133,8 @@ extern struct tsch_neighbor *n_eb;
 
 /********** Functions *********/
 
+/* Get the TSCH neighbor next to previous */
+struct tsch_neighbor *tsch_queue_get_nbr_next(struct tsch_neighbor *previous);
 /* Add a TSCH neighbor */
 struct tsch_neighbor *tsch_queue_add_nbr(const linkaddr_t *addr);
 /* Get a TSCH neighbor */

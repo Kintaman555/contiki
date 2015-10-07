@@ -359,6 +359,12 @@ tsch_rx_process_pending()
       /* Copy to packetbuf for processing */
       packetbuf_copyfrom(current_input->payload, current_input->len);
       packetbuf_set_attr(PACKETBUF_ATTR_RSSI, current_input->rssi);
+#if TSCH_WITH_LINK_SELECTOR
+      uint64_t asn = ((uint64_t)(current_input->rx_asn.ms1b)<<32)+current_input->rx_asn.ls4b;
+	  packetbuf_set_attr(PACKETBUF_ATTR_TSCH_ASN_0_1, (uint16_t)current_input->rx_asn.ls4b);
+	  packetbuf_set_attr(PACKETBUF_ATTR_TSCH_ASN_2_3, (uint16_t)(current_input->rx_asn.ls4b>>16));
+	  packetbuf_set_attr(PACKETBUF_ATTR_TSCH_ASN_4_5, (uint16_t)(current_input->rx_asn.ms1b));
+#endif
     }
 
     /* Remove input from ringbuf */
@@ -384,7 +390,10 @@ tsch_tx_process_pending()
     struct tsch_packet *p = dequeued_array[dequeued_index];
     /* Put packet into packetbuf for packet_sent callback */
     queuebuf_to_packetbuf(p->qb);
-    /* Call packet_sent callback */
+#if TSCH_WITH_LINK_SELECTOR
+	packetbuf_set_attr(PACKETBUF_ATTR_TSCH_TRANSMISSIONS, p->transmissions);
+#endif
+	/* Call packet_sent callback */
     mac_call_sent_callback(p->sent, p->ptr, p->ret, p->transmissions);
     /* Free packet queuebuf */
     tsch_queue_free_packet(p);

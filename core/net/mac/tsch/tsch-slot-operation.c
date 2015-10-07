@@ -686,6 +686,9 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
             frame802154_extract_linkaddr(&frame, &source_address, &destination_address);
 
         packet_duration = TSCH_PACKET_DURATION(current_input->len);
+		current_input->slotframe_id = current_link->slotframe_handle;
+		current_input->slotoffset = current_link->timeslot;
+		current_input->channeloffset = current_link->channel_offset;
 
 #if TSCH_SECURITY_ENABLED
         /* Decrypt and verify incoming frame */

@@ -312,6 +312,7 @@ tsch_schedule_add_link(struct tsch_slotframe *slotframe,
 int
 tsch_schedule_remove_link(struct tsch_slotframe *slotframe, struct tsch_link *l)
 {
+	printf("PLEXI attempts to remove link\n");
   if(slotframe != NULL && l != NULL && l->slotframe_handle == slotframe->handle) {
     if(tsch_get_lock()) {
       uint8_t link_options;
