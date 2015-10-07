@@ -52,7 +52,7 @@
 #ifdef TSCH_LOG_CONF_ID_FROM_LINKADDR
 #define TSCH_LOG_ID_FROM_LINKADDR(addr) TSCH_LOG_CONF_ID_FROM_LINKADDR(addr)
 #else /* TSCH_LOG_ID_FROM_LINKADDR */
-#define TSCH_LOG_ID_FROM_LINKADDR(addr) ((addr) ? (addr)->u8[LINKADDR_SIZE-1] : 0)
+#define TSCH_LOG_ID_FROM_LINKADDR(addr) ((addr) ? (addr)->u8[LINKADDR_SIZE - 1] : 0)
 #endif /* TSCH_LOG_ID_FROM_LINKADDR */
 
 /* TSCH log levels:
@@ -78,8 +78,8 @@
 /* Structure for a log. Union of different types of logs */
 struct tsch_log_t {
   enum { tsch_log_tx,
-    tsch_log_rx,
-    tsch_log_message
+         tsch_log_rx,
+         tsch_log_message
   } type;
   struct asn_t asn;
   struct tsch_link *link;
@@ -112,13 +112,13 @@ struct tsch_log_t {
 
 /* Prepare addition of a new log.
  * Returns pointer to log structure if success, NULL otherwise */
-struct tsch_log_t *tsch_log_prepare_add();
+struct tsch_log_t *tsch_log_prepare_add(void);
 /* Actually add the previously prepared log */
-void tsch_log_commit();
+void tsch_log_commit(void);
 /* Initialize log module */
-void tsch_log_init();
+void tsch_log_init(void);
 /* Process pending log messages */
-void tsch_log_process_pending();
+void tsch_log_process_pending(void);
 
 /************ Macros **********/
 
@@ -131,7 +131,7 @@ void tsch_log_process_pending();
       init_code \
       tsch_log_commit(); \
     } \
-  } while(0);
+} while(0);
 
 #endif /* TSCH_LOG_LEVEL */
 

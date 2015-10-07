@@ -33,7 +33,7 @@
 /**
  * \file
  *         Per-neighbor packet queues for TSCH MAC.
- *         The list of neighbor uses the TSCH lock lock, but per-neighbor packet array are lockfree.
+ *         The list of neighbors uses the TSCH lock, but per-neighbor packet array are lock-free.
  *				 Read-only operation on neighbor and packets are allowed from interrupts and outside of them.
  *				 *Other operations are allowed outside of interrupt only.*
  * \author
@@ -63,7 +63,7 @@
 #include "net/ip/uip-debug.h"
 
 /* Check if TSCH_QUEUE_NUM_PER_NEIGHBOR is power of two */
-#if (TSCH_QUEUE_NUM_PER_NEIGHBOR & (TSCH_QUEUE_NUM_PER_NEIGHBOR-1)) != 0
+#if (TSCH_QUEUE_NUM_PER_NEIGHBOR & (TSCH_QUEUE_NUM_PER_NEIGHBOR - 1)) != 0
 #error TSCH_QUEUE_NUM_PER_NEIGHBOR must be power of two
 #endif
 
@@ -125,7 +125,7 @@ tsch_queue_add_nbr(const linkaddr_t *addr)
         ringbufindex_init(&n->tx_ringbuf, TSCH_QUEUE_NUM_PER_NEIGHBOR);
         linkaddr_copy(&n->addr, addr);
         n->is_broadcast = linkaddr_cmp(addr, &tsch_eb_address)
-                    || linkaddr_cmp(addr, &tsch_broadcast_address);
+          || linkaddr_cmp(addr, &tsch_broadcast_address);
         tsch_queue_backoff_reset(n);
         /* Add neighbor to the list */
         list_add(neighbor_list, n);
@@ -152,7 +152,7 @@ tsch_queue_get_nbr(const linkaddr_t *addr)
 }
 /* Get a TSCH time source (we currently assume there is only one) */
 struct tsch_neighbor *
-tsch_queue_get_time_source()
+tsch_queue_get_time_source(void)
 {
   if(!tsch_is_locked()) {
     struct tsch_neighbor *curr_nbr = list_head(neighbor_list);
@@ -177,8 +177,8 @@ tsch_queue_update_time_source(const linkaddr_t *new_addr)
 
       if(new_time_src != old_time_src) {
         PRINTF("TSCH: update time source: %u -> %u\n",
-            TSCH_LOG_ID_FROM_LINKADDR(old_time_src ? &old_time_src->addr : NULL),
-            TSCH_LOG_ID_FROM_LINKADDR(new_time_src ? &new_time_src->addr : NULL));
+               TSCH_LOG_ID_FROM_LINKADDR(old_time_src ? &old_time_src->addr : NULL),
+               TSCH_LOG_ID_FROM_LINKADDR(new_time_src ? &new_time_src->addr : NULL));
 
         /* Update time source */
         if(new_time_src != NULL) {
@@ -315,7 +315,7 @@ tsch_queue_free_packet(struct tsch_packet *p)
 }
 /* Flush all neighbor queues */
 void
-tsch_queue_flush_all()
+tsch_queue_flush_all(void)
 {
   /* Deallocate unneeded neighbors */
   if(!tsch_is_locked()) {
@@ -329,7 +329,7 @@ tsch_queue_flush_all()
 }
 /* Deallocate neighbors with empty queue */
 void
-tsch_queue_free_unused_neighbors()
+tsch_queue_free_unused_neighbors(void)
 {
   /* Deallocate unneeded neighbors */
   if(!tsch_is_locked()) {
@@ -339,7 +339,7 @@ tsch_queue_free_unused_neighbors()
       /* Queue is empty, no tx link to this neighbor: deallocate.
        * Always keep time source and virtual broadcast neighbors. */
       if(!n->is_broadcast && !n->is_time_source && !n->tx_links_count
-          && tsch_queue_is_empty(n)) {
+         && tsch_queue_is_empty(n)) {
         tsch_queue_remove_nbr(n);
       }
       n = next_n;
@@ -446,8 +446,8 @@ tsch_queue_update_all_backoff_windows(const linkaddr_t *dest_addr)
     struct tsch_neighbor *n = list_head(neighbor_list);
     while(n != NULL) {
       if(n->backoff_window != 0 /* Is the queue in backoff state? */
-          && (  (n->tx_links_count == 0  && is_broadcast)
-             || (n->tx_links_count  > 0 && linkaddr_cmp(dest_addr, &n->addr)))) {
+         && ((n->tx_links_count == 0 && is_broadcast)
+             || (n->tx_links_count > 0 && linkaddr_cmp(dest_addr, &n->addr)))) {
         n->backoff_window--;
       }
       n = list_item_next(n);
@@ -460,7 +460,7 @@ tsch_queue_init(void)
 {
   list_init(neighbor_list);
   tsch_random_init(*((uint32_t *)&linkaddr_node_addr) +
-      *((uint32_t *)&linkaddr_node_addr + 1));
+                   *((uint32_t *)&linkaddr_node_addr + 1));
   memb_init(&neighbor_memb);
   memb_init(&packet_memb);
   /* Add virtual EB and the broadcast neighbors */
