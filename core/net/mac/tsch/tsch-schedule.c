@@ -35,11 +35,7 @@
  *         IEEE 802.15.4 TSCH MAC schedule manager.
  * \author
  *         Simon Duquennoy <simonduq@sics.se>
-<<<<<<< HEAD
- *         Ilker Oztelcan <i.oztelcan@tue.nl>
-=======
  *         Beshr Al Nahas <beshr@sics.se>
->>>>>>> origin/rich-3.x
  */
 
 #include "contiki.h"
