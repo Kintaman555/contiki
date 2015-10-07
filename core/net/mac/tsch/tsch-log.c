@@ -63,7 +63,7 @@
 PROCESS_NAME(tsch_pending_events_process);
 
 /* Check if TSCH_LOG_QUEUE_LEN is a power of two */
-#if (TSCH_LOG_QUEUE_LEN & (TSCH_LOG_QUEUE_LEN - 1)) != 0
+#if (TSCH_LOG_QUEUE_LEN & (TSCH_LOG_QUEUE_LEN-1)) != 0
 #error TSCH_LOG_QUEUE_LEN must be power of two
 #endif
 static struct ringbufindex log_ringbuf;
@@ -72,7 +72,7 @@ static int log_dropped = 0;
 
 /* Process pending log messages */
 void
-tsch_log_process_pending(void)
+tsch_log_process_pending()
 {
   static int last_log_dropped = 0;
   int16_t log_index;
@@ -83,7 +83,7 @@ tsch_log_process_pending(void)
   }
   while((log_index = ringbufindex_peek_get(&log_ringbuf)) != -1) {
     struct tsch_log_t *log = &log_array[log_index];
-    struct tsch_slotframe *sf = tsch_schedule_get_slotframe_by_handle(log->link->slotframe_handle);
+    struct tsch_slotframe *sf = tsch_schedule_get_slotframe_from_handle(log->link->slotframe_handle);
     printf("TSCH: {asn-%x.%lx link-%u-%u-%u-%u ch-%u} ",
         log->asn.ms1b, log->asn.ls4b,
         log->link->slotframe_handle, sf ? sf->size.val : 0, log->link->timeslot, log->link->channel_offset,
@@ -122,7 +122,7 @@ tsch_log_process_pending(void)
 /* Prepare addition of a new log.
  * Returns pointer to log structure if success, NULL otherwise */
 struct tsch_log_t *
-tsch_log_prepare_add(void)
+tsch_log_prepare_add()
 {
   int log_index = ringbufindex_peek_put(&log_ringbuf);
   if(log_index != -1) {
@@ -138,7 +138,7 @@ tsch_log_prepare_add(void)
 
 /* Actually add the previously prepared log */
 void
-tsch_log_commit(void)
+tsch_log_commit()
 {
   ringbufindex_put(&log_ringbuf);
   process_poll(&tsch_pending_events_process);
@@ -146,7 +146,7 @@ tsch_log_commit(void)
 
 /* Initialize log module */
 void
-tsch_log_init(void)
+tsch_log_init()
 {
   ringbufindex_init(&log_ringbuf, TSCH_LOG_QUEUE_LEN);
 }

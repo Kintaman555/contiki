@@ -46,8 +46,7 @@ static struct tsch_slotframe *sf_eb;
 
 /*---------------------------------------------------------------------------*/
 static uint16_t
-get_node_timeslot(const linkaddr_t *addr)
-{
+get_node_timeslot(const linkaddr_t *addr) {
 #if ORCHESTRA_EBSF_PERIOD > 0
   return ORCHESTRA_LINKADDR_HASH(addr) % ORCHESTRA_EBSF_PERIOD;
 #else
@@ -72,7 +71,7 @@ select_packet(uint16_t *slotframe, uint16_t *timeslot)
 }
 /*---------------------------------------------------------------------------*/
 static void
-new_time_source(const struct tsch_neighbor *old, const struct tsch_neighbor *new)
+new_time_source(struct tsch_neighbor *old, struct tsch_neighbor *new)
 {
   uint16_t old_ts = get_node_timeslot(&old->addr);
   uint16_t new_ts = get_node_timeslot(&new->addr);
@@ -83,14 +82,14 @@ new_time_source(const struct tsch_neighbor *old, const struct tsch_neighbor *new
 
   if(old_ts != 0xffff) {
     /* Stop listening to the old time source's EBs */
-    tsch_schedule_remove_link_by_timeslot(sf_eb, old_ts);
+    tsch_schedule_remove_link_from_timeslot(sf_eb, old_ts);
   }
   if(new_ts != 0xffff) {
     /* Listen to the time source's EBs */
     tsch_schedule_add_link(sf_eb,
-                           LINK_OPTION_RX,
-                           LINK_TYPE_ADVERTISING_ONLY, NULL,
-                           new_ts, 0);
+        LINK_OPTION_RX,
+        LINK_TYPE_ADVERTISING_ONLY, NULL,
+        new_ts, 0);
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -102,9 +101,9 @@ init(uint16_t sf_handle)
   sf_eb = tsch_schedule_add_slotframe(slotframe_handle, ORCHESTRA_EBSF_PERIOD);
   /* EB link: every neighbor uses its own to avoid contention */
   tsch_schedule_add_link(sf_eb,
-                         LINK_OPTION_TX,
-                         LINK_TYPE_ADVERTISING_ONLY, &tsch_broadcast_address,
-                         get_node_timeslot(&linkaddr_node_addr), 0);
+      LINK_OPTION_TX,
+      LINK_TYPE_ADVERTISING_ONLY, &tsch_broadcast_address,
+      get_node_timeslot(&linkaddr_node_addr), 0);
 }
 /*---------------------------------------------------------------------------*/
 struct orchestra_rule eb_per_time_source = {

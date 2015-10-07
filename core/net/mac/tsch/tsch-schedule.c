@@ -81,7 +81,7 @@ tsch_schedule_add_slotframe(uint16_t handle, uint16_t size)
     return NULL;
   }
 
-  if(tsch_schedule_get_slotframe_by_handle(handle)) {
+  if(tsch_schedule_get_slotframe_from_handle(handle)) {
     /* A slotframe with this handle already exists */
     return NULL;
   }
@@ -97,7 +97,7 @@ tsch_schedule_add_slotframe(uint16_t handle, uint16_t size)
       list_add(slotframe_list, sf);
     }
     PRINTF("TSCH-schedule: add_slotframe %u %u\n",
-           handle, size);
+        handle, size);
     tsch_release_lock();
     return sf;
   }
@@ -105,7 +105,7 @@ tsch_schedule_add_slotframe(uint16_t handle, uint16_t size)
 }
 /* Removes all slotframes, resulting in an empty schedule */
 int
-tsch_schedule_remove_all_slotframes(void)
+tsch_schedule_remove_all_slotframes()
 {
   struct tsch_slotframe *sf;
   while((sf = list_head(slotframe_list))) {
@@ -139,7 +139,7 @@ tsch_schedule_remove_slotframe(struct tsch_slotframe *slotframe)
 }
 /* Looks for a slotframe from a handle */
 struct tsch_slotframe *
-tsch_schedule_get_slotframe_by_handle(uint16_t handle)
+tsch_schedule_get_slotframe_from_handle(uint16_t handle)
 {
   if(!tsch_is_locked()) {
     struct tsch_slotframe *sf = list_head(slotframe_list);
@@ -154,7 +154,7 @@ tsch_schedule_get_slotframe_by_handle(uint16_t handle)
 }
 /* Looks for a link from a handle */
 struct tsch_link *
-tsch_schedule_get_link_by_handle(uint16_t handle)
+tsch_schedule_get_link_from_handle(uint16_t handle)
 {
   if(!tsch_is_locked()) {
     struct tsch_slotframe *sf = list_head(slotframe_list);
@@ -262,7 +262,7 @@ tsch_schedule_add_link(struct tsch_slotframe *slotframe,
     /* We currently support only one link per timeslot in a given slotframe. */
     /* Start with removing the link currently installed at this timeslot (needed
      * to keep neighbor state in sync with link options etc.) */
-    tsch_schedule_remove_link_by_timeslot(slotframe, timeslot);
+    tsch_schedule_remove_link_from_timeslot(slotframe, timeslot);
     if(!tsch_get_lock()) {
       PRINTF("TSCH-schedule:! add_link memb_alloc couldn't take lock\n");
     } else {
@@ -288,7 +288,7 @@ tsch_schedule_add_link(struct tsch_slotframe *slotframe,
         linkaddr_copy(&l->addr, address);
 
         PRINTF("TSCH-schedule: add_link %u %u %u %u %u %u\n",
-               slotframe->handle, link_options, link_type, timeslot, channel_offset, TSCH_LOG_ID_FROM_LINKADDR(address));
+            slotframe->handle, link_options, link_type, timeslot, channel_offset, TSCH_LOG_ID_FROM_LINKADDR(address));
 
         /* Release the lock before we update the neighbor (will take the lock) */
         tsch_release_lock();
@@ -328,9 +328,10 @@ tsch_schedule_remove_link(struct tsch_slotframe *slotframe, struct tsch_link *l)
       if(l == current_link) {
         current_link = NULL;
       }
+
       PRINTF("TSCH-schedule: remove_link %u %u %u %u %u\n",
-             slotframe->handle, l->link_options, l->timeslot, l->channel_offset,
-             TSCH_LOG_ID_FROM_LINKADDR(&l->addr));
+                  slotframe->handle, l->link_options, l->timeslot, l->channel_offset,
+                  TSCH_LOG_ID_FROM_LINKADDR(&l->addr));
 
       list_remove(slotframe->links_list, l);
       memb_free(&link_memb, l);
@@ -358,14 +359,14 @@ tsch_schedule_remove_link(struct tsch_slotframe *slotframe, struct tsch_link *l)
 }
 /* Removes a link from slotframe and timeslot. Return a 1 if success, 0 if failure */
 int
-tsch_schedule_remove_link_by_timeslot(struct tsch_slotframe *slotframe, uint16_t timeslot)
+tsch_schedule_remove_link_from_timeslot(struct tsch_slotframe *slotframe, uint16_t timeslot)
 {
   return slotframe != NULL &&
-         tsch_schedule_remove_link(slotframe, tsch_schedule_get_link_by_timeslot(slotframe, timeslot));
+      tsch_schedule_remove_link(slotframe, tsch_schedule_get_link_from_timeslot(slotframe, timeslot));
 }
 /* Looks within a slotframe for a link with a given timeslot */
 struct tsch_link *
-tsch_schedule_get_link_by_timeslot(struct tsch_slotframe *slotframe, uint16_t timeslot)
+tsch_schedule_get_link_from_timeslot(struct tsch_slotframe *slotframe, uint16_t timeslot)
 {
   if(!tsch_is_locked()) {
     if(slotframe != NULL) {
@@ -384,8 +385,7 @@ tsch_schedule_get_link_by_timeslot(struct tsch_slotframe *slotframe, uint16_t ti
 }
 /* Returns the next active link after a given ASN, and a backup link (for the same ASN, with Rx flag) */
 struct tsch_link *
-tsch_schedule_get_next_active_link(struct asn_t *asn, uint16_t *time_offset,
-    struct tsch_link **backup_link)
+tsch_schedule_get_next_active_link(struct asn_t *asn, uint16_t *time_offset, struct tsch_link **backup_link)
 {
   uint16_t time_to_curr_best = 0;
   struct tsch_link *curr_best = NULL;
@@ -456,42 +456,8 @@ tsch_schedule_get_next_active_link(struct asn_t *asn, uint16_t *time_offset,
   }
   return curr_best;
 }
-/* Module initialization, call only once at startup. Returns 1 is success, 0 if failure. */
-int
-tsch_schedule_init(void)
-{
-  if(tsch_get_lock()) {
-    memb_init(&link_memb);
-    memb_init(&slotframe_memb);
-    list_init(slotframe_list);
-    tsch_release_lock();
-    return 1;
-  } else {
-    return 0;
-  }
-}
-/* Create a 6TiSCH minimal schedule */
 void
-tsch_schedule_create_minimal(void)
-{
-  struct tsch_slotframe *sf_min;
-  /* First, empty current schedule */
-  tsch_schedule_remove_all_slotframes();
-  /* Build 6TiSCH minimal schedule.
-   * We pick a slotframe length of TSCH_SCHEDULE_DEFAULT_LENGTH */
-  sf_min = tsch_schedule_add_slotframe(0, TSCH_SCHEDULE_DEFAULT_LENGTH);
-  /* Add a single Tx|Rx|Shared slot using broadcast address (i.e. usable for unicast and broadcast).
-   * We set the link type to advertising, which is not compliant with 6TiSCH minimal schedule
-   * but is required according to 802.15.4e if also used for EB transmission.
-   * Timeslot: 0, channel offset: 0. */
-  tsch_schedule_add_link(sf_min,
-      LINK_OPTION_RX | LINK_OPTION_TX | LINK_OPTION_SHARED | LINK_OPTION_TIME_KEEPING,
-      LINK_TYPE_ADVERTISING, &tsch_broadcast_address,
-      0, 0);
-}
-/* Prints out the current schedule (all slotframes and links) */
-void
-tsch_schedule_print(void)
+tsch_schedule_print()
 {
   if(!tsch_is_locked()) {
     struct tsch_slotframe *sf = list_head(slotframe_list);
@@ -515,4 +481,44 @@ tsch_schedule_print(void)
 
     printf("Schedule: end of slotframe list\n");
   }
+}
+/* Initialization. Return 1 is success, 0 if failure. */
+int
+tsch_schedule_init()
+{
+  if(tsch_get_lock()) {
+    memb_init(&link_memb);
+    memb_init(&slotframe_memb);
+    list_init(slotframe_list);
+    tsch_release_lock();
+    return 1;
+  } else {
+    return 0;
+  }
+}
+/* Create a 6TiSCH minimal schedule */
+void
+tsch_schedule_create_minimal()
+{
+  struct tsch_slotframe *sf_min;
+  /* First, empty current schedule */
+  tsch_schedule_remove_all_slotframes();
+  /* Build 6TiSCH minimal schedule.
+   * We pick a slotframe length of TSCH_SCHEDULE_DEFAULT_LENGTH */
+  sf_min = tsch_schedule_add_slotframe(0, TSCH_SCHEDULE_DEFAULT_LENGTH);
+  /* Add a single Tx|Rx|Shared slot using broadcast address (i.e. usable for unicast and broadcast).
+   * We set the link type to advertising, which is not compliant with 6TiSCH minimal schedule
+   * but is required according to 802.15.4e if also used for EB transmission.
+   * Timeslot: 0, channel offset: 0. */
+  tsch_schedule_add_link(sf_min,
+      LINK_OPTION_RX | LINK_OPTION_TX | LINK_OPTION_SHARED | LINK_OPTION_TIME_KEEPING,
+      LINK_TYPE_ADVERTISING, &tsch_broadcast_address,
+      0, 0);
+
+  /* Example of a dedicated Tx unicast link. Timeslot: 1, channel offset: 0. */
+  /* static linkaddr_t dest_addr = { { 0x00, 0x12, 0x74, 01, 00, 01, 01, 01 } }; */
+  /* tsch_schedule_add_link(sf,
+            LINK_OPTION_RX,
+            LINK_TYPE_NORMAL, &dest_addr,
+            1, 0); */
 }

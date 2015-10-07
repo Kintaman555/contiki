@@ -121,7 +121,7 @@ int
 route_add(const linkaddr_t *dest, const linkaddr_t *nexthop,
 	  uint8_t cost, uint8_t seqno)
 {
-  struct route_entry *e, *oldest = NULL;
+  struct route_entry *e;
 
   /* Avoid inserting duplicate entries. */
   e = route_lookup(dest);
@@ -131,14 +131,8 @@ route_add(const linkaddr_t *dest, const linkaddr_t *nexthop,
     /* Allocate a new entry or reuse the oldest entry with highest cost. */
     e = memb_alloc(&route_mem);
     if(e == NULL) {
-      /* Remove oldest entry. */
-      for(e = list_head(route_table); e != NULL; e = list_item_next(e)) {
-        if(oldest == NULL || e->time >= oldest->time) {
-          oldest = e;
-        }
-      }
-      e = oldest;
-      list_remove(route_table, e);
+      /* Remove oldest entry.  XXX */
+      e = list_chop(route_table);
       PRINTF("route_add: removing entry to %d.%d with nexthop %d.%d and cost %d\n",
 	     e->dest.u8[0], e->dest.u8[1],
 	     e->nexthop.u8[0], e->nexthop.u8[1],

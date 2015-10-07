@@ -55,7 +55,7 @@
 
 /* To use, set #define TSCH_CALLBACK_JOINING_NETWORK tsch_rpl_callback_joining_network */
 void
-tsch_rpl_callback_joining_network(void)
+tsch_rpl_callback_joining_network()
 {
 }
 
@@ -63,7 +63,7 @@ tsch_rpl_callback_joining_network(void)
  * (cleanup neighbor state, reset Trickle timer etc)
  * To use, set #define TSCH_CALLBACK_LEAVING_NETWORK tsch_rpl_callback_leaving_network */
 void
-tsch_rpl_callback_leaving_network(void)
+tsch_rpl_callback_leaving_network()
 {
   rpl_dag_t *dag = rpl_get_any_dag();
   if(dag != NULL) {
@@ -99,8 +99,9 @@ tsch_rpl_callback_parent_switch(rpl_parent_t *old, rpl_parent_t *new)
 {
   if(tsch_is_associated == 1) {
     tsch_queue_update_time_source(
-      (const linkaddr_t *)uip_ds6_nbr_lladdr_from_ipaddr(
-        rpl_get_parent_ipaddr(new)));
+        (const linkaddr_t *)uip_ds6_nbr_lladdr_from_ipaddr(
+            rpl_get_parent_ipaddr(new)));
   }
 }
+
 #endif /* UIP_CONF_IPV6_RPL */

@@ -561,7 +561,6 @@ read(void *buf, unsigned short bufsize)
   len = input_frame_buffer->u8PayloadLength;
 
   if(len <= CHECKSUM_LEN) {
-    input_frame_buffer->u8PayloadLength = 0;
     return 0;
   } else {
     len -= CHECKSUM_LEN;
@@ -598,9 +597,8 @@ read(void *buf, unsigned short bufsize)
       }
     } else {
       len = 0;
-    }
-    /* Disable further read attempts */
-    input_frame_buffer->u8PayloadLength = 0;
+      /* Disable further read attempts */
+    } input_frame_buffer->u8PayloadLength = 0;
   }
 
   return len;
