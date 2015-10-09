@@ -27,6 +27,7 @@
  * SUCH DAMAGE.
  *
  */
+
 /**
  * \file
  *         Interaction between TSCH and RPL
@@ -42,14 +43,19 @@
 #include "net/mac/tsch/tsch.h"
 #include "net/mac/tsch/tsch-private.h"
 #include "net/mac/tsch/tsch-schedule.h"
+#include "net/mac/tsch/tsch-log.h"
 #include "tsch-rpl.h"
 
+#if TSCH_LOG_LEVEL >= 1
+#define DEBUG DEBUG_PRINT
+#else /* TSCH_LOG_LEVEL */
 #define DEBUG DEBUG_NONE
+#endif /* TSCH_LOG_LEVEL */
 #include "net/ip/uip-debug.h"
 
 /* To use, set #define TSCH_CALLBACK_JOINING_NETWORK tsch_rpl_callback_joining_network */
 void
-tsch_rpl_callback_joining_network()
+tsch_rpl_callback_joining_network(void)
 {
 }
 
@@ -57,20 +63,12 @@ tsch_rpl_callback_joining_network()
  * (cleanup neighbor state, reset Trickle timer etc)
  * To use, set #define TSCH_CALLBACK_LEAVING_NETWORK tsch_rpl_callback_leaving_network */
 void
-tsch_rpl_callback_leaving_network()
+tsch_rpl_callback_leaving_network(void)
 {
   rpl_dag_t *dag = rpl_get_any_dag();
   if(dag != NULL) {
     rpl_local_repair(dag->instance);
   }
-}
-
-/* Called whenever TSCH swtiches time source
-To use, set #define TSCH_CALLBACK_NEW_TIME_SOURCE tsch_rpl_callback_new_time_source */
-void
-tsch_rpl_callback_new_time_source(struct tsch_neighbor *old, struct tsch_neighbor *new)
-{
-  /* We currently do not need to do anything here */
 }
 
 /* Set TSCH EB period based on current RPL DIO period.
@@ -81,6 +79,11 @@ tsch_rpl_callback_new_dio_interval(uint8_t dio_interval)
   /* Transmit EBs only if we have a valid rank as per 6TiSCH minimal */
   rpl_dag_t *dag = rpl_get_any_dag();
   if(dag != NULL && dag->rank != INFINITE_RANK) {
+    /* If we are root set TSCH as coordinator */
+    if(dag->rank == ROOT_RANK(dag->instance)) {
+      tsch_set_coordinator(1);
+    }
+    /* Set EB period */
     tsch_set_eb_period(TSCH_EB_PERIOD);
     /* Set join priority based on RPL rank */
     tsch_set_join_priority(DAG_RANK(dag->rank, dag->instance) - 1);
@@ -95,16 +98,9 @@ void
 tsch_rpl_callback_parent_switch(rpl_parent_t *old, rpl_parent_t *new)
 {
   if(tsch_is_associated == 1) {
-    rpl_dag_t *dag = rpl_get_any_dag();
-    if(dag != NULL) {
-      rpl_parent_t *preferred_parent = dag->preferred_parent;
-      if(preferred_parent != NULL) {
-        tsch_queue_update_time_source(
-            (const linkaddr_t *)uip_ds6_nbr_lladdr_from_ipaddr(
-                rpl_get_parent_ipaddr(preferred_parent)));
-      }
-    }
+    tsch_queue_update_time_source(
+      (const linkaddr_t *)uip_ds6_nbr_lladdr_from_ipaddr(
+        rpl_get_parent_ipaddr(new)));
   }
 }
-
 #endif /* UIP_CONF_IPV6_RPL */

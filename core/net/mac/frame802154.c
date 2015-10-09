@@ -44,11 +44,11 @@
  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
-*/
+ */
 /*
  *  \brief This file is where the main functions that relate to frame
  *  manipulation will reside.
-*/
+ */
 
 /**
  *  \file
@@ -61,13 +61,19 @@
 /**
  *   \addtogroup frame802154
  *   @{
-*/
+ */
 
 #include "sys/cc.h"
 #include "net/mac/frame802154.h"
 #include "net/llsec/llsec802154.h"
 #include "net/linkaddr.h"
 #include <string.h>
+
+/**  \brief The 16-bit identifier of the PAN on which the device is
+ *   operating.  If this value is 0xffff, the device is not
+ *   associated.
+ */
+static uint16_t mac_pan_id = IEEE802154_PANID;
 
 /**
  *  \brief Structure that contains the lengths of the various addressing and security fields
@@ -112,7 +118,23 @@ get_key_id_len(uint8_t key_id_mode)
   }
 }
 #endif /* LLSEC802154_USES_EXPLICIT_KEYS */
+/*---------------------------------------------------------------------------*/
+/* Get current PAN ID */
+uint16_t
+frame802154_get_pan_id(void)
+{
+  return mac_pan_id;
+}
+/*---------------------------------------------------------------------------*/
+/* Set current PAN ID */
+void
+frame802154_set_pan_id(uint16_t pan_id)
+{
+  mac_pan_id = pan_id;
+}
 /*----------------------------------------------------------------------------*/
+/* Tells whether a given Frame Control Field indicates a frame with
+ * source PANID and/or destination PANID */
 void
 frame802154_has_panid(frame802154_fcf_t *fcf, int *has_src_pan_id, int *has_dest_pan_id)
 {
@@ -168,6 +190,90 @@ frame802154_has_panid(frame802154_fcf_t *fcf, int *has_src_pan_id, int *has_dest
   if(has_dest_pan_id != NULL) {
     *has_dest_pan_id = dest_pan_id;
   }
+}
+/*---------------------------------------------------------------------------*/
+/* Check if the destination PAN ID, if any, matches ours */
+int
+frame802154_check_dest_panid(frame802154_t *frame)
+{
+  int has_dest_panid;
+
+  if(frame == NULL) {
+    return 0;
+  }
+  frame802154_has_panid(&frame->fcf, NULL, &has_dest_panid);
+  if(has_dest_panid
+     && frame->dest_pid != frame802154_get_pan_id()
+     && frame->dest_pid != FRAME802154_BROADCASTPANDID) {
+    /* Packet to another PAN */
+    return 0;
+  }
+  return 1;
+}
+/*---------------------------------------------------------------------------*/
+/* Check is the address is a broadcast address, whatever its size */
+int
+frame802154_is_broadcast_addr(uint8_t mode, uint8_t *addr)
+{
+  int i = mode == FRAME802154_SHORTADDRMODE ? 2 : 8;
+  while(i-- > 0) {
+    if(addr[i] != 0xff) {
+      return 0;
+    }
+  }
+  return 1;
+}
+/*---------------------------------------------------------------------------*/
+/* Check and extract source and destination linkaddr from frame */
+int
+frame802154_extract_linkaddr(frame802154_t *frame,
+                             linkaddr_t *source_address, linkaddr_t *dest_address)
+{
+  int src_addr_len;
+  int dest_addr_len;
+
+  if(frame == NULL) {
+    return 0;
+  }
+  /* Check and extract source address */
+  src_addr_len = frame->fcf.src_addr_mode ?
+    ((frame->fcf.src_addr_mode == FRAME802154_SHORTADDRMODE) ? 2 : 8) : 0;
+  if(src_addr_len == 0 || frame802154_is_broadcast_addr(frame->fcf.src_addr_mode, frame->src_addr)) {
+    /* Broadcast address */
+    if(source_address != NULL) {
+      linkaddr_copy(source_address, &linkaddr_null);
+    }
+  } else {
+    /* Unicast address */
+    if(src_addr_len != LINKADDR_SIZE) {
+      /* Destination address has a size we can not handle */
+      return 0;
+    }
+    if(source_address != NULL) {
+      linkaddr_copy(source_address, (linkaddr_t *)frame->src_addr);
+    }
+  }
+
+  /* Check and extract destination address */
+  dest_addr_len = frame->fcf.dest_addr_mode ?
+    ((frame->fcf.dest_addr_mode == FRAME802154_SHORTADDRMODE) ? 2 : 8) : 0;
+  if(dest_addr_len == 0 || frame802154_is_broadcast_addr(frame->fcf.dest_addr_mode, frame->dest_addr)) {
+    /* Broadcast address */
+    if(dest_address != NULL) {
+      linkaddr_copy(dest_address, &linkaddr_null);
+    }
+  } else {
+    /* Unicast address */
+    if(dest_addr_len != LINKADDR_SIZE) {
+      /* Destination address has a size we can not handle */
+      return 0;
+    }
+    if(dest_address != NULL) {
+      linkaddr_copy(dest_address, (linkaddr_t *)frame->dest_addr);
+    }
+  }
+
+  return 1;
 }
 /*----------------------------------------------------------------------------*/
 static void
@@ -238,14 +344,14 @@ field_len(frame802154_t *p, field_length_t *flen)
  *   frame to send.
  *
  *   \return The length of the frame header.
-*/
+ */
 int
 frame802154_hdrlen(frame802154_t *p)
 {
   field_length_t flen;
   field_len(p, &flen);
   return 2 + flen.seqno_len + flen.dest_pid_len + flen.dest_addr_len +
-    flen.src_pid_len + flen.src_addr_len + flen.aux_sec_len;
+         flen.src_pid_len + flen.src_addr_len + flen.aux_sec_len;
 }
 /*----------------------------------------------------------------------------*/
 /**
@@ -258,7 +364,7 @@ frame802154_hdrlen(frame802154_t *p)
  *   \param buf Pointer to the buffer to use for the frame.
  *
  *   \return The length of the frame header
-*/
+ */
 int
 frame802154_create(frame802154_t *p, uint8_t *buf)
 {
@@ -270,7 +376,7 @@ frame802154_create(frame802154_t *p, uint8_t *buf)
 #endif /* LLSEC802154_USES_EXPLICIT_KEYS */
 
   field_len(p, &flen);
-  
+
   /* OK, now we have field lengths.  Time to actually construct */
   /* the outgoing frame, and store it in buf */
   buf[0] = (p->fcf.frame_type & 7) |
@@ -312,16 +418,15 @@ frame802154_create(frame802154_t *p, uint8_t *buf)
   for(c = flen.src_addr_len; c > 0; c--) {
     buf[pos++] = p->src_addr[c - 1];
   }
-
 #if LLSEC802154_SECURITY_LEVEL
   /* Aux header */
   if(flen.aux_sec_len) {
     buf[pos++] = p->aux_hdr.security_control.security_level
 #if LLSEC802154_USES_EXPLICIT_KEYS
-        | (p->aux_hdr.security_control.key_id_mode << 3)
+      | (p->aux_hdr.security_control.key_id_mode << 3)
 #endif /* LLSEC802154_USES_EXPLICIT_KEYS */
-        | (p->aux_hdr.security_control.frame_counter_suppression << 5)
-        | (p->aux_hdr.security_control.frame_counter_size << 6)
+      | (p->aux_hdr.security_control.frame_counter_suppression << 5)
+      | (p->aux_hdr.security_control.frame_counter_size << 6)
     ;
     if(p->aux_hdr.security_control.frame_counter_suppression == 0) {
       /* We support only 4-byte counters */
@@ -464,7 +569,7 @@ frame802154_parse(uint8_t *data, int len, frame802154_t *pf)
     linkaddr_copy((linkaddr_t *)&(pf->src_addr), &linkaddr_null);
     pf->src_pid = 0;
   }
-  
+
 #if LLSEC802154_SECURITY_LEVEL
   if(fcf.security_enabled) {
     pf->aux_hdr.security_control.security_level = p[0] & 7;
@@ -474,7 +579,7 @@ frame802154_parse(uint8_t *data, int len, frame802154_t *pf)
     pf->aux_hdr.security_control.frame_counter_suppression = p[0] >> 5;
     pf->aux_hdr.security_control.frame_counter_size = p[0] >> 6;
     p += 1;
-    
+
     if(pf->aux_hdr.security_control.frame_counter_suppression == 0) {
       memcpy(pf->aux_hdr.frame_counter.u8, p, 4);
       p += 4;
@@ -482,7 +587,7 @@ frame802154_parse(uint8_t *data, int len, frame802154_t *pf)
         p ++;
       }
     }
-    
+
 #if LLSEC802154_USES_EXPLICIT_KEYS
     key_id_mode = pf->aux_hdr.security_control.key_id_mode;
     if(key_id_mode) {

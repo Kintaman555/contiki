@@ -30,28 +30,57 @@
  *
  */
 
-/**
- * \file
- *         IEEE 802.15.4 TSCH MAC schedule manager.
- * \author
- *         Beshr Al Nahas <beshr@sics.se>
- *         Simon Duquennoy <simonduq@sics.se>
- */
-
 #ifndef __TSCH_SCHEDULE_H__
 #define __TSCH_SCHEDULE_H__
+
+/********** Includes **********/
 
 #include "contiki.h"
 #include "lib/list.h"
 #include "net/mac/tsch/tsch-private.h"
 #include "net/mac/tsch/tsch-queue.h"
+#include "net/mac/tsch/tsch-slot-operation.h"
 #include "net/linkaddr.h"
+
+/******** Configuration *******/
+
+/* Initializes TSCH with a 6TiSCH minimal schedule */
+#ifdef TSCH_SCHEDULE_CONF_WITH_6TISCH_MINIMAL
+#define TSCH_SCHEDULE_WITH_6TISCH_MINIMAL TSCH_SCHEDULE_CONF_WITH_6TISCH_MINIMAL
+#else
+#define TSCH_SCHEDULE_WITH_6TISCH_MINIMAL 1
+#endif
+
+/* 6TiSCH Minimal schedule slotframe length */
+#ifdef TSCH_SCHEDULE_CONF_DEFAULT_LENGTH
+#define TSCH_SCHEDULE_DEFAULT_LENGTH TSCH_SCHEDULE_CONF_DEFAULT_LENGTH
+#else
+#define TSCH_SCHEDULE_DEFAULT_LENGTH 7
+#endif
+
+/* Max number of TSCH slotframes */
+#ifdef TSCH_SCHEDULE_CONF_MAX_SLOTFRAMES
+#define TSCH_SCHEDULE_MAX_SLOTFRAMES TSCH_SCHEDULE_CONF_MAX_SLOTFRAMES
+#else
+#define TSCH_SCHEDULE_MAX_SLOTFRAMES 4
+#endif
+
+/* Max number of links */
+#ifdef TSCH_SCHEDULE_CONF_MAX_LINKS
+#define TSCH_SCHEDULE_MAX_LINKS TSCH_SCHEDULE_CONF_MAX_LINKS
+#else
+#define TSCH_SCHEDULE_MAX_LINKS 32
+#endif
+
+/********** Constants *********/
 
 /* Link options */
 #define LINK_OPTION_TX              1
 #define LINK_OPTION_RX              2
 #define LINK_OPTION_SHARED          4
 #define LINK_OPTION_TIME_KEEPING    8
+
+/************ Types ***********/
 
 /* 802.15.4e link types.
  * LINK_TYPE_ADVERTISING_ONLY is an extra one: for EB-only links. */
@@ -95,33 +124,41 @@ struct tsch_slotframe {
   LIST_STRUCT(links_list);
 };
 
-/* Initialization. Return 1 is success, 0 if failure. */
-int tsch_schedule_init();
+/********** Functions *********/
+
+/* Module initialization, call only once at startup. Returns 1 is success, 0 if failure. */
+int tsch_schedule_init(void);
+/* Create a 6TiSCH minimal schedule */
+void tsch_schedule_create_minimal(void);
+/* Prints out the current schedule (all slotframes and links) */
+void tsch_schedule_print(void);
+
 /* Adds and returns a slotframe (NULL if failure) */
 struct tsch_slotframe *tsch_schedule_add_slotframe(uint16_t handle, uint16_t size);
+/* Looks for a slotframe from a handle */
+struct tsch_slotframe *tsch_schedule_get_slotframe_by_handle(uint16_t handle);
 /* Removes a slotframe Return 1 if success, 0 if failure */
 int tsch_schedule_remove_slotframe(struct tsch_slotframe *slotframe);
 /* Removes all slotframes, resulting in an empty schedule */
-int tsch_schedule_remove_all_slotframes();
-/* Looks for a slotframe from a handle */
-struct tsch_slotframe *tsch_schedule_get_slotframe_from_handle(uint16_t handle);
-/* Looks for a link from a handle */
-struct tsch_link *tsch_schedule_get_link_from_handle(uint16_t handle);
+int tsch_schedule_remove_all_slotframes(void);
+
+/* Returns next slotframe */
+struct tsch_slotframe *tsch_schedule_slotframes_next(struct tsch_slotframe *sf);
 /* Adds a link to a slotframe, return a pointer to it (NULL if failure) */
 struct tsch_link *tsch_schedule_add_link(struct tsch_slotframe *slotframe,
                                          uint8_t link_options, enum link_type link_type, const linkaddr_t *address,
                                          uint16_t timeslot, uint16_t channel_offset);
+/* Looks for a link from a handle */
+struct tsch_link *tsch_schedule_get_link_by_handle(uint16_t handle);
+/* Looks within a slotframe for a link with a given timeslot */
+struct tsch_link *tsch_schedule_get_link_by_timeslot(struct tsch_slotframe *slotframe, uint16_t timeslot);
 /* Removes a link. Return 1 if success, 0 if failure */
 int tsch_schedule_remove_link(struct tsch_slotframe *slotframe, struct tsch_link *l);
 /* Removes a link from slotframe and timeslot. Return a 1 if success, 0 if failure */
-int tsch_schedule_remove_link_from_timeslot(struct tsch_slotframe *slotframe, uint16_t timeslot);
-/* Looks within a slotframe for a link with a given timeslot */
-struct tsch_link *tsch_schedule_get_link_from_timeslot(struct tsch_slotframe *slotframe, uint16_t timeslot);
-/* Returns the link to be used at a given ASN */
-struct tsch_link *tsch_schedule_get_link_from_asn(struct asn_t *asn);
-/* Returns the next active link after a given ASN */
-struct tsch_link *tsch_schedule_get_next_active_link(struct asn_t *asn, uint16_t *time_offset);
-/* Create a 6TiSCH minimal schedule */
-void tsch_schedule_create_minimal();
+int tsch_schedule_remove_link_by_timeslot(struct tsch_slotframe *slotframe, uint16_t timeslot);
+
+/* Returns the next active link after a given ASN, and a backup link (for the same ASN, with Rx flag) */
+struct tsch_link * tsch_schedule_get_next_active_link(struct asn_t *asn, uint16_t *time_offset,
+    struct tsch_link **backup_link);
 
 #endif /* __TSCH_SCHEDULE_H__ */

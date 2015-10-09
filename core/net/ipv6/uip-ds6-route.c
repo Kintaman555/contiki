@@ -47,6 +47,16 @@
 
 #include <string.h>
 
+/* A configurable function called after adding a new neighbor as next hop */
+#ifdef NETSTACK_CONF_ROUTING_NEIGHBOR_ADDED_CALLBACK
+void NETSTACK_CONF_ROUTING_NEIGHBOR_ADDED_CALLBACK(const linkaddr_t *addr);
+#endif /* NETSTACK_CONF_ROUTING_NEIGHBOR_ADDED_CALLBACK */
+
+/* A configurable function called after removing a next hop neighbor */
+#ifdef NETSTACK_CONF_ROUTING_NEIGHBOR_REMOVED_CALLBACK
+void NETSTACK_CONF_ROUTING_NEIGHBOR_REMOVED_CALLBACK(const linkaddr_t *addr);
+#endif /* NETSTACK_CONF_ROUTING_NEIGHBOR_REMOVED_CALLBACK */
+
 /* The nbr_routes holds a neighbor table to be able to maintain
    information about what routes go through what neighbor. This
    neighbor table is registered with the central nbr-table repository
@@ -336,7 +346,7 @@ uip_ds6_route_add(uip_ipaddr_t *ipaddr, uint8_t length,
       }
       LIST_STRUCT_INIT(routes, route_list);
 #ifdef NETSTACK_CONF_ROUTING_NEIGHBOR_ADDED_CALLBACK
-      NETSTACK_CONF_ROUTING_NEIGHBOR_ADDED_CALLBACK(nexthop_lladdr);
+      NETSTACK_CONF_ROUTING_NEIGHBOR_ADDED_CALLBACK((const linkaddr_t *)nexthop_lladdr);
 #endif
     }
 
@@ -370,6 +380,9 @@ uip_ds6_route_add(uip_ipaddr_t *ipaddr, uint8_t length,
     num_routes++;
 
     PRINTF("uip_ds6_route_add num %d\n", num_routes);
+
+    /* lock this entry so that nexthop is not removed */
+    nbr_table_lock(nbr_routes, routes);
   }
 
   uip_ipaddr_copy(&(r->ipaddr), ipaddr);
@@ -426,12 +439,12 @@ uip_ds6_route_rm(uip_ds6_route_t *route)
     list_remove(route->neighbor_routes->route_list, neighbor_route);
     if(list_head(route->neighbor_routes->route_list) == NULL) {
       /* If this was the only route using this neighbor, remove the
-         neibhor from the table */
+         neighbor from the table - this implicitly unlocks nexthop */
       PRINTF("uip_ds6_route_rm: removing neighbor too\n");
       nbr_table_remove(nbr_routes, route->neighbor_routes->route_list);
 #ifdef NETSTACK_CONF_ROUTING_NEIGHBOR_REMOVED_CALLBACK
       NETSTACK_CONF_ROUTING_NEIGHBOR_REMOVED_CALLBACK(
-          (uip_lladdr_t *)nbr_table_get_lladdr(nbr_routes, route->neighbor_routes->route_list));
+          (const linkaddr_t *)nbr_table_get_lladdr(nbr_routes, route->neighbor_routes->route_list));
 #endif
     }
     memb_free(&routememb, route);

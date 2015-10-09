@@ -13,7 +13,7 @@ hello-world/wismote \
 hello-world/z1 \
 eeprom-test/native \
 collect/sky \
-er-rest-example/sky \
+er-rest-example/wismote \
 example-shell/native \
 netperf/sky \
 powertrace/sky \
@@ -34,6 +34,7 @@ wget/minimal-net \
 z1/z1 \
 settings-example/avr-raven \
 ipv6/multicast/sky \
+ipv6/rpl-tsch/z1 \
 
 TOOLS=
 

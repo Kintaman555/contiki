@@ -27,9 +27,11 @@
  * SUCH DAMAGE.
  *
  */
+
 /**
  * \file
- *         Orchestra
+ *         Orchestra: an autonomous scheduler for TSCH exploiting RPL state.
+ *         See "Orchestra: Robust Mesh Networks Through Autonomously Scheduled TSCH", ACM SenSys'15
  *
  * \author Simon Duquennoy <simonduq@sics.se>
  */
@@ -40,6 +42,9 @@
 #include "net/ipv6/uip-icmp6.h"
 #include "net/rpl/rpl-private.h"
 #include "net/rime/rime.h" /* Needed for so-called rime-sniffer */
+
+#define DEBUG DEBUG_PRINT
+#include "net/ip/uip-debug.h"
 
 /* A net-layer sniffer for packets sent and received */
 static void orchestra_packet_received(void);
@@ -66,18 +71,18 @@ orchestra_packet_sent(int mac_status)
 {
   /* Check if our parent just ACKed a DAO */
   if(orchestra_parent_knows_us == 0
-      && mac_status == MAC_TX_OK
-      && packetbuf_attr(PACKETBUF_ATTR_NETWORK_ID) == UIP_PROTO_ICMP6
-      && packetbuf_attr(PACKETBUF_ATTR_CHANNEL) == (ICMP6_RPL << 8 | RPL_CODE_DAO)) {
+     && mac_status == MAC_TX_OK
+     && packetbuf_attr(PACKETBUF_ATTR_NETWORK_ID) == UIP_PROTO_ICMP6
+     && packetbuf_attr(PACKETBUF_ATTR_CHANNEL) == (ICMP6_RPL << 8 | RPL_CODE_DAO)) {
     if(!linkaddr_cmp(&orchestra_parent_linkaddr, &linkaddr_null)
-        && linkaddr_cmp(&orchestra_parent_linkaddr, packetbuf_addr(PACKETBUF_ADDR_RECEIVER))) {
+       && linkaddr_cmp(&orchestra_parent_linkaddr, packetbuf_addr(PACKETBUF_ADDR_RECEIVER))) {
       orchestra_parent_knows_us = 1;
     }
   }
 }
 /*---------------------------------------------------------------------------*/
 void
-orchestra_callback_child_added(linkaddr_t *addr)
+orchestra_callback_child_added(const linkaddr_t *addr)
 {
   /* Notify all Orchestra rules that a child was added */
   int i;
@@ -89,7 +94,7 @@ orchestra_callback_child_added(linkaddr_t *addr)
 }
 /*---------------------------------------------------------------------------*/
 void
-orchestra_callback_child_removed(linkaddr_t *addr)
+orchestra_callback_child_removed(const linkaddr_t *addr)
 {
   /* Notify all Orchestra rules that a child was removed */
   int i;
@@ -101,7 +106,7 @@ orchestra_callback_child_removed(linkaddr_t *addr)
 }
 /*---------------------------------------------------------------------------*/
 void
-orchestra_callback_packet_ready()
+orchestra_callback_packet_ready(void)
 {
   int i;
   /* By default, use any slotframe, any timeslot */
@@ -117,14 +122,14 @@ orchestra_callback_packet_ready()
     }
   }
 
-#if WITH_TSCH_SLOTFRAME_SELECTOR
+#if TSCH_WITH_LINK_SELECTOR
   packetbuf_set_attr(PACKETBUF_ATTR_TSCH_SLOTFRAME, slotframe);
   packetbuf_set_attr(PACKETBUF_ATTR_TSCH_TIMESLOT, timeslot);
 #endif
 }
 /*---------------------------------------------------------------------------*/
 void
-orchestra_callback_new_time_source(struct tsch_neighbor *old, struct tsch_neighbor *new)
+orchestra_callback_new_time_source(const struct tsch_neighbor *old, const struct tsch_neighbor *new)
 {
   /* Orchestra assumes that the time source is also the RPL parent.
    * This is the case if the following is set:
@@ -143,7 +148,7 @@ orchestra_callback_new_time_source(struct tsch_neighbor *old, struct tsch_neighb
 }
 /*---------------------------------------------------------------------------*/
 void
-orchestra_init()
+orchestra_init(void)
 {
   int i;
   /* Snoop on packet transmission to know if our parent knows about us
@@ -153,7 +158,9 @@ orchestra_init()
   /* Initialize all Orchestra rules */
   for(i = 0; i < NUM_RULES; i++) {
     if(all_rules[i]->init != NULL) {
+      PRINTF("Orchestra: initializing rule %u\n", i);
       all_rules[i]->init(i);
     }
   }
+  PRINTF("Orchestra: initialization done\n");
 }

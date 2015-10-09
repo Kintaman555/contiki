@@ -267,6 +267,7 @@ slip_poll_handler(uint8_t *outbuf, uint16_t blen)
       } else {
         outbuf[len++] = c;
       } break;
+#if UART_XONXOFF_FLOW_CTRL
     case SLIP_ESC_XON:
       if(state == SLIP_ESC) {
         outbuf[len++] = XON;
@@ -281,6 +282,7 @@ slip_poll_handler(uint8_t *outbuf, uint16_t blen)
       } else {
         outbuf[len++] = c;
       } break;
+#endif /* UART_XONXOFF_FLOW_CTRL */
     default:
       outbuf[len++] = c;
       state = SLIP_NEUTRAL;
@@ -390,8 +392,8 @@ slip_input_byte(unsigned char c)
   if(!in_frame && c == SLIP_END) {
     /* Ignore slip end when not receiving frame */
     return error_return_code;
+    /* increment and wrap */
   }
-  /* increment and wrap */
   next = end + 1;
   if(next >= RX_BUFSIZE) {
     next = 0;
@@ -399,8 +401,8 @@ slip_input_byte(unsigned char c)
   next_next = next + 1;
   if(next_next >= RX_BUFSIZE) {
     next_next = 0;
+    /* Next byte will overflow. Stop accepting. */
   }
-  /* Next byte will overflow. Stop accepting. */
   if(next_next == begin) {
     is_full = 1;
     /* disable UART interrupts */

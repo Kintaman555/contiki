@@ -49,13 +49,8 @@
 #include "net/packetbuf.h"
 #include "net/rime/rimestats.h"
 #include "net/netstack.h"
-#include "sys/rtimer.h"
 
-#ifdef CC2420_CONF_SEND_CCA
-#define WITH_SEND_CCA CC2420_CONF_SEND_CCA
-#else
 #define WITH_SEND_CCA 1
-#endif
 
 #ifndef CC2420_CONF_CHANNEL
 #define CC2420_CONF_CHANNEL 26
@@ -140,7 +135,7 @@ volatile uint8_t cc2420_sfd_counter;
 volatile uint16_t cc2420_sfd_start_time;
 volatile uint16_t cc2420_sfd_end_time;
 
-static volatile rtimer_clock_t last_packet_timestamp;
+static volatile uint16_t last_packet_timestamp;
 /*---------------------------------------------------------------------------*/
 PROCESS(cc2420_process, "CC2420 driver");
 /*---------------------------------------------------------------------------*/
@@ -166,10 +161,12 @@ static int cc2420_receiving_packet(void);
 static int pending_packet(void);
 static int get_cca_threshold(void);
 static int cc2420_cca(void);
+static uint16_t getreg(enum cc2420_register regname);
+
 static void set_frame_filtering(uint8_t enable);
 static void set_poll_mode(uint8_t enable);
+static void set_send_on_cca(uint8_t enable);
 static void set_auto_ack(uint8_t enable);
-static uint16_t getreg(enum cc2420_register regname);
 
 signed char cc2420_last_rssi;
 uint8_t cc2420_last_correlation;
@@ -179,6 +176,8 @@ static int channel;
 
 /* Are we currently in poll mode? */
 static uint8_t volatile poll_mode = 0;
+/* Do we perform a CCA before sending? */
+static uint8_t send_on_cca = WITH_SEND_CCA;
 
 static radio_result_t
 get_value(radio_param_t param, radio_value_t *value)
@@ -207,6 +206,12 @@ get_value(radio_param_t param, radio_value_t *value)
       *value |= RADIO_RX_MODE_POLL_MODE;
     }
     return RADIO_RESULT_OK;
+  case RADIO_PARAM_TX_MODE:
+    *value = 0;
+    if(send_on_cca) {
+      *value |= RADIO_TX_MODE_SEND_ON_CCA;
+    }
+    return RADIO_RESULT_OK;
   case RADIO_PARAM_TXPOWER:
     v = cc2420_get_txpower();
     *value = OUTPUT_POWER_MIN;
@@ -226,9 +231,13 @@ get_value(radio_param_t param, radio_value_t *value)
     *value = cc2420_rssi();
     return RADIO_RESULT_OK;
   case RADIO_PARAM_LAST_RSSI:
-      /* Return the RSSI value in dBm */
-      *value = cc2420_last_rssi;
-      return RADIO_RESULT_OK;
+    /* RSSI of the last packet received */
+    *value = cc2420_last_rssi;
+    return RADIO_RESULT_OK;
+  case RADIO_PARAM_LAST_LINK_QUALITY:
+    /* LQI of the last packet received */
+    *value = cc2420_last_correlation;
+    return RADIO_RESULT_OK;
   case RADIO_CONST_CHANNEL_MIN:
     *value = 11;
     return RADIO_RESULT_OK;
@@ -273,11 +282,15 @@ set_value(radio_param_t param, radio_value_t value)
         RADIO_RX_MODE_AUTOACK | RADIO_RX_MODE_POLL_MODE)) {
       return RADIO_RESULT_INVALID_VALUE;
     }
-
     set_frame_filtering((value & RADIO_RX_MODE_ADDRESS_FILTER) != 0);
     set_auto_ack((value & RADIO_RX_MODE_AUTOACK) != 0);
     set_poll_mode((value & RADIO_RX_MODE_POLL_MODE) != 0);
-
+    return RADIO_RESULT_OK;
+  case RADIO_PARAM_TX_MODE:
+    if(value & ~(RADIO_TX_MODE_SEND_ON_CCA)) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    set_send_on_cca((value & RADIO_TX_MODE_SEND_ON_CCA) != 0);
     return RADIO_RESULT_OK;
   case RADIO_PARAM_TXPOWER:
     if(value < OUTPUT_POWER_MIN || value > OUTPUT_POWER_MAX) {
@@ -307,9 +320,7 @@ get_object(radio_param_t param, void *dest, size_t size)
     if(size != sizeof(rtimer_clock_t) || !dest) {
       return RADIO_RESULT_INVALID_VALUE;
     }
-
     *(rtimer_clock_t*)dest = cc2420_sfd_start_time;
-
     return RADIO_RESULT_OK;
 #else
     return RADIO_RESULT_NOT_SUPPORTED;
@@ -530,7 +541,7 @@ off(void)
   if(!poll_mode) {
     CC2420_DISABLE_FIFOP_INT();
   }
-  
+
   if(!CC2420_FIFOP_IS_1) {
     flushrx();
   }
@@ -629,20 +640,15 @@ cc2420_init(void)
   /* And wait until it stabilizes */
   wait_for_status(BV(CC2420_XOSC16M_STABLE));
 
-  /* Turn on/off automatic packet acknowledgment and address decoding. */
-  reg = getreg(CC2420_MDMCTRL0);
+  /* Set auto-ack and frame filtering */
+  set_auto_ack(CC2420_CONF_AUTOACK);
+  set_frame_filtering(CC2420_CONF_AUTOACK);
 
-#if CC2420_CONF_AUTOACK
-  reg |= AUTOACK | ADR_DECODE;
-#else
-  reg &= ~(AUTOACK | ADR_DECODE);
-#endif /* CC2420_CONF_AUTOACK */
-  
   /* Enabling CRC in hardware; this is required by AUTOACK anyway
      and provides us with RSSI and link quality indication (LQI)
      information. */
+  reg = getreg(CC2420_MDMCTRL0);
   reg |= AUTOCRC;
-
   setreg(CC2420_MDMCTRL0, reg);
 
   /* Set transmission turnaround time to the lower setting (8 symbols
@@ -671,7 +677,6 @@ cc2420_init(void)
   flushrx();
 
   set_poll_mode(0);
-  CC2420_CLEAR_FIFOP_INT();
 
   process_start(&cc2420_process, NULL);
   return 1;
@@ -705,26 +710,26 @@ cc2420_transmit(unsigned short payload_len)
 #define LOOP_20_SYMBOLS CC2420_CONF_SYMBOL_LOOP_COUNT
 #endif
 
-#if WITH_SEND_CCA
-  strobe(CC2420_SRXON);
-  wait_for_status(BV(CC2420_RSSI_VALID));
-  strobe(CC2420_STXONCCA);
-#else /* WITH_SEND_CCA */
-  strobe(CC2420_STXON);
-#endif /* WITH_SEND_CCA */
+  if(send_on_cca) {
+    strobe(CC2420_SRXON);
+    wait_for_status(BV(CC2420_RSSI_VALID));
+    strobe(CC2420_STXONCCA);
+  } else {
+    strobe(CC2420_STXON);
+  }
   for(i = LOOP_20_SYMBOLS; i > 0; i--) {
     if(CC2420_SFD_IS_1) {
+#if PACKETBUF_WITH_PACKET_TYPE
       {
         rtimer_clock_t sfd_timestamp;
         sfd_timestamp = cc2420_sfd_start_time;
-#if PACKETBUF_WITH_PACKET_TYPE
         if(packetbuf_attr(PACKETBUF_ATTR_PACKET_TYPE) ==
            PACKETBUF_ATTR_PACKET_TYPE_TIMESTAMP) {
           /* Write timestamp to last two bytes of packet in TXFIFO. */
           write_ram((uint8_t *) &sfd_timestamp, CC2420RAM_TXFIFO + payload_len - 1, 2, WRITE_RAM_IN_ORDER);
         }
-#endif
       }
+#endif /* PACKETBUF_WITH_PACKET_TYPE */
 
       if(!(get_status() & BV(CC2420_TX_ACTIVE))) {
         /* SFD went high but we are not transmitting. This means that
@@ -763,7 +768,7 @@ cc2420_transmit(unsigned short payload_len)
     }
   }
 
-  /* If we are using WITH_SEND_CCA, we get here if the packet wasn't
+  /* If we send with cca (cca_on_send), we get here if the packet wasn't
      transmitted because of other channel activity. */
   RIMESTATS_ADD(contentiondrop);
   PRINTF("cc2420: do_send() transmission never started\n");
@@ -973,6 +978,9 @@ cc2420_read(void *buf, unsigned short bufsize)
       cc2420_last_rssi = footer[0] + RSSI_OFFSET;
       cc2420_last_correlation = footer[1] & FOOTER1_CORRELATION;
       if(!poll_mode) {
+        /* Not in poll mode: packetbuf should not be accessed in interrupt context.
+         * In poll mode, the last packet RSSI and link quality can be obtained through
+         * RADIO_PARAM_LAST_RSSI and RADIO_PARAM_LAST_LINK_QUALITY */
         packetbuf_set_attr(PACKETBUF_ATTR_RSSI, cc2420_last_rssi);
         packetbuf_set_attr(PACKETBUF_ATTR_LINK_QUALITY, cc2420_last_correlation);
       }
@@ -1123,7 +1131,7 @@ cc2420_set_cca_threshold(int value)
   setreg(CC2420_RSSI, shifted);
   RELEASE_LOCK();
 }
-
+/*---------------------------------------------------------------------------*/
 /* Set or unset frame autoack */
 static void
 set_auto_ack(uint8_t enable)
@@ -1136,48 +1144,52 @@ set_auto_ack(uint8_t enable)
   } else {
     reg &= ~(AUTOACK);
   }
-  /* Writing RAM requires crystal oscillator to be stable. */
-  wait_for_status(BV(CC2420_XOSC16M_STABLE));
+
   setreg(CC2420_MDMCTRL0, reg);
   RELEASE_LOCK();
 }
-
+/*---------------------------------------------------------------------------*/
 /* Set or unset frame filtering */
 static void
 set_frame_filtering(uint8_t enable)
 {
-	GET_LOCK();
+  GET_LOCK();
 
-	/* Turn on/off address decoding. */
-	uint16_t reg = getreg(CC2420_MDMCTRL0);
-	if(enable) {
-	  reg |= ADR_DECODE;
-	} else {
-	  reg &= ~(ADR_DECODE);
-	}
-  /* Writing RAM requires crystal oscillator to be stable. */
-	wait_for_status(BV(CC2420_XOSC16M_STABLE));
-	setreg(CC2420_MDMCTRL0, reg);
-	RELEASE_LOCK();
+  /* Turn on/off address decoding. */
+  uint16_t reg = getreg(CC2420_MDMCTRL0);
+  if(enable) {
+    reg |= ADR_DECODE;
+  } else {
+    reg &= ~(ADR_DECODE);
+  }
+
+  setreg(CC2420_MDMCTRL0, reg);
+  RELEASE_LOCK();
 }
-
+/*---------------------------------------------------------------------------*/
 /* Enable or disable radio interrupts (both FIFOP and SFD timer capture) */
 static void
 set_poll_mode(uint8_t enable)
 {
-	GET_LOCK();
-
-	poll_mode = enable;
-
-	if(enable) {
-	  /* Disable FIFOP interrupt */
-	  CC2420_CLEAR_FIFOP_INT();
-	  CC2420_DISABLE_FIFOP_INT();
-	} else {
-	  /* Initialize and enable FIFOP interrupt */
-	  CC2420_FIFOP_INT_INIT();
-	  CC2420_ENABLE_FIFOP_INT();
-	  CC2420_CLEAR_FIFOP_INT();
-	}
-	RELEASE_LOCK();
+  GET_LOCK();
+  poll_mode = enable;
+  if(enable) {
+    /* Disable FIFOP interrupt */
+    CC2420_CLEAR_FIFOP_INT();
+    CC2420_DISABLE_FIFOP_INT();
+  } else {
+    /* Initialize and enable FIFOP interrupt */
+    CC2420_FIFOP_INT_INIT();
+    CC2420_ENABLE_FIFOP_INT();
+    CC2420_CLEAR_FIFOP_INT();
+  }
+  RELEASE_LOCK();
 }
+/*---------------------------------------------------------------------------*/
+/* Enable or disable CCA before sending */
+static void
+set_send_on_cca(uint8_t enable)
+{
+  send_on_cca = enable;
+}
+/*---------------------------------------------------------------------------*/

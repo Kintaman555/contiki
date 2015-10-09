@@ -33,7 +33,7 @@
 /**
  * \file
  *         Log functions for TSCH, meant for logging from interrupt
- *         during a link operation. Saves ASN and other link information
+ *         during a timeslot operation. Saves ASN, slot and link information
  *         and adds the log to a ringbuf for later printout.
  * \author
  *         Simon Duquennoy <simonduq@sics.se>
@@ -48,67 +48,70 @@
 #include "net/mac/tsch/tsch-log.h"
 #include "net/mac/tsch/tsch-packet.h"
 #include "net/mac/tsch/tsch-schedule.h"
+#include "net/mac/tsch/tsch-slot-operation.h"
 #include "lib/ringbufindex.h"
 
-#if WITH_TSCH_LOG
+#if TSCH_LOG_LEVEL >= 1
+#define DEBUG DEBUG_PRINT
+#else /* TSCH_LOG_LEVEL */
+#define DEBUG DEBUG_NONE
+#endif /* TSCH_LOG_LEVEL */
+#include "net/ip/uip-debug.h"
+
+#if TSCH_LOG_LEVEL >= 2 /* Skip this file for log levels 0 or 1 */
 
 PROCESS_NAME(tsch_pending_events_process);
 
-#define DEBUG DEBUG_NONE
-#include "net/ip/uip-debug.h"
-
-#define TSCH_MAX_LOGS 16
-#if (TSCH_MAX_LOGS & (TSCH_MAX_LOGS-1)) != 0
-#error TSCH_MAX_LOGS must be power of two
+/* Check if TSCH_LOG_QUEUE_LEN is a power of two */
+#if (TSCH_LOG_QUEUE_LEN & (TSCH_LOG_QUEUE_LEN - 1)) != 0
+#error TSCH_LOG_QUEUE_LEN must be power of two
 #endif
 static struct ringbufindex log_ringbuf;
-static struct tsch_log_t log_array[TSCH_MAX_LOGS];
+static struct tsch_log_t log_array[TSCH_LOG_QUEUE_LEN];
 static int log_dropped = 0;
 
 /* Process pending log messages */
 void
-tsch_log_process_pending()
+tsch_log_process_pending(void)
 {
   static int last_log_dropped = 0;
   int16_t log_index;
   /* Loop on accessing (without removing) a pending input packet */
-  /* LOG("TSCH: logs in queue %u, total dropped %u\n", ringbufindex_elements(&log_ringbuf), log_dropped); */
   if(log_dropped != last_log_dropped) {
-    LOG("TSCH:! logs dropped %u\n", log_dropped);
+    printf("TSCH:! logs dropped %u\n", log_dropped);
     last_log_dropped = log_dropped;
   }
   while((log_index = ringbufindex_peek_get(&log_ringbuf)) != -1) {
     struct tsch_log_t *log = &log_array[log_index];
-    struct tsch_slotframe *sf = tsch_schedule_get_slotframe_from_handle(log->link->slotframe_handle);
-    LOG("TSCH: {asn-%x.%lx link-%u-%u-%u-%u ch-%u} ",
+    struct tsch_slotframe *sf = tsch_schedule_get_slotframe_by_handle(log->link->slotframe_handle);
+    printf("TSCH: {asn-%x.%lx link-%u-%u-%u-%u ch-%u} ",
         log->asn.ms1b, log->asn.ls4b,
         log->link->slotframe_handle, sf ? sf->size.val : 0, log->link->timeslot, log->link->channel_offset,
         tsch_calculate_channel(&log->asn, log->link->channel_offset));
     switch(log->type) {
       case tsch_log_tx:
-        LOG("%s-%u %u tx %d, st %d-%d",
-            log->tx.dest == 0 ? "bc" : "uc", log->tx.is_data,
+        printf("%s-%u-%u %u tx %d, st %d-%d",
+            log->tx.dest == 0 ? "bc" : "uc", log->tx.is_data, log->tx.sec_level,
                 log->tx.datalen,
                 log->tx.dest,
                 log->tx.mac_tx_status, log->tx.num_tx);
         if(log->tx.drift_used) {
-          LOG(", dr %d", log->tx.drift);
+          printf(", dr %d", log->tx.drift);
         }
-        LOGA(NULL/*&log->tx.appdata*/, "");
+        printf("\n");
         break;
       case tsch_log_rx:
-        LOG("%s-%u %u rx %d",
-            log->rx.is_unicast == 0 ? "bc" : "uc", log->rx.is_data,
+        printf("%s-%u-%u %u rx %d",
+            log->rx.is_unicast == 0 ? "bc" : "uc", log->rx.is_data, log->tx.sec_level,
                 log->rx.datalen,
                 log->rx.src);
         if(log->rx.drift_used) {
-          LOG(", dr %d", log->rx.drift);
+          printf(", dr %d", log->rx.drift);
         }
-        LOGA(NULL/*&log->rx.appdata*/,
-            ", edr %d", (int)log->rx.estimated_drift);
+        printf(", edr %d\n", (int)log->rx.estimated_drift);
         break;
       case tsch_log_message:
-        LOG("%s\n", log->message);
+        printf("%s\n", log->message);
         break;
     }
     /* Remove input from ringbuf */
@@ -119,7 +122,7 @@ tsch_log_process_pending()
 /* Prepare addition of a new log.
  * Returns pointer to log structure if success, NULL otherwise */
 struct tsch_log_t *
-tsch_log_prepare_add()
+tsch_log_prepare_add(void)
 {
   int log_index = ringbufindex_peek_put(&log_ringbuf);
   if(log_index != -1) {
@@ -135,7 +138,7 @@ tsch_log_prepare_add()
 
 /* Actually add the previously prepared log */
 void
-tsch_log_commit()
+tsch_log_commit(void)
 {
   ringbufindex_put(&log_ringbuf);
   process_poll(&tsch_pending_events_process);
@@ -143,9 +146,9 @@ tsch_log_commit()
 
 /* Initialize log module */
 void
-tsch_log_init()
+tsch_log_init(void)
 {
-  ringbufindex_init(&log_ringbuf, TSCH_MAX_LOGS);
+  ringbufindex_init(&log_ringbuf, TSCH_LOG_QUEUE_LEN);
 }
 
-#endif /* WITH_TSCH_LOG */
+#endif /* TSCH_LOG_LEVEL */
