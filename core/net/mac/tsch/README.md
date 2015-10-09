@@ -12,8 +12,6 @@ It was developped by:
 * Simon Duquennoy, SICS, simonduq@sics.se, github user: [simonduq](https://github.com/simonduq)
 * Beshr Al Nahas, SICS (now Chalmers University), beshr@chalmers.se, github user: [beshrns](https://github.com/beshrns)
 
-You can find an extensive evaluation of this implementation in our paper [*Orchestra: Robust Mesh Networks Through Autonomously Scheduled TSCH*](http://www.simonduquennoy.net/papers/duquennoy15orchestra.pdf), ACM SenSys'15.
-
 ## Features
 
 This implementation includes:
@@ -30,7 +28,6 @@ This implementation includes:
   * Standard 6TiSCH TSCH-RPL interaction (6TiSCH Minimal Configuration and Minimal Schedule)
   * A scheduling API to add/remove slotframes and links
   * A system for logging from TSCH timeslot operation interrupt, with postponed printout
-  * Orchestra: an autonomous scheduler for TSCH+RPL networks
 
 It has been tested on the following platforms:
   * NXP JN516x (`jn516x`, tested on hardware)
@@ -39,7 +36,8 @@ It has been tested on the following platforms:
 
 This implementation was present at the ETSI Plugtest
 event in Prague in July 2015, and did successfully inter-operate with all
-four implementations it was tested against.
+four implementations it was tested against, including OpenWSN, the current
+reference implementation.
 
 We have designed this implementation with IPv6 and RPL in mind, but the code is fully independent
 from upper layers (with the exception of the optional `tsch-rpl.[ch]`), and has been
@@ -68,9 +66,6 @@ Implements the 6TiSCH minimal configuration K1-K2 keys pair.
 * `tsch-rpl.[ch]`: used for TSCH+RPL networks, to align TSCH and RPL states (preferred parent -> time source,
 rank -> join priority) as defined in the 6TiSCH minimal configuration.
 * `tsch-log.[ch]`: logging system for TSCH, including delayed messages for logging from slot operation interrupt.
-
-Orchestra is implemented in:
-* `apps/orchestra`: see `apps/orchestra/README.md` for more information.
 
 ## Using TSCH
 
@@ -147,17 +142,6 @@ Use `tsch_set_pan_secured` to explicitly ask the coordinator to secure EBs or no
 When associating, nodes with security included can join both secured or non-secured networks.
 Set `TSCH_CONF_JOIN_SECURED_ONLY` to force joining secured networks only.
 Likewise, set `TSCH_JOIN_MY_PANID_ONLY` to force joining networks with a specific PANID only.
-
-## TSCH Scheduling
-
-By default (see `TSCH_SCHEDULE_WITH_6TISCH_MINIMAL`), our implementation runs a 6TiSCH minimal schedule, which emulates an always-on link on top of TSCH.
-The schedule consists in a single shared slot for all transmissions and receptions, in a slotframe of length `TSCH_SCHEDULE_DEFAULT_LENGTH`.
-
-As an alternative, we provide Orchestra (under `apps/orchestra`), an autonomous scheduling solution for TSCH where nodes maintain their own schedule locally, solely based on their local RPL state.
-Orchestra can be simply enabled and should work out-of-the-box with its default settings as long as RPL is also enabled.
-See `apps/orchestra/README.md` for more information.
-
-Finally, one can also implement his own scheduler, centralized or distributed, based on the scheduling API provides in `core/net/mac/tsch/tsch-schedule.h`.
 
 ## Porting TSCH to a new platform
 

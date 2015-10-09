@@ -41,7 +41,7 @@
  *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
- */
+*/
 
 /**
  *    \addtogroup net
@@ -59,7 +59,8 @@
  *  This file converts to and from a structure to a packed 802.15.4
  *  frame.
  *
- */
+*/
+
 
 /* Includes */
 #ifndef FRAME_802154_H
@@ -138,7 +139,7 @@
  *            3. Addressing fields    - 4 - 20 bytes  - Variable
  *            4. Aux security header  - 0 - 14 bytes  - Variable
  *            5. CRC                  - 2 bytes       - Fixed
- */
+*/
 
 /**
  * \brief Defines the bitfields of the frame control field (FCF).
@@ -211,7 +212,7 @@ int frame802154_create(frame802154_t *p, uint8_t *buf);
 int frame802154_parse(uint8_t *data, int length, frame802154_t *pf);
 
 /* Get current PAN ID */
-uint16_t frame802154_get_pan_id(void);
+uint16_t frame802154_get_pan_id();
 /* Set current PAN ID */
 void frame802154_set_pan_id(uint16_t pan_id);
 /* Tells whether a given Frame Control Field indicates a frame with

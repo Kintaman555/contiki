@@ -46,7 +46,6 @@
 #include "uart-driver.h"
 
 /* Valid range for TXBUFSIZE and RXBUFSIZE: 16-2047 */
-
 static unsigned char txbuf_data[UART_TX_BUFFER_SIZE];
 static unsigned char rxbuf_data[UART_RX_BUFFER_SIZE];
 static int (*uart0_input)(unsigned char c);

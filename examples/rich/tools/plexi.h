@@ -34,11 +34,19 @@
  * \author Simon Duquennoy <simonduq@sics.se>
  */
 
+#include "../common-conf.h"
+
 #define DAG_RESOURCE "rpl/dag"
 #define DAG_PARENT_LABEL "parent"
 #define DAG_CHILD_LABEL "child"
 
-#define NEIGHBORS_RESOURCE "6top/neighbors"
+#define VICINITY_RESOURCE "mac/vicinity"
+#define VICINITY_AGE_LABEL "age"
+#define VICINITY_PHEROMONE_LABEL "pheromone"
+
+#define NEIGHBORS_RESOURCE "6top/nbrList"
+#define NEIGHBORS_ASN_LABEL "asn"
+#define NEIGHBORS_TNA_LABEL "tna"
 
 #define FRAME_RESOURCE "6top/slotFrame"
 #define FRAME_ID_LABEL "frame"
@@ -51,6 +59,64 @@
 #define LINK_OPTION_LABEL "option"
 #define LINK_TYPE_LABEL "type"
 #define LINK_TARGET_LABEL "target"
- 
+#define LINK_STATS_LABEL "stats"
+
+#define STATS_RESOURCE "6top/stats"
+#define STATS_METRIC_LABEL "metric"
+#define STATS_ID_LABEL "id"
+#define STATS_VALUE_LABEL "value"
+#define STATS_WINDOW_LABEL "window"
+#define STATS_ENABLE_LABEL "enable"
+#define STATS_ETX_LABEL "etx"
+#define STATS_RSSI_LABEL "rssi"
+#define STATS_LQI_LABEL "lqi"
+#define STATS_PDR_LABEL "pdr"
+
+#define PLEXI_PHEROMONE_CHUNK 10
+#define PLEXI_PHEROMONE_DECAY 3
+#define PLEXI_PHEROMONE_WINDOW 10 * CLOCK_SECOND
+
+#define PLEXI_MAX_PROXIMATES 15
+
+typedef struct plexi_proximate_struct plexi_proximate;
+struct plexi_proximate_struct {
+	struct plexi_proximate_struct *next;
+	linkaddr_t proximate;
+	clock_time_t since;
+	uint8_t pheromone;
+};
+
+#define PLEXI_MAX_STATISTICS 15
+
+typedef enum {
+	NONE = 0,
+	//macCounterOctets = 1,
+	//macRetryCount = 2,
+	//macMultipleRetryCount = 3,
+	//macTXFailCount = 4,
+	//macTXSuccessCount = 5,
+	//macFCSErrorCount = 6,
+	//macSecurityFailure = 7,
+	//macDuplicateFrameCount = 8,
+	//macRXSuccessCount = 9,
+	//macNACKcount = 10,
+	PDR = 11,
+	ETX = 12,
+	RSSI = 13,
+	LQI = 14,
+	ASN = 15
+} STATISTIC_METRIC;
+
+typedef enum { ENABLE, DISABLE, ANY } STATISTIC_METRIC_ACTIVITY;
+
+typedef struct plexi_stats_struct plexi_stats;
+struct plexi_stats_struct {
+	plexi_stats *next;
+	uint16_t id;
+	uint8_t enable;
+	uint16_t window;
+	uint8_t metric;
+	uint16_t value;
+};
 
 void rich_scheduler_interface_init();
