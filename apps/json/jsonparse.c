@@ -118,6 +118,7 @@ jsonparse_next(struct jsonparse_state *state)
   c = state->json[state->pos];
   s = jsonparse_get_type(state);
   state->pos++;
+
   switch(c) {
   case '{':
     push(state, c);

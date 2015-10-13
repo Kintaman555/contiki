@@ -44,7 +44,7 @@
 #include "simple-udp.h"
 #include "net/mac/tsch/tsch.h"
 #include "net/mac/tsch/tsch-schedule.h"
-#include "tools/plexi.h"
+#include "tools/rich-scheduler-interface.h"
 #include "tools/rich.h"
 
 #include "net/netstack.h"

@@ -41,7 +41,9 @@
 #include "net/mac/tsch/tsch-schedule.h"
 #include "node-id.h"
 #include "orchestra.h"
+#if WITH_COAP_RESOURCES
 #include "tools/plexi.h"
+#endif
 #if CONTIKI_TARGET_SKY || CONTIKI_TARGET_Z1
 #include "cc2420.h"
 #endif
@@ -82,7 +84,7 @@ rich_network_init(uip_ipaddr_t *br_prefix)
     uip_ds6_set_addr_iid(&global_ipaddr, &uip_lladdr);
     uip_ds6_addr_add(&global_ipaddr, 0, ADDR_AUTOCONF);
     rpl_set_root(RPL_DEFAULT_INSTANCE, &global_ipaddr);
-	rpl_set_prefix(rpl_get_any_dag(), br_prefix, 64);
+    rpl_set_prefix(rpl_get_any_dag(), br_prefix, 64);
     rpl_repair_root(RPL_DEFAULT_INSTANCE);
   }
 
@@ -100,7 +102,7 @@ rich_init(uip_ipaddr_t *br_prefix)
   rich_network_init(br_prefix);
 
 #if WITH_COAP_RESOURCES
-  rich_scheduler_interface_init();
+  plexi_init();
 #endif
 
   PRINTF("App: %u starting\n", node_id);

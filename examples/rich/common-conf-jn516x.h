@@ -54,7 +54,7 @@
 //#define UIP_CONF_BUFFER_SIZE   (REST_MAX_CHUNK_SIZE + 0 + 48 + 70)
 #define UIP_CONF_BUFFER_SIZE     1280 /* ipv6 required minimum */
 #undef UIP_CONF_UDP_CONNS
-#define UIP_CONF_UDP_CONNS       3
+#define UIP_CONF_UDP_CONNS       8
 
 /* No IPv6 reassembly */
 #undef UIP_CONF_IPV6_REASSEMBLY
@@ -66,7 +66,7 @@
 
 /* Queues */
 #undef QUEUEBUF_CONF_NUM
-#define QUEUEBUF_CONF_NUM 16
+#define QUEUEBUF_CONF_NUM 32
 
 #undef TSCH_QUEUE_CONF_NUM_PER_NEIGHBOR
 #define TSCH_QUEUE_CONF_NUM_PER_NEIGHBOR 32
@@ -75,15 +75,15 @@
 #define TSCH_CONF_DEQUEUED_ARRAY_SIZE 32
 
 #undef TSCH_QUEUE_CONF_MAX_NEIGHBOR_QUEUES
-#define TSCH_QUEUE_CONF_MAX_NEIGHBOR_QUEUES 16
+#define TSCH_QUEUE_CONF_MAX_NEIGHBOR_QUEUES 8
 
 /* The neighbor table size */
 #undef NBR_TABLE_CONF_MAX_NEIGHBORS
-#define NBR_TABLE_CONF_MAX_NEIGHBORS 16
+#define NBR_TABLE_CONF_MAX_NEIGHBORS 8
 
 /* The routing table size */
 #undef UIP_CONF_MAX_ROUTES
-#define UIP_CONF_MAX_ROUTES  14
+#define UIP_CONF_MAX_ROUTES  28
 
 /* Radio */
 

@@ -119,4 +119,4 @@ struct plexi_stats_struct {
 	uint16_t value;
 };
 
-void rich_scheduler_interface_init();
+void plexi_init();
