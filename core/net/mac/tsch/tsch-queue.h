@@ -139,6 +139,8 @@ struct tsch_neighbor *tsch_queue_add_nbr(const linkaddr_t *addr);
 struct tsch_neighbor *tsch_queue_get_nbr(const linkaddr_t *addr);
 /* Get a TSCH time source (we currently assume there is only one) */
 struct tsch_neighbor *tsch_queue_get_time_source(void);
+/* GET the next neighbor after previous. Get the first is previous==NULL */
+struct tsch_neighbor *tsch_queue_get_nbr_next(struct tsch_neighbor *previous);
 /* Update TSCH time source */
 int tsch_queue_update_time_source(const linkaddr_t *new_addr);
 /* Add packet to neighbor queue. Use same lockfree implementation as ringbuf.c (put is atomic) */

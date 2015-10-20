@@ -72,6 +72,9 @@
 #define TSCH_SCHEDULE_MAX_LINKS 32
 #endif
 
+#ifdef TSCH_CALLBACK_REMOVE_LINK
+	void TSCH_CALLBACK_REMOVE_LINK(struct tsch_link*);
+#endif
 /********** Constants *********/
 
 /* Link options */

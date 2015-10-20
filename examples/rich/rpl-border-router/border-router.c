@@ -44,7 +44,7 @@
 #include "simple-udp.h"
 #include "net/mac/tsch/tsch.h"
 #include "net/mac/tsch/tsch-schedule.h"
-#include "tools/rich-scheduler-interface.h"
+#include "tools/plexi.h"
 #include "tools/rich.h"
 
 #include "net/netstack.h"
@@ -59,6 +59,7 @@
 
 #define DEBUG DEBUG_NONE
 #include "net/ip/uip-debug.h"
+#include "../../../core/net/ip/uip.h"
 
 static uip_ipaddr_t prefix;
 static uint8_t prefix_set;

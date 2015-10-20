@@ -151,6 +151,18 @@ tsch_queue_get_time_source(void)
   return NULL;
 }
 
+struct tsch_neighbor *
+tsch_queue_get_nbr_next(struct tsch_neighbor *previous) {
+	if(!tsch_is_locked()) {
+		if(previous) {
+			return previous->next;
+		} else {
+			return list_head(neighbor_list);
+		}
+	}
+	return NULL;
+}
+
 /* Update TSCH time source */
 int
 tsch_queue_update_time_source(const linkaddr_t *new_addr)

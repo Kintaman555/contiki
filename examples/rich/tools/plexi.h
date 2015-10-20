@@ -34,15 +34,14 @@
  * \author Simon Duquennoy <simonduq@sics.se>
  */
 
+#ifndef __PLEXI_H__
+#define __PLEXI_H___
+
 #include "../common-conf.h"
 
 #define DAG_RESOURCE "rpl/dag"
 #define DAG_PARENT_LABEL "parent"
 #define DAG_CHILD_LABEL "child"
-
-#define VICINITY_RESOURCE "mac/vicinity"
-#define VICINITY_AGE_LABEL "age"
-#define VICINITY_PHEROMONE_LABEL "pheromone"
 
 #define NEIGHBORS_RESOURCE "6top/nbrList"
 #define NEIGHBORS_ASN_LABEL "asn"
@@ -58,7 +57,6 @@
 #define LINK_CHANNEL_LABEL "channel"
 #define LINK_OPTION_LABEL "option"
 #define LINK_TYPE_LABEL "type"
-#define LINK_TARGET_LABEL "target"
 #define LINK_STATS_LABEL "stats"
 
 #define STATS_RESOURCE "6top/stats"
@@ -72,21 +70,32 @@
 #define STATS_LQI_LABEL "lqi"
 #define STATS_PDR_LABEL "pdr"
 
-#define PLEXI_PHEROMONE_CHUNK 10
-#define PLEXI_PHEROMONE_DECAY 3
-#define PLEXI_PHEROMONE_WINDOW 10 * CLOCK_SECOND
+#define PARENT_EVENT_RESOURCE(name, attributes, get_handler, post_handler, put_handler, delete_handler, event_handler) \
+  resource_t name = { NULL, NULL, HAS_SUB_RESOURCES | IS_OBSERVABLE, attributes, get_handler, post_handler, put_handler, delete_handler, { .trigger = event_handler } }
 
-#define PLEXI_MAX_PROXIMATES 15
+#define PLEXI_WITH_VICINITY_MONITOR 0
 
-typedef struct plexi_proximate_struct plexi_proximate;
-struct plexi_proximate_struct {
-	struct plexi_proximate_struct *next;
-	linkaddr_t proximate;
-	clock_time_t since;
-	uint8_t pheromone;
-};
+#if PLEXI_WITH_VICINITY_MONITOR
+	#define VICINITY_RESOURCE "mac/vicinity"
+	#define VICINITY_AGE_LABEL "age"
+	#define VICINITY_PHEROMONE_LABEL "pheromone"
 
-#define PLEXI_MAX_STATISTICS 15
+	#define PLEXI_PHEROMONE_CHUNK 10
+	#define PLEXI_PHEROMONE_DECAY 3
+	#define PLEXI_PHEROMONE_WINDOW 10 * CLOCK_SECOND
+
+	#define PLEXI_MAX_PROXIMATES 15
+
+	typedef struct plexi_proximate_struct plexi_proximate;
+	struct plexi_proximate_struct {
+		struct plexi_proximate_struct *next;
+		linkaddr_t proximate;
+		clock_time_t since;
+		uint8_t pheromone;
+	};
+#endif
+
+#define PLEXI_MAX_STATISTICS 7
 
 typedef enum {
 	NONE = 0,
@@ -107,16 +116,38 @@ typedef enum {
 	ASN = 15
 } STATISTIC_METRIC;
 
-typedef enum { ENABLE, DISABLE, ANY } STATISTIC_METRIC_ACTIVITY;
+typedef enum { ENABLE, DISABLE } STATISTIC_METRIC_ACTIVITY;
+
+#if PLEXI_STATISTICS_MODE == PLEXI_DENSE_STATISTICS
+typedef uint16_t plexi_stats_value_t;
+typedef int16_t plexi_stats_value_st;
+#elif PLEXI_STATISTICS_MODE == PLEXI_DETAILED_STATISTICS
+typedef uint64_t plexi_stats_value_t;
+typedef int64_t plexi_stats_value_st;
+#endif
+
+typedef struct plexi_enhanced_stats_struct plexi_enhanced_stats;
+struct plexi_enhanced_stats_struct {
+	plexi_enhanced_stats *next;
+	linkaddr_t target;
+	plexi_stats_value_t value;
+};
 
 typedef struct plexi_stats_struct plexi_stats;
 struct plexi_stats_struct {
 	plexi_stats *next;
+#if PLEXI_STATISTICS_MODE == PLEXI_DENSE_STATISTICS
+	uint16_t metainfo; /* enable:1lsb, metric:2-5lsb, id:6-10lsb, window:11-16lsb */
+#elif PLEXI_STATISTICS_MODE == PLEXI_DETAILED_STATISTICS
 	uint16_t id;
 	uint8_t enable;
-	uint16_t window;
 	uint8_t metric;
-	uint16_t value;
+	uint16_t window;
+#endif
+	plexi_stats_value_t value;
+	LIST_STRUCT(enhancement);
 };
 
 void plexi_init();
+
+#endif

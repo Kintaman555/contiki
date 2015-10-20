@@ -238,6 +238,9 @@ tsch_schedule_remove_link(struct tsch_slotframe *slotframe, struct tsch_link *l)
        * after freeing the link */
       link_options = l->link_options;
       linkaddr_copy(&addr, &l->addr);
+#ifdef TSCH_CALLBACK_REMOVE_LINK
+      TSCH_CALLBACK_REMOVE_LINK(l);
+#endif
 
       /* The link to be removed is scheduled as next, set it to NULL
        * to abort the next link operation */
