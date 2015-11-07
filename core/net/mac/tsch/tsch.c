@@ -360,7 +360,7 @@ tsch_rx_process_pending()
       packetbuf_set_attr(PACKETBUF_ATTR_LINK_QUALITY, current_input->lqi);
       packetbuf_set_attr(PACKETBUF_ATTR_TSCH_SLOTFRAME, current_input->slotframe_id);
       packetbuf_set_attr(PACKETBUF_ATTR_TSCH_TIMESLOT, current_input->slotoffset);
-      packetbuf_set_attr(PACKETBUF_ATTR_TSCH_CHANNELOFFSET, current_input->channeloffset);
+      //packetbuf_set_attr(PACKETBUF_ATTR_TSCH_CHANNELOFFSET, current_input->channeloffset);
 	  packetbuf_set_attr(PACKETBUF_ATTR_TSCH_ASN_5, (uint16_t)current_input->rx_asn.ms1b);
 	  packetbuf_set_attr(PACKETBUF_ATTR_TSCH_ASN_4_3, (uint16_t)current_input->rx_asn.ls4b>>16);
 	  packetbuf_set_attr(PACKETBUF_ATTR_TSCH_ASN_2_1, (uint16_t)current_input->rx_asn.ls4b);
@@ -392,15 +392,10 @@ tsch_tx_process_pending()
     /* Put packet into packetbuf for packet_sent callback */
     queuebuf_to_packetbuf(p->qb);
 
-//#if TSCH_WITH_LINK_SELECTOR
-    int packet_attr_slotframe = queuebuf_attr(p->qb, PACKETBUF_ATTR_TSCH_SLOTFRAME);
-    int packet_attr_timeslot = queuebuf_attr(p->qb, PACKETBUF_ATTR_TSCH_TIMESLOT);
-	int packet_attr_channeloffset = queuebuf_attr(p->qb, PACKETBUF_ATTR_TSCH_CHANNELOFFSET);
-    packetbuf_set_attr(PACKETBUF_ATTR_TSCH_SLOTFRAME, packet_attr_slotframe);
-	packetbuf_set_attr(PACKETBUF_ATTR_TSCH_TIMESLOT, packet_attr_timeslot);
-	packetbuf_set_attr(PACKETBUF_ATTR_TSCH_CHANNELOFFSET, packet_attr_channeloffset);
+    packetbuf_set_attr(PACKETBUF_ATTR_TSCH_SLOTFRAME, p->slotframe_handle);
+	packetbuf_set_attr(PACKETBUF_ATTR_TSCH_TIMESLOT, p->timeslot);
+	//packetbuf_set_attr(PACKETBUF_ATTR_TSCH_CHANNELOFFSET, p->channel_offset);
 	packetbuf_set_attr(PACKETBUF_ATTR_TSCH_TRANSMISSIONS, p->transmissions);
-//#endif
 
     /* Call packet_sent callback */
     mac_call_sent_callback(p->sent, p->ptr, p->ret, p->transmissions);

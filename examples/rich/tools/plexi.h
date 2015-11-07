@@ -73,6 +73,12 @@
 #define PARENT_EVENT_RESOURCE(name, attributes, get_handler, post_handler, put_handler, delete_handler, event_handler) \
   resource_t name = { NULL, NULL, HAS_SUB_RESOURCES | IS_OBSERVABLE, attributes, get_handler, post_handler, put_handler, delete_handler, { .trigger = event_handler } }
 
+#define PARENT_PERIODIC_RESOURCE(name, attributes, get_handler, post_handler, put_handler, delete_handler, period, periodic_handler) \
+  periodic_resource_t periodic_##name; \
+  resource_t name = { NULL, NULL, HAS_SUB_RESOURCES | IS_OBSERVABLE | IS_PERIODIC, attributes, get_handler, post_handler, put_handler, delete_handler, { .periodic = &periodic_##name } }; \
+  periodic_resource_t periodic_##name = { NULL, &name, period, { { 0 } }, periodic_handler };
+
+
 #define PLEXI_WITH_VICINITY_MONITOR 0
 
 #if PLEXI_WITH_VICINITY_MONITOR
@@ -96,6 +102,7 @@
 #endif
 
 #define PLEXI_MAX_STATISTICS 7
+#define PLEXI_STATS_UPDATE_INTERVAL (30*CLOCK_SECOND)
 
 typedef enum {
 	NONE = 0,
@@ -147,6 +154,12 @@ struct plexi_stats_struct {
 	plexi_stats_value_t value;
 	LIST_STRUCT(enhancement);
 };
+
+#define PLEXI_WITH_TRAFFIC_GENERATOR 1
+
+#if PLEXI_WITH_TRAFFIC_GENERATOR
+	#define PLEXI_TRAFFIC_STEP (CLOCK_SECOND)
+#endif
 
 void plexi_init();
 

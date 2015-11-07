@@ -575,6 +575,9 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
 
     current_packet->transmissions++;
     current_packet->ret = mac_tx_status;
+	current_packet->timeslot = current_link->timeslot;
+	//current_packet->channel_offset = current_link->channel_offset;
+	current_packet->slotframe_handle = current_link->slotframe_handle;
 
     /* Post TX: Update neighbor state */
     in_queue = update_neighbor_state(current_neighbor, current_packet, current_link, mac_tx_status);

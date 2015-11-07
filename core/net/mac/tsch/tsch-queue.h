@@ -100,6 +100,9 @@ struct tsch_packet {
   struct queuebuf *qb;  /* pointer to the queuebuf to be sent */
   mac_callback_t sent; /* callback for this packet */
   void *ptr; /* MAC callback parameter */
+  uint16_t timeslot; /* timeslot the packet was sent or received on*/
+  //uint16_t channel_offset; /* channel offset the packet was sent or received on*/
+  uint16_t slotframe_handle;
   uint8_t transmissions; /* #transmissions performed for this packet */
   uint8_t ret; /* status -- MAC return code */
   uint8_t header_len; /* length of header and header IEs (needed for link-layer security) */
