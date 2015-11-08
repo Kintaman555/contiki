@@ -128,6 +128,8 @@ static int inbox_msg_lock = NO_LOCK;
 static uint16_t new_tx_slotframe = 0;
 static uint16_t new_tx_timeslot = 0;
 
+static uint16_t traffic_counter = 0;
+
 
 /*********** RICH scheduler resources *************************************************************/
 
@@ -577,7 +579,8 @@ static void route_changed_callback(int event, uip_ipaddr_t *route, uip_ipaddr_t 
 #if PLEXI_WITH_TRAFFIC_GENERATOR
 
 static void plexi_generate_traffic(void* ptr) {
-	snprintf(TRAFFIC,12,"%x.%lx",current_asn.ms1b, current_asn.ls4b);
+	snprintf(TRAFFIC,12,"%u",++traffic_counter);
+	printf("PLEXIFLEX,%x.%lx,%u\n",current_asn.ms1b, current_asn.ls4b,traffic_counter);
 	plexi_neighbors_event_handler();
 	*TRAFFIC = '\0';
 }
