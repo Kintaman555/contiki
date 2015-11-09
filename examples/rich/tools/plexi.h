@@ -158,7 +158,7 @@ struct plexi_stats_struct {
 #define PLEXI_WITH_TRAFFIC_GENERATOR 1
 
 #if PLEXI_WITH_TRAFFIC_GENERATOR
-	#define PLEXI_TRAFFIC_STEP (CLOCK_SECOND)
+	#define PLEXI_TRAFFIC_STEP (5*CLOCK_SECOND)
 #endif
 
 void plexi_init();
