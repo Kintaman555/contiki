@@ -564,7 +564,7 @@ static void plexi_neighbors_event_handler(void) {
 /* Wait for 30s without activity before notifying subscribers */
 static struct ctimer route_changed_timer;
 
-static void plexi_route_changed_handler(void) {
+static void plexi_route_changed_handler(void* ptr) {
 	REST.notify_subscribers(&resource_rpl_dag);
 	REST.notify_subscribers(&resource_6top_nbrs);
 }
@@ -575,7 +575,7 @@ static void route_changed_callback(int event, uip_ipaddr_t *route, uip_ipaddr_t 
   /* We have added or removed a routing entry, notify subscribers */
 	if(event == UIP_DS6_NOTIFICATION_ROUTE_ADD || event == UIP_DS6_NOTIFICATION_ROUTE_RM) {
 		printf("PLEXI: notifying observers of rpl/dag resource \n");//setting route_changed callback with 30s delay\n");
-		ctimer_set(&route_changed_timer, 30*CLOCK_SECOND, (void(*)(void *))plexi_route_changed_handler, NULL);
+		ctimer_set(&route_changed_timer, 30*CLOCK_SECOND, plexi_route_changed_handler, NULL);
 	}
 }
 
