@@ -102,7 +102,7 @@
 #endif
 
 #define PLEXI_MAX_STATISTICS 7
-#define PLEXI_STATS_UPDATE_INTERVAL (60*CLOCK_SECOND)
+#define PLEXI_STATS_UPDATE_INTERVAL (15*CLOCK_SECOND)
 
 typedef enum {
 	NONE = 0,
@@ -158,7 +158,7 @@ struct plexi_stats_struct {
 #define PLEXI_WITH_TRAFFIC_GENERATOR 1
 
 #if PLEXI_WITH_TRAFFIC_GENERATOR
-	#define PLEXI_TRAFFIC_STEP (5*CLOCK_SECOND)
+	#define PLEXI_TRAFFIC_STEP (CLOCK_SECOND)
 #endif
 
 void plexi_init();
