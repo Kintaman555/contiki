@@ -251,13 +251,12 @@
       <moterelations>true</moterelations>
       <skin>org.contikios.cooja.plugins.skins.IDVisualizerSkin</skin>
       <skin>org.contikios.cooja.plugins.skins.GridVisualizerSkin</skin>
-      <skin>org.contikios.cooja.plugins.skins.TrafficVisualizerSkin</skin>
       <skin>org.contikios.cooja.plugins.skins.UDGMVisualizerSkin</skin>
       <skin>org.contikios.cooja.plugins.skins.MoteTypeVisualizerSkin</skin>
-      <viewport>4.533010972205656 0.0 0.0 4.533010972205656 4.466153401759115 74.81879701159284</viewport>
+      <viewport>6.527535799976145 0.0 0.0 6.527535799976145 -56.448739101466956 21.419067696693393</viewport>
     </plugin_config>
     <width>400</width>
-    <z>0</z>
+    <z>1</z>
     <height>400</height>
     <location_x>1</location_x>
     <location_y>1</location_y>
@@ -270,8 +269,8 @@
       <coloring />
     </plugin_config>
     <width>1458</width>
-    <z>3</z>
-    <height>240</height>
+    <z>0</z>
+    <height>686</height>
     <location_x>400</location_x>
     <location_y>160</location_y>
   </plugin>
@@ -295,9 +294,9 @@
     </plugin_config>
     <width>1858</width>
     <z>2</z>
-    <height>166</height>
+    <height>289</height>
     <location_x>0</location_x>
-    <location_y>988</location_y>
+    <location_y>865</location_y>
   </plugin>
   <plugin>
     org.contikios.cooja.plugins.Notes
@@ -306,7 +305,7 @@
       <decorations>true</decorations>
     </plugin_config>
     <width>1178</width>
-    <z>1</z>
+    <z>3</z>
     <height>160</height>
     <location_x>680</location_x>
     <location_y>0</location_y>
