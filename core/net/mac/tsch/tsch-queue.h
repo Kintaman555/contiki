@@ -80,6 +80,9 @@
 #define TSCH_MAC_MAX_FRAME_RETRIES 8
 #endif
 
+#define TSCH_QUEUE_EVENT_SHRINK 1
+#define TSCH_QUEUE_EVENT_GROW 2
+
 /*********** Callbacks *********/
 
 /* Called by TSCH when switching time source */
@@ -91,6 +94,11 @@ void TSCH_CALLBACK_NEW_TIME_SOURCE(struct tsch_neighbor *old, struct tsch_neighb
 /* Called by TSCH every time a packet is ready to be added to the send queue */
 #ifdef TSCH_CALLBACK_PACKET_READY
 void TSCH_CALLBACK_PACKET_READY(void);
+#endif
+
+/* Called by TSCH every time a queue grows or shrinks*/
+#ifdef TSCH_CALLBACK_QUEUE_CHANGED
+void TSCH_CALLBACK_QUEUE_CHANGED(uint8_t, tsch_neighbor*);
 #endif
 
 /************ Types ***********/
