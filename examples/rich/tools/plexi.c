@@ -45,17 +45,12 @@
 #define LINK_GET_LOCK 6
 #define LINK_DEL_LOCK 7
 #define LINK_POST_LOCK 8
-#define STATS_GET_LOCK 9
-#define STATS_DEL_LOCK 10
-#define STATS_POST_LOCK 11
 
 #define DEBUG DEBUG_PRINT
-#define SM_UPDATE_INTERVAL (60 * CLOCK_SECOND)
 #define CONTENT_PRINTF(...) { \
 	if(content_len < sizeof(content)) \
 		content_len += snprintf(content+content_len, sizeof(content)-content_len, __VA_ARGS__); \
 }
-#define CLIP(value, level) if (value > level) { value = level; }
 
 static void plexi_dag_event_handler(void);
 static void plexi_get_dag_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
@@ -76,35 +71,42 @@ static void plexi_delete_links_handler(void *request, void *response, uint8_t *b
 static void plexi_post_links_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
 static void plexi_links_event_handler(void);
 
-static void plexi_stats_event_handler(void);
-static void plexi_get_stats_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
-static void plexi_delete_stats_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
-static void plexi_post_stats_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
+#if PLEXI_WITH_LINK_STATISTICS
+	#define STATS_GET_LOCK 9
+	#define STATS_DEL_LOCK 10
+	#define STATS_POST_LOCK 11
+	static void plexi_stats_event_handler(void);
+	static void plexi_get_stats_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
+	static void plexi_delete_stats_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
+	static void plexi_post_stats_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
 
-int jsonparse_find_field(struct jsonparse_state *js, char *field_buf, int field_buf_len);
-static int na_to_linkaddr(const char *na_inbuf, int bufsize, linkaddr_t *linkaddress);
-static int linkaddr_to_na(char* buf, linkaddr_t *addr);
+	static void plexi_packet_received(void);
+	static void plexi_packet_sent(int mac_status);
+	void plexi_update_ewma_statistics(uint8_t metric, void* old_value, plexi_stats_value_t new_value);
 
-static void plexi_packet_received(void);
-static void plexi_packet_sent(int mac_status);
-void plexi_update_ewma_statistics(uint8_t metric, void* old_value, plexi_stats_value_t new_value);
+	void plexi_purge_neighbor_statistics(linkaddr_t *neighbor);
+	void plexi_purge_statistics(plexi_stats *stats);
+	void plexi_purge_link_statistics(struct tsch_link *link);
+	void plexi_purge_enhanced_statistics(plexi_enhanced_stats *stats);
 
-void plexi_purge_neighbor_statistics(linkaddr_t *neighbor);
-void plexi_purge_statistics(plexi_stats *stats);
-void plexi_purge_link_statistics(struct tsch_link *link);
-void plexi_purge_enhanced_statistics(plexi_enhanced_stats *stats);
+	uint16_t plexi_get_statistics_id(plexi_stats* stats);
+	int plexi_set_statistics_id(plexi_stats* stats, uint16_t id);
+	uint8_t plexi_get_statistics_enable(plexi_stats* stats);
+	int plexi_set_statistics_enable(plexi_stats* stats, uint8_t enable);
+	uint8_t plexi_get_statistics_metric(plexi_stats* stats);
+	int plexi_set_statistics_metric(plexi_stats* stats, uint8_t metric);
+	uint16_t plexi_get_statistics_window(plexi_stats* stats);
+	int plexi_set_statistics_window(plexi_stats* stats, uint16_t window);
 
-uint16_t plexi_get_statistics_id(plexi_stats* stats);
-int plexi_set_statistics_id(plexi_stats* stats, uint16_t id);
-uint8_t plexi_get_statistics_enable(plexi_stats* stats);
-int plexi_set_statistics_enable(plexi_stats* stats, uint8_t enable);
-uint8_t plexi_get_statistics_metric(plexi_stats* stats);
-int plexi_set_statistics_metric(plexi_stats* stats, uint8_t metric);
-uint16_t plexi_get_statistics_window(plexi_stats* stats);
-int plexi_set_statistics_window(plexi_stats* stats, uint16_t window);
+	MEMB(plexi_stats_mem, plexi_stats, PLEXI_MAX_STATISTICS);
+	MEMB(plexi_enhanced_stats_mem, plexi_enhanced_stats, PLEXI_MAX_STATISTICS);
 
-void printubin(plexi_stats_value_t a);
-void printsbin(plexi_stats_value_st a);
+	RIME_SNIFFER(plexi_sniffer, plexi_packet_received, plexi_packet_sent);
+
+	void printubin(plexi_stats_value_t a);
+	void printsbin(plexi_stats_value_st a);
+
+#endif
 
 #if PLEXI_WITH_VICINITY_MONITOR
 	static void plexi_vicinity_updater(void* ptr);
@@ -115,10 +117,15 @@ void printsbin(plexi_stats_value_st a);
 	LIST(plexi_vicinity);
 #endif
 
-MEMB(plexi_stats_mem, plexi_stats, PLEXI_MAX_STATISTICS);
-MEMB(plexi_enhanced_stats_mem, plexi_enhanced_stats, PLEXI_MAX_STATISTICS);
+#if PLEXI_WITH_QUEUE_STATISTICS
+	static void plexi_get_queue_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
+	static void plexi_queue_event_handler(void);
+	static void plexi_queue_changed(uint8_t event, struct tsch_neighbor* n);
+#endif
 
-RIME_SNIFFER(plexi_sniffer, plexi_packet_received, plexi_packet_sent);
+int jsonparse_find_field(struct jsonparse_state *js, char *field_buf, int field_buf_len);
+static int na_to_linkaddr(const char *na_inbuf, int bufsize, linkaddr_t *linkaddress);
+static int linkaddr_to_na(char* buf, linkaddr_t *addr);
 
 static struct ctimer ct;
 static char content[MAX_DATA_LEN];
@@ -339,14 +346,24 @@ static void plexi_dag_event_handler() {
 /**************************************************************************************************/
 /** Observable neighbor list resource and event handler to obtain all neighbor data 			  */
 /**************************************************************************************************/
+#ifdef PLEXI_NEIGHBOR_UPDATE_INTER
 PARENT_PERIODIC_RESOURCE(resource_6top_nbrs,								/* name */
 		"obs;title=\"6top neighbours\"",						/* attributes */
 		plexi_get_neighbors_handler,							/* GET handler */
 		NULL,													/* POST handler */
 		NULL,													/* PUT handler */
 		NULL,													/* DELETE handler */
-		PLEXI_STATS_UPDATE_INTERVAL,
+		PLEXI_NEIGHBOR_UPDATE_INTERVAL,
 		plexi_neighbors_event_handler);							/* EVENT handler */
+#else
+PARENT_RESOURCE(resource_6top_nbrs,								/* name */
+		"title=\"6top neighbours\"",						/* attributes */
+		plexi_get_neighbors_handler,							/* GET handler */
+		NULL,													/* POST handler */
+		NULL,													/* PUT handler */
+		NULL													/* DELETE handler */
+		);
+#endif
 
 #if PLEXI_WITH_TRAFFIC_GENERATOR
 	char TRAFFIC[12] = {'\0'};
@@ -409,6 +426,7 @@ static void plexi_get_neighbors_handler(void *request, void *response, uint8_t *
 				}
 			}
 		}
+#if PLEXI_WITH_LINK_STATISTICS
 		if((uri_len > base_len + 1 && strcmp(NEIGHBORS_TNA_LABEL,uri_subresource) \
 			  && strcmp(STATS_RSSI_LABEL,uri_subresource) \
 			  && strcmp(STATS_LQI_LABEL,uri_subresource) \
@@ -420,12 +438,15 @@ static void plexi_get_neighbors_handler(void *request, void *response, uint8_t *
 			coap_set_payload(response, "Supports only queries on neighbor address", 41);
 			return;
 		}
-		struct tsch_neighbor *neighbor = NULL;
-		if(!linkaddr_cmp(&tna,&linkaddr_null)) {
-			neighbor = (struct tsch_neighbor *)tsch_queue_get_nbr(&tna);
-		} else {
-			neighbor = (struct tsch_neighbor *)tsch_queue_get_nbr_next(NULL);
+#else
+		if((uri_len > base_len + 1 && strcmp(NEIGHBORS_TNA_LABEL,uri_subresource)) \
+			|| (query && !query_value)) {
+			coap_set_status_code(response, BAD_REQUEST_4_00);
+			coap_set_payload(response, "Supports only queries on neighbor address", 41);
+			return;
 		}
+#endif
+		
 		uint8_t found = 0;
 		char buf[32];
 		if(linkaddr_cmp(&tna,&linkaddr_null)) {
@@ -452,6 +473,7 @@ static void plexi_get_neighbors_handler(void *request, void *response, uint8_t *
 						CONTENT_PRINTF("\"%s\"",buf);
 					}
 				} else {
+#if PLEXI_WITH_LINK_STATISTICS
 					int rssi = (int)0xFFFFFFFFFFFFFFFF, lqi = -1, asn = -1, etx = -1, pdr = -1;
 					int rssi_counter = 0, lqi_counter = 0, asn_counter = 0, etx_counter = 0, pdr_counter = 0;
 					struct tsch_slotframe * slotframe = (struct tsch_slotframe*)tsch_schedule_get_next_slotframe(NULL);
@@ -538,35 +560,38 @@ static void plexi_get_neighbors_handler(void *request, void *response, uint8_t *
 						}
 						CONTENT_PRINTF("}");
 					}
+#else
+					if(base_len == uri_len) {
+						CONTENT_PRINTF("{\"%s\":\"%s\"}", NEIGHBORS_TNA_LABEL, buf);
+					}
+#endif
 				}
 			}
 		}
 		if(linkaddr_cmp(&tna,&linkaddr_null)) { CONTENT_PRINTF("]"); }
-		//if(!first_item && found) {
-			REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
-			REST.set_response_payload(response, (uint8_t *)content, content_len);
-		//} else {
-		//	coap_set_status_code(response, NOT_FOUND_4_04);
-		//	coap_set_payload(response, "No neighbor was found", 21);
-		//	return;
-		//}
+		REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
+		REST.set_response_payload(response, (uint8_t *)content, content_len);
 	} else {
 		coap_set_status_code(response, NOT_ACCEPTABLE_4_06);
 		return;
 	}
 }
 
-/* Notifies all clients who observe changes to the 6top/nbrs resource */
-static void plexi_neighbors_event_handler(void) {
-	REST.notify_subscribers(&resource_6top_nbrs);
-}
+#ifdef PLEXI_NEIGHBOR_UPDATE_INTERVAL
+	/* Notifies all clients who observe changes to the 6top/nbrs resource */
+	static void plexi_neighbors_event_handler(void) {
+		REST.notify_subscribers(&resource_6top_nbrs);
+	}
+#endif
 
 /* Wait for 30s without activity before notifying subscribers */
 static struct ctimer route_changed_timer;
 
 static void plexi_route_changed_handler(void* ptr) {
 	REST.notify_subscribers(&resource_rpl_dag);
+#ifdef PLEXI_NEIGHBOR_UPDATE_INTERVAL
 	REST.notify_subscribers(&resource_6top_nbrs);
+#endif
 }
 /* Callback function to be called when a change to the rpl/dag resource has occurred.
  * Any change is delayed 30seconds before it is propagated to the observers.
@@ -919,7 +944,7 @@ PARENT_PERIODIC_RESOURCE(resource_6top_links,		/* name */
 		plexi_post_links_handler,			/* POST handler */
 		NULL,								/* PUT handler */
 		plexi_delete_links_handler,			/* DELETE handler */
-		PLEXI_STATS_UPDATE_INTERVAL,
+		PLEXI_LINK_UPDATE_INTERVAL,
 		plexi_links_event_handler);
 
 /** Gets (details about) a set of links as specified by the query.
@@ -1075,6 +1100,7 @@ static void plexi_get_links_handler(void *request, void *response, uint8_t *buff
 									return;
 								}
 							} else if(!strcmp(LINK_STATS_LABEL,uri_subresource)) {
+#if PLEXI_WITH_LINK_STATISTICS
 								if(memb_inmemb(&plexi_stats_mem, link->data)) {
 									plexi_stats *stats = (plexi_stats*)link->data;
 									uint8_t first_stat = 1;
@@ -1093,10 +1119,13 @@ static void plexi_get_links_handler(void *request, void *response, uint8_t *buff
 										stats = stats->next;
 									}
 								} else {
+#endif
 									coap_set_status_code(response, NOT_FOUND_4_04);
 									coap_set_payload(response, "No specified statistics was found", 33);
 									return;
+#if PLEXI_WITH_LINK_STATISTICS
 								}
+#endif
 							} else {
 								CONTENT_PRINTF("{\"%s\":%u,\"%s\":%u,\"%s\":%u,\"%s\":%u,\"%s\":%u,\"%s\":%u",\
 									LINK_ID_LABEL, link->handle, FRAME_ID_LABEL, link->slotframe_handle, \
@@ -1107,6 +1136,7 @@ static void plexi_get_links_handler(void *request, void *response, uint8_t *buff
 									linkaddr_to_na(na, &link->addr);
 									CONTENT_PRINTF(",\"%s\":\"%s\"",NEIGHBORS_TNA_LABEL,na);
 								}
+#if PLEXI_WITH_LINK_STATISTICS
 								if(memb_inmemb(&plexi_stats_mem, link->data)) {
 									CONTENT_PRINTF(",\"%s\":[",LINK_STATS_LABEL);
 									plexi_stats *stats = (plexi_stats*)link->data;
@@ -1127,6 +1157,7 @@ static void plexi_get_links_handler(void *request, void *response, uint8_t *buff
 									}
 									CONTENT_PRINTF("]");
 								}
+#endif
 								CONTENT_PRINTF("}");
 							}
 						}
@@ -1422,7 +1453,7 @@ static void plexi_links_event_handler() {
 }
 
 
-
+#if PLEXI_WITH_LINK_STATISTICS
 /**************************************************************************************************/
 /** Resource and handler to GET, POST and DELETE statistics										  */ 
 /**************************************************************************************************/
@@ -2124,126 +2155,6 @@ static void plexi_post_stats_handler(void* request, void* response, uint8_t *buf
 	}
 }
 
-#if PLEXI_WITH_TRAFFIC_GENERATOR
-
-PROCESS(plexi_traffic_process, "plexi");
-
-/* The logging process */
-PROCESS_THREAD(plexi_traffic_process, ev, data)
-{
-	static struct etimer periodic;
-	PROCESS_BEGIN();
-	etimer_set(&periodic, PLEXI_TRAFFIC_STEP);
-	while(1) {
-		PROCESS_WAIT_UNTIL(etimer_expired(&periodic));
-		etimer_reset(&periodic);
-		plexi_generate_traffic(NULL);
-	}
-	PROCESS_END();
-}
-
-#endif
-
-void plexi_init() {
-	static struct uip_ds6_notification n;
-	rime_sniffer_add(&plexi_sniffer);
-
-#if PLEXI_WITH_VICINITY_MONITOR
-	memb_init(&plexi_vicinity_mem);
-	list_init(plexi_vicinity);
-	ctimer_set(&ct, 10*PLEXI_PHEROMONE_WINDOW, plexi_vicinity_updater, NULL);
-	rest_activate_resource(&resource_mac_vicinity, VICINITY_RESOURCE);
-#endif
-
-#if PLEXI_WITH_TRAFFIC_GENERATOR
-	process_start(&plexi_traffic_process, NULL);
-#endif
-
-	memb_init(&plexi_stats_mem);
-	memb_init(&plexi_enhanced_stats_mem);
-	
-	rest_init_engine();
-	rest_activate_resource(&resource_rpl_dag, DAG_RESOURCE);
-	rest_activate_resource(&resource_6top_nbrs, NEIGHBORS_RESOURCE);
-	rest_activate_resource(&resource_6top_slotframe, FRAME_RESOURCE);
-	rest_activate_resource(&resource_6top_links, LINK_RESOURCE);
-	rest_activate_resource(&resource_6top_stats, STATS_RESOURCE);
-	/* A callback for routing table changes */
-	uip_ds6_notification_add(&n, route_changed_callback);
-	printf("\n*** PLEXI: initializing scheduler interface ***\n");
-}
-
-/* Utility function for json parsing */
-int jsonparse_find_field(struct jsonparse_state *js, char *field_buf, int field_buf_len) {
-	int state=jsonparse_next(js);
-	while(state) {
-		switch(state) {
-			case JSON_TYPE_PAIR_NAME:
-				jsonparse_copy_value(js, field_buf, field_buf_len);
-				/* Move to ":" */
-				jsonparse_next(js);
-				/* Move to value and return its type */
-				return jsonparse_next(js);
-			default:
-				return state;
-		}
-		state=jsonparse_next(js);
-	}
-	return 0;
-}
-/* Utility function. Converts na field (string containing the lower 64bit of the IPv6) to
- * 64-bit MAC. */
-static int na_to_linkaddr(const char *na_inbuf, int bufsize, linkaddr_t *linkaddress) {
-	int i;
-	char next_end_char = ':';
-	const char *na_inbuf_end = na_inbuf + bufsize - 1;
-	char *end;
-	unsigned val;
-	for(i=0; i<4; i++) {
-		if(na_inbuf >= na_inbuf_end) {
-			return 0;
-		}
-		if(i == 3) {
-			next_end_char = '\0';
-		}
-		val = (unsigned)strtoul(na_inbuf, &end, 16);
-		/* Check conversion */
-		if(end != na_inbuf && *end == next_end_char && errno != ERANGE) {
-			linkaddress->u8[2*i] = val >> 8;
-			linkaddress->u8[2*i+1] = val;
-			na_inbuf = end+1;
-		} else {
-			return 0;
-		}
-	}
-	/* We consider only links with IEEE EUI-64 identifier */
-	linkaddress->u8[0] ^= 0x02;
-	return 1;
-}
-
-static int linkaddr_to_na(char *buf, linkaddr_t *addr) {
-	char *pointer = buf;
-	unsigned int i;
-	for(i = 0; i < sizeof(linkaddr_t); i++) {
-		if(i > 1 && i!=3 && i!=4 && i!=7) {
-			*pointer = ':';
-			pointer++;
-		}
-		if(i==4){
-			continue;
-		}
-		if(i==0) {
-			sprintf(pointer, "%x", addr->u8[i]^0x02);
-			pointer++;
-		} else {
-			sprintf(pointer, "%02x", addr->u8[i]);
-			pointer+=2;
-		}
-	}
-	sprintf(pointer, "\0");
-	return strlen(buf);
-}
-
 static void plexi_packet_received(void) {
 	linkaddr_t* sender = (linkaddr_t*)packetbuf_addr(PACKETBUF_ADDR_SENDER);
 	linkaddr_t* self = (linkaddr_t*)packetbuf_addr(PACKETBUF_ADDR_RECEIVER);
@@ -2433,23 +2344,23 @@ void plexi_purge_enhanced_statistics(plexi_enhanced_stats *stats) {
 
 uint16_t plexi_get_statistics_id(plexi_stats* stats) {
 	if(!stats) return (uint16_t)(-1);
-#if PLEXI_STATISTICS_MODE == PLEXI_DENSE_STATISTICS
+#if PLEXI_STATISTICS_MODE & PLEXI_DENSE_STATISTICS == PLEXI_DENSE_STATISTICS
 	return (uint16_t)(stats->metainfo>>5)&31;
-#elif PLEXI_STATISTICS_MODE == PLEXI_DETAILED_STATISTICS
+#else
 	return stats->id;
 #endif
 }
 
 int plexi_set_statistics_id(plexi_stats* stats, uint16_t id) {
 	if(!stats) return 0;
-#if PLEXI_STATISTICS_MODE == PLEXI_DENSE_STATISTICS
+#if PLEXI_STATISTICS_MODE & PLEXI_DENSE_STATISTICS == PLEXI_DENSE_STATISTICS
 	if(id<32) {
 		stats->metainfo = (stats->metainfo&64543)|(id<<5);
 		return 1;
 	} else {
 		return 0;
 	}
-#elif PLEXI_STATISTICS_MODE == PLEXI_DETAILED_STATISTICS
+#else
 	stats->id = id;
 	return 1;
 #endif
@@ -2457,23 +2368,23 @@ int plexi_set_statistics_id(plexi_stats* stats, uint16_t id) {
 
 uint8_t plexi_get_statistics_enable(plexi_stats* stats) {
 	if(!stats) return (uint8_t)(-1);
-#if PLEXI_STATISTICS_MODE == PLEXI_DENSE_STATISTICS
+#if PLEXI_STATISTICS_MODE & PLEXI_DENSE_STATISTICS == PLEXI_DENSE_STATISTICS
 	return (uint8_t)(stats->metainfo&1);
-#elif PLEXI_STATISTICS_MODE == PLEXI_DETAILED_STATISTICS
+#else
 	return stats->enable;
 #endif
 }
 
 int plexi_set_statistics_enable(plexi_stats* stats, uint8_t enable) {
 	if(!stats) return 0;
-#if PLEXI_STATISTICS_MODE == PLEXI_DENSE_STATISTICS
+#if PLEXI_STATISTICS_MODE & PLEXI_DENSE_STATISTICS == PLEXI_DENSE_STATISTICS
 	if(enable<2) {
 		stats->metainfo = (stats->metainfo&65534)|enable;
 		return 1;
 	} else {
 		return 0;
 	}
-#elif PLEXI_STATISTICS_MODE == PLEXI_DETAILED_STATISTICS
+#else
 	stats->enable = enable;
 	return 1;
 #endif
@@ -2481,23 +2392,23 @@ int plexi_set_statistics_enable(plexi_stats* stats, uint8_t enable) {
 
 uint8_t plexi_get_statistics_metric(plexi_stats* stats) {
 	if(!stats) return (uint8_t)(-1);
-#if PLEXI_STATISTICS_MODE == PLEXI_DENSE_STATISTICS
+#if PLEXI_STATISTICS_MODE & PLEXI_DENSE_STATISTICS == PLEXI_DENSE_STATISTICS
 	return (uint8_t)((stats->metainfo>>1)&15);
-#elif PLEXI_STATISTICS_MODE == PLEXI_DETAILED_STATISTICS
+#else
 	return stats->metric;
 #endif
 }
 
 int plexi_set_statistics_metric(plexi_stats* stats, uint8_t metric) {
 	if(!stats) return 0;
-#if PLEXI_STATISTICS_MODE == PLEXI_DENSE_STATISTICS
+#if PLEXI_STATISTICS_MODE & PLEXI_DENSE_STATISTICS == PLEXI_DENSE_STATISTICS
 	if(metric<16) {
 		stats->metainfo = (stats->metainfo&65505)|(metric<<1);
 		return 1;
 	} else {
 		return 0;
 	}
-#elif PLEXI_STATISTICS_MODE == PLEXI_DETAILED_STATISTICS
+#else
 	stats->metric = metric;
 	return 1;
 #endif
@@ -2505,23 +2416,23 @@ int plexi_set_statistics_metric(plexi_stats* stats, uint8_t metric) {
 
 uint16_t plexi_get_statistics_window(plexi_stats* stats) {
 	if(!stats) return (uint16_t)(-1);
-#if PLEXI_STATISTICS_MODE == PLEXI_DENSE_STATISTICS
+#if PLEXI_STATISTICS_MODE & PLEXI_DENSE_STATISTICS == PLEXI_DENSE_STATISTICS
 	return (uint16_t)(stats->metainfo>>10);
-#elif PLEXI_STATISTICS_MODE == PLEXI_DETAILED_STATISTICS
+#else
 	return stats->window;
 #endif
 }
 
 int plexi_set_statistics_window(plexi_stats* stats, uint16_t window) {
 	if(!stats) return 0;
-#if PLEXI_STATISTICS_MODE == PLEXI_DENSE_STATISTICS
+#if PLEXI_STATISTICS_MODE & PLEXI_DENSE_STATISTICS == PLEXI_DENSE_STATISTICS
 	if(window<64) {
 		stats->metainfo = (stats->metainfo&1023)|(window<<10);
 		return 1;
 	} else {
 		return 0;
 	}
-#elif PLEXI_STATISTICS_MODE == PLEXI_DETAILED_STATISTICS
+#else
 	stats->window = window;
 	return 1;
 #endif
@@ -2549,4 +2460,246 @@ void printsbin(plexi_stats_value_st a) {
 	for (i = 0; i<8*sizeof(plexi_stats_value_t); i++) {
 		printf("%c",buf[i]);
 	}
+}
+
+#endif
+
+#if PLEXI_WITH_QUEUE_STATISTICS
+
+/**************************************************************************************************/
+/** Observable queuelist resource and event handler to obtain txqlength 						  */ 
+/**************************************************************************************************/
+
+PARENT_PERIODIC_RESOURCE(resource_6top_queue,					//* name
+               "obs;title=\"6TOP Queue statistics\"",			//* attributes
+               plexi_get_queue_handler,							//* GET handler
+               NULL,											//* POST handler
+               NULL,											//* PUT handler
+               NULL,											//* DELETE handler
+               PLEXI_QUEUE_UPDATE_INTERVAL,
+               plexi_queue_event_handler);
+
+
+/* Responds to GET with a JSON object with the following format:
+ * {
+ * 		"215:8d00:57:6466":5,
+ * 		"215:8d00:57:6499":1
+ * }
+ * Each item in the object has the format: "EUI 64 address":<# of packets in tx queue>
+ * */
+static void plexi_get_queue_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset) {
+	content_len = 0;
+	unsigned int accept = -1;
+	REST.get_header_accept(request, &accept);
+	if(accept == -1 || accept == REST.type.APPLICATION_JSON) {
+		char *end;
+		char *uri_path = NULL;
+		int uri_len = REST.get_url(request, (const char**)(&uri_path));
+		/* If you need to handle subresources or queries edit the commented code below 
+		const char *query = NULL;
+		int base_len = 0, query_len = 0, query_value_len = 0;
+		char *uri_subresource = NULL, *query_value = NULL;
+		uint8_t id = 0;
+
+		if(uri_len>0) {
+			*(uri_path+uri_len) = '\0';
+			base_len = strlen(resource_6top_queue.url);
+			uri_subresource = uri_path+base_len;
+			if(*uri_subresource == '/') {
+				uri_subresource++;
+			}
+			query_len = REST.get_query(request, &query);
+			query_value_len = REST.get_query_variable(request, QUEUE_ID_LABEL, (const char**)(&query_value));
+			if(query_value) {
+				*(query_value+query_value_len) = '\0';
+				id = (uint8_t)strtoul(query_value, &end, 10);
+			}
+		}
+		if((uri_len > base_len + 1 && strcmp(QUEUE_ID_LABEL,uri_subresource) \
+			  && strcmp(QUEUE_TXLEN_LABEL,uri_subresource) \
+			  ) || (query && !query_value)) {
+			coap_set_status_code(response, BAD_REQUEST_4_00);
+			coap_set_payload(response, "Supports only queries on queue id", 33);
+			return;
+		}
+		*/
+		// Run through all the neighbors. Each neighbor has one queue. There are two extra for the EBs and the broadcast messages.
+		// The function tsch_queue_get_nbr_next is defined by George in tsch_queue.h/.c
+		int first_item = 1;
+		char buf[32];
+		struct tsch_neighbor *neighbor = NULL;
+		for(neighbor = (struct tsch_neighbor *)tsch_queue_get_nbr_next(NULL);
+			  neighbor != NULL;
+			  neighbor = (struct tsch_neighbor *)tsch_queue_get_nbr_next(neighbor)) {
+			linkaddr_t tna = neighbor->addr; // get the link layer address of neighbor
+			int txlength = tsch_queue_packet_count(&tna); // get the size of his queue
+			int success = linkaddr_to_na(buf, &tna); //convert his address to string
+			if(success) { // if the address was valid
+				if(first_item) {
+					CONTENT_PRINTF("{");
+				} else {
+					CONTENT_PRINTF(",");
+				}
+				first_item = 0;
+				CONTENT_PRINTF("\"%s\":%d", buf, txlength); // put to the output string the new JSON item
+			}
+		}
+		if(!first_item) { //if you found at least one queue
+			CONTENT_PRINTF("}");
+			REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
+			REST.set_response_payload(response, (uint8_t *)content, content_len);
+		} else { // if no queues
+			coap_set_status_code(response, NOT_FOUND_4_04);
+			coap_set_payload(response, "No neighbor was found", 21);
+			return;
+		}
+	} else {
+		coap_set_status_code(response, NOT_ACCEPTABLE_4_06);
+		return;
+	}
+}
+
+static void plexi_queue_event_handler(void) {
+	REST.notify_subscribers(&resource_6top_queue);
+}
+
+static void plexi_queue_changed(uint8_t event, struct tsch_neighbor* n) {
+	// There are two events coming from queues TSCH_QUEUE_EVENT_SHRINK and TSCH_QUEUE_EVENT_GROW
+	// For now we do not treat them separately and we let plexi return the complete list of queues when there is a change even on one.
+	plexi_queue_event_handler();
+	// For handling better the events work on the following
+	/*
+	if(event == TSCH_QUEUE_EVENT_SHRINK) {
+		
+	} else if(event == TSCH_QUEUE_EVENT_GROW) {
+		
+	}
+	*/
+}
+
+#endif
+
+#if PLEXI_WITH_TRAFFIC_GENERATOR
+
+	PROCESS(plexi_traffic_process, "plexi");
+
+	/* The logging process */
+	PROCESS_THREAD(plexi_traffic_process, ev, data)
+	{
+		static struct etimer periodic;
+		PROCESS_BEGIN();
+		etimer_set(&periodic, PLEXI_TRAFFIC_STEP);
+		while(1) {
+			PROCESS_WAIT_UNTIL(etimer_expired(&periodic));
+			etimer_reset(&periodic);
+			plexi_generate_traffic(NULL);
+		}
+		PROCESS_END();
+	}
+
+#endif
+
+void plexi_init() {
+	static struct uip_ds6_notification n;
+	printf("\n*** PLEXI: initializing scheduler interface ***\n");
+
+#if PLEXI_WITH_TRAFFIC_GENERATOR
+	process_start(&plexi_traffic_process, NULL);
+#endif
+
+	rest_init_engine();
+	rest_activate_resource(&resource_rpl_dag, DAG_RESOURCE);
+	rest_activate_resource(&resource_6top_nbrs, NEIGHBORS_RESOURCE);
+	rest_activate_resource(&resource_6top_slotframe, FRAME_RESOURCE);
+	rest_activate_resource(&resource_6top_links, LINK_RESOURCE);
+	/* A callback for routing table changes */
+	uip_ds6_notification_add(&n, route_changed_callback);
+#if PLEXI_WITH_LINK_STATISTICS
+	rime_sniffer_add(&plexi_sniffer);
+	memb_init(&plexi_stats_mem);
+	memb_init(&plexi_enhanced_stats_mem);
+	
+	rest_activate_resource(&resource_6top_stats, STATS_RESOURCE);
+	#if PLEXI_WITH_VICINITY_MONITOR
+		memb_init(&plexi_vicinity_mem);
+		list_init(plexi_vicinity);
+		ctimer_set(&ct, 10*PLEXI_PHEROMONE_WINDOW, plexi_vicinity_updater, NULL);
+		rest_activate_resource(&resource_mac_vicinity, VICINITY_RESOURCE);
+	#endif
+#endif
+
+#if PLEXI_WITH_QUEUE_STATISTICS
+	rest_activate_resource(&resource_6top_queue, QUEUE_RESOURCE);
+#endif
+}
+
+/* Utility function for json parsing */
+int jsonparse_find_field(struct jsonparse_state *js, char *field_buf, int field_buf_len) {
+	int state=jsonparse_next(js);
+	while(state) {
+		switch(state) {
+			case JSON_TYPE_PAIR_NAME:
+				jsonparse_copy_value(js, field_buf, field_buf_len);
+				/* Move to ":" */
+				jsonparse_next(js);
+				/* Move to value and return its type */
+				return jsonparse_next(js);
+			default:
+				return state;
+		}
+		state=jsonparse_next(js);
+	}
+	return 0;
+}
+/* Utility function. Converts na field (string containing the lower 64bit of the IPv6) to
+ * 64-bit MAC. */
+static int na_to_linkaddr(const char *na_inbuf, int bufsize, linkaddr_t *linkaddress) {
+	int i;
+	char next_end_char = ':';
+	const char *na_inbuf_end = na_inbuf + bufsize - 1;
+	char *end;
+	unsigned val;
+	for(i=0; i<4; i++) {
+		if(na_inbuf >= na_inbuf_end) {
+			return 0;
+		}
+		if(i == 3) {
+			next_end_char = '\0';
+		}
+		val = (unsigned)strtoul(na_inbuf, &end, 16);
+		/* Check conversion */
+		if(end != na_inbuf && *end == next_end_char && errno != ERANGE) {
+			linkaddress->u8[2*i] = val >> 8;
+			linkaddress->u8[2*i+1] = val;
+			na_inbuf = end+1;
+		} else {
+			return 0;
+		}
+	}
+	/* We consider only links with IEEE EUI-64 identifier */
+	linkaddress->u8[0] ^= 0x02;
+	return 1;
+}
+
+static int linkaddr_to_na(char *buf, linkaddr_t *addr) {
+	char *pointer = buf;
+	unsigned int i;
+	for(i = 0; i < sizeof(linkaddr_t); i++) {
+		if(i > 1 && i!=3 && i!=4 && i!=7) {
+			*pointer = ':';
+			pointer++;
+		}
+		if(i==4){
+			continue;
+		}
+		if(i==0) {
+			sprintf(pointer, "%x", addr->u8[i]^0x02);
+			pointer++;
+		} else {
+			sprintf(pointer, "%02x", addr->u8[i]);
+			pointer+=2;
+		}
+	}
+	sprintf(pointer, "\0");
+	return strlen(buf);
 }
