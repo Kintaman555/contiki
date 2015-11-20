@@ -845,6 +845,7 @@ rpl_remove_parent(rpl_parent_t *parent)
 void
 rpl_nullify_parent(rpl_parent_t *parent)
 {
+  uip_ipaddr_t *addr;
   rpl_dag_t *dag = parent->dag;
   /* This function can be called when the preferred parent is NULL, so we
      need to handle this condition in order to trigger uip_ds6_defrt_rm. */
@@ -866,9 +867,15 @@ rpl_nullify_parent(rpl_parent_t *parent)
     }
   }
 
+  addr = rpl_get_parent_ipaddr(parent);
+
   PRINTF("RPL: Nullifying parent ");
-  PRINT6ADDR(rpl_get_parent_ipaddr(parent));
+  PRINT6ADDR(addr);
   PRINTF("\n");
+
+  if(addr != NULL) {
+    uip_ds6_route_rm_by_nexthop(addr);
+  }
 }
 /*---------------------------------------------------------------------------*/
 void
