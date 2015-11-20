@@ -94,7 +94,7 @@ unsigned toplogy_orchestra_hash(const void *addr);
 #define ORCHESTRA_CONF_LINKADDR_HASH(addr) toplogy_orchestra_hash(addr)
 
 /* RPL probing */
-#define RPL_CONF_PROBING_INTERVAL (30 * CLOCK_SECOND)
+#define RPL_CONF_PROBING_INTERVAL (15 * CLOCK_SECOND)
 #define RPL_CONF_PROBING_EXPIRATION_TIME (2 * 60 * CLOCK_SECOND)
  /* Extra probing of our hardcoded preferred parent */
 void *toplogy_probing_func(void *dag);

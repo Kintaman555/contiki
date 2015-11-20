@@ -90,9 +90,11 @@ const linkaddr_t *
 toplogy_hardcoded_parent(const linkaddr_t *addr)
 {
   int i;
-  for(i=0; i<NODE_COUNT; i++) {
-    if(linkaddr_cmp(addr, &topology[i].node)) {
-      return &topology[i].parent;
+  if(addr != NULL) {
+    for(i=0; i<NODE_COUNT; i++) {
+      if(linkaddr_cmp(addr, &topology[i].node)) {
+        return &topology[i].parent;
+      }
     }
   }
   return NULL;

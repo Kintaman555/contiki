@@ -146,6 +146,7 @@ neighbor_link_callback(rpl_parent_t *p, int status, int numtx)
 
     if(status == MAC_TX_NOACK) {
       packet_etx = MAX_LINK_METRIC * RPL_DAG_MC_ETX_DIVISOR;
+      rpl_remove_parent(p);
     }
 
     if(p->flags & RPL_PARENT_FLAG_LINK_METRIC_VALID) {
