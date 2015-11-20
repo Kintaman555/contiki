@@ -338,7 +338,7 @@ rpl_cancel_dao(rpl_instance_t *instance)
 }
 /*---------------------------------------------------------------------------*/
 #if RPL_WITH_PROBING
-static rpl_parent_t *
+rpl_parent_t *
 get_probing_target(rpl_dag_t *dag)
 {
   /* Returns the next probing target. This implementation probes the current
