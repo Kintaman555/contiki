@@ -56,6 +56,7 @@ def udpReceive():
     """RUNS ON SEPARATE THREAD """
     while True:
         data, addr = s_rx.recvfrom(128)
+        data = data.replace("\"","").strip("\0") # strip termination byte and possible
         node_data_key = node_data[addr[0]]
         # Indicate node is connected
         node_data_key[NODE_CONNECTED] = CONNECT_WATCHDOG
