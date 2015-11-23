@@ -86,9 +86,11 @@ const linkaddr_t *
 toplogy_hardcoded_parent(const linkaddr_t *addr)
 {
   int i;
-  for(i=0; i<NODE_COUNT; i++) {
-    if(linkaddr_cmp(addr, &topology[i].node)) {
-      return &topology[i].parent;
+  if(addr != NULL) {
+    for(i=0; i<NODE_COUNT; i++) {
+      if(linkaddr_cmp(addr, &topology[i].node)) {
+        return &topology[i].parent;
+      }
     }
   }
   return NULL;
@@ -107,7 +109,6 @@ toplogy_probing_func(void *vdag)
   rpl_dag_t *dag = (rpl_dag_t *)vdag;
   rpl_parent_t *p;
   rpl_parent_t *probing_target = NULL;
-  rpl_rank_t probing_target_rank = INFINITE_RANK;
   clock_time_t probing_target_age = 0;
   clock_time_t clock_now = clock_time();
   rpl_parent_t *hardcoded_parent = rpl_get_parent((uip_lladdr_t *)toplogy_hardcoded_parent(&linkaddr_node_addr));
@@ -129,22 +130,7 @@ toplogy_probing_func(void *vdag)
     return hardcoded_parent;
   }
 
-  /* With 50% probability: probe best parent not updated for RPL_PROBING_EXPIRATION_TIME */
-  if(random_rand() % 2 == 0) {
-    p = nbr_table_head(rpl_parents);
-    while(p != NULL) {
-      if(p->dag == dag && (clock_now - p->last_tx_time > RPL_PROBING_EXPIRATION_TIME)) {
-        /* p is in our dag and needs probing */
-        rpl_rank_t p_rank = dag->instance->of->calculate_rank(p, 0);
-        if(probing_target == NULL
-            || p_rank < probing_target_rank) {
-          probing_target = p;
-          probing_target_rank = p_rank;
-        }
-      }
-      p = nbr_table_next(rpl_parents, p);
-    }
-  }
+  /* If we still do not have a probing target: pick the least recently updated parent.
 
   /* If we still do not have a probing target: pick the least recently updated parent */
   if(probing_target == NULL) {

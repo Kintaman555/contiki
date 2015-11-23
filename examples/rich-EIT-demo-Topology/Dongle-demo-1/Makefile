@@ -8,7 +8,7 @@ JN516x_WITH_DONGLE = 1
 CONTIKI_WITH_IPV6 = 1
 
 PROJECTDIRS += .. ../tools
-PROJECT_SOURCEFILES += rich.c toplogy.c rpl-hardcoded-of.c #rich-scheduler-interface.c 
+PROJECT_SOURCEFILES += rich.c toplogy.c rpl-hardcoded-of.c plexi.c #rich-scheduler-interface.c 
 
 CFLAGS += -DWITH_COAP
 CFLAGS += -DREST=coap_rest_implementation

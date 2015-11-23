@@ -47,6 +47,8 @@ struct framer {
 
   int (* length)(void);
   int (* create)(void);
+  
+  /** Creates the frame and calls LLSEC.on_frame_created() */
   int (* parse)(void);
 
 };

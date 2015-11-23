@@ -96,6 +96,8 @@
 #define TSCH_MAC_MAX_FRAME_RETRIES 8
 #endif
 
+#define TSCH_QUEUE_EVENT_SHRINK 1
+#define TSCH_QUEUE_EVENT_GROW 2
 /*********** Callbacks *********/
 
 /* Called by TSCH when switching time source */
@@ -109,6 +111,9 @@ void TSCH_CALLBACK_NEW_TIME_SOURCE(const struct tsch_neighbor *old, const struct
 void TSCH_CALLBACK_PACKET_READY(void);
 #endif
 
+#ifdef TSCH_CALLBACK_QUEUE_CHANGED
+void TSCH_CALLBACK_QUEUE_CHANGED(uint8_t, tsch_neighbor*);
+#endif
 /************ Types ***********/
 
 /* TSCH packet information */
@@ -116,6 +121,8 @@ struct tsch_packet {
   struct queuebuf *qb;  /* pointer to the queuebuf to be sent */
   mac_callback_t sent; /* callback for this packet */
   void *ptr; /* MAC callback parameter */
+  uint16_t timeslot; /* timeslot the packet was sent or received on*/
+  uint16_t slotframe_handle;
   uint8_t transmissions; /* #transmissions performed for this packet */
   uint8_t ret; /* status -- MAC return code */
   uint8_t header_len; /* length of header and header IEs (needed for link-layer security) */
@@ -155,6 +162,7 @@ struct tsch_neighbor *tsch_queue_add_nbr(const linkaddr_t *addr);
 struct tsch_neighbor *tsch_queue_get_nbr(const linkaddr_t *addr);
 /* Get a TSCH time source (we currently assume there is only one) */
 struct tsch_neighbor *tsch_queue_get_time_source(void);
+struct tsch_neighbor *tsch_queue_get_nbr_next(struct tsch_neighbor *previous);
 /* Update TSCH time source */
 int tsch_queue_update_time_source(const linkaddr_t *new_addr);
 /* Add packet to neighbor queue. Use same lockfree implementation as ringbuf.c (put is atomic) */

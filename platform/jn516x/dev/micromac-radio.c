@@ -206,6 +206,7 @@ PROCESS(micromac_radio_process, "micromac_radio_driver");
 #define RADIO_PARAM_LAST_RSSI 0x80
 #define RADIO_PARAM_LAST_PACKET_TIMESTAMP 0x81
 #define RADIO_RX_MODE_POLL_MODE        (1 << 2)
+#define RADIO_PARAM_LAST_LINK_QUALITY 0x82
 #endif /* RADIO_RX_MODE_POLL_MODE */
 
 #ifndef FRAME802154_IEEE802154E_2012
@@ -904,6 +905,9 @@ get_value(radio_param_t param, radio_value_t *value)
     return RADIO_RESULT_OK;
   case RADIO_PARAM_LAST_RSSI:
     *value = radio_last_rssi;
+    return RADIO_RESULT_OK;
+  case RADIO_PARAM_LAST_LINK_QUALITY:
+    *value = radio_last_correlation;
     return RADIO_RESULT_OK;
   case RADIO_PARAM_CCA_THRESHOLD:
     *value = cca_thershold;

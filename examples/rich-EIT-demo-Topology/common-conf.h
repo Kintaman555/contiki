@@ -39,13 +39,18 @@
 #define WITH_TSCH 1
 #define WITH_TSCH_SECURITY 0
 #define TSCH_LOG_CONF_LEVEL 2
-#define WITH_COAP_RESOURCES 0
+#define WITH_COAP_RESOURCES 1
 
 #undef ENABLE_COOJA_DEBUG
 #define ENABLE_COOJA_DEBUG 0
 
 #if WITH_COAP_RESOURCES
 #define UIP_DS6_WITH_LINK_METRICS 1
+	#define PLEXI_CONFIG_RPL                 1
+	#if WITH_TSCH
+		#define PLEXI_CONFIG_TSCH            2
+	#endif
+	#define RICH_INTERFACE PLEXI_CONFIG_RPL | PLEXI_CONFIG_TSCH
 #endif
 #undef IEEE802154_CONF_PANID
 #define IEEE802154_CONF_PANID 0x5254
@@ -97,7 +102,7 @@ unsigned toplogy_orchestra_hash(const void *addr);
 #define ORCHESTRA_CONF_LINKADDR_HASH(addr) toplogy_orchestra_hash(addr)
 
 /* RPL probing */
-#define RPL_CONF_PROBING_INTERVAL (30 * CLOCK_SECOND)
+#define RPL_CONF_PROBING_INTERVAL (15 * CLOCK_SECOND)
 #define RPL_CONF_PROBING_EXPIRATION_TIME (2 * 60 * CLOCK_SECOND)
  /* Extra probing of our hardcoded preferred parent */
 void *toplogy_probing_func(void *dag);

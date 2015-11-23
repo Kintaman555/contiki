@@ -244,6 +244,9 @@ tsch_schedule_remove_link(struct tsch_slotframe *slotframe, struct tsch_link *l)
        * after freeing the link */
       link_options = l->link_options;
       linkaddr_copy(&addr, &l->addr);
+#ifdef TSCH_CALLBACK_REMOVE_LINK
+      TSCH_CALLBACK_REMOVE_LINK(l);
+#endif
 
       /* The link to be removed is scheduled as next, set it to NULL
        * to abort the next link operation */
@@ -307,6 +310,22 @@ tsch_schedule_get_link_by_timeslot(struct tsch_slotframe *slotframe, uint16_t ti
   return NULL;
 }
 /*---------------------------------------------------------------------------*/
+struct tsch_slotframe* tsch_schedule_get_next_slotframe(struct tsch_slotframe* previous) {
+	if(tsch_is_locked()) return NULL;
+	if(previous == NULL) {
+		return list_head(slotframe_list);
+	} else {
+		return list_item_next(previous);
+	}
+}
+struct tsch_link* tsch_schedule_get_next_link_of(struct tsch_slotframe* slotframe, struct tsch_link* previous) {
+	if(tsch_is_locked()) return NULL;
+	if(previous == NULL) {
+		return  list_head(slotframe->links_list);
+	} else {
+		return list_item_next(previous);
+	}
+}
 /* Returns the next active link after a given ASN, and a backup link (for the same ASN, with Rx flag) */
 struct tsch_link *
 tsch_schedule_get_next_active_link(struct asn_t *asn, uint16_t *time_offset,
