@@ -849,7 +849,8 @@ rpl_nullify_parent(rpl_parent_t *parent)
   rpl_dag_t *dag = parent->dag;
   /* This function can be called when the preferred parent is NULL, so we
      need to handle this condition in order to trigger uip_ds6_defrt_rm. */
-  if(parent == dag->preferred_parent || dag->preferred_parent == NULL) {
+  if(dag->rank != ROOT_RANK(dag->instance) &&
+      (parent == dag->preferred_parent || dag->preferred_parent == NULL)) {
     dag->rank = INFINITE_RANK;
     if(dag->joined) {
       if(dag->instance->def_route != NULL) {
@@ -1217,6 +1218,10 @@ rpl_process_parent_event(rpl_instance_t *instance, rpl_parent_t *p)
 
   return_value = 1;
 
+  if(old_rank == ROOT_RANK(instance)) {
+    return 1;
+  }
+
   if(!acceptable_rank(p->dag, p->rank)) {
     /* The candidate parent is no longer valid: the rank increase resulting
        from the choice of it as a parent would be too high. */
@@ -1347,6 +1352,8 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
   if(dag->rank == ROOT_RANK(instance)) {
     if(dio->rank != INFINITE_RANK) {
       instance->dio_counter++;
+      /* Add the "parent", will be used for probing */
+      rpl_add_parent(dag, dio, from);
     }
     return;
   }

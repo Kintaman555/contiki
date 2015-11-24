@@ -118,13 +118,13 @@ toplogy_probing_func(void *vdag)
   rpl_parent_t *hardcoded_parent = rpl_get_parent((uip_lladdr_t *)toplogy_hardcoded_parent(&linkaddr_node_addr));
 
   if(dag == NULL ||
-      dag->instance == NULL ||
-      dag->preferred_parent == NULL) {
+      dag->instance == NULL) {
     return NULL;
   }
 
   /* Our preferred parent needs probing */
-  if(clock_now - dag->preferred_parent->last_tx_time > RPL_PROBING_EXPIRATION_TIME) {
+  if(dag->preferred_parent != NULL
+      && clock_now - dag->preferred_parent->last_tx_time > RPL_PROBING_EXPIRATION_TIME) {
     return dag->preferred_parent;
   }
 
