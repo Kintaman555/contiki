@@ -221,7 +221,7 @@ static void plexi_get_dag_handler(void *request,
 				CONTENT_PRINTF(",");
 			}
 			linkaddr_t *addr = (linkaddr_t *)nbr_table_get_lladdr(nbr_routes,r);
-				CONTENT_PRINTF("\"2%2x:%2x%2x:%2x:%2x%2x\"",
+				CONTENT_PRINTF("\"2%02x:%02x%02x:%02x:%02x%02x\"",
 					UIP_HTONS(addr->u8[1]), UIP_HTONS(addr->u8[2]), UIP_HTONS(addr->u8[3]),
 					UIP_HTONS(addr->u8[5]), UIP_HTONS(addr->u8[6]), UIP_HTONS(addr->u8[7])
 				);
@@ -613,7 +613,7 @@ static void route_changed_callback(int event, uip_ipaddr_t *route, uip_ipaddr_t 
   /* We have added or removed a routing entry, notify subscribers */
 	if(event == UIP_DS6_NOTIFICATION_ROUTE_ADD || event == UIP_DS6_NOTIFICATION_ROUTE_RM) {
 		printf("PLEXI: notifying observers of rpl/dag resource \n");//setting route_changed callback with 30s delay\n");
-		ctimer_set(&route_changed_timer, 30*CLOCK_SECOND, plexi_route_changed_handler, NULL);
+		ctimer_set(&route_changed_timer, 5*CLOCK_SECOND, plexi_route_changed_handler, NULL);
 	}
 }
 
