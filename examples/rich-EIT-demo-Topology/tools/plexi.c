@@ -220,10 +220,10 @@ static void plexi_get_dag_handler(void *request,
 			{
 				CONTENT_PRINTF(",");
 			}
-			linkaddr_t *addr = (linkaddr_t *)nbr_table_get_lladdr(nbr_routes,r);
+			uip_ipaddr_t *addr = (uip_ipaddr_t *)nbr_table_get_lladdr(nbr_routes,r);
 				CONTENT_PRINTF("\"%x:%x:%x:%x\"",
-					UIP_HTONS(addr->u8[4]), UIP_HTONS(addr->u8[5]),
-					UIP_HTONS(addr->u8[6]), UIP_HTONS(addr->u8[7])
+					UIP_HTONS(addr->u16[4]), UIP_HTONS(addr->u16[5]),
+					UIP_HTONS(addr->u16[6]), UIP_HTONS(addr->u16[7])
 				);
 		}
 		CONTENT_PRINTF("]}");
