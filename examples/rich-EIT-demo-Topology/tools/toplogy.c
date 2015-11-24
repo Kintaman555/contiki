@@ -130,8 +130,6 @@ toplogy_probing_func(void *vdag)
     return hardcoded_parent;
   }
 
-  /* If we still do not have a probing target: pick the least recently updated parent.
-
   /* If we still do not have a probing target: pick the least recently updated parent */
   if(probing_target == NULL) {
     p = nbr_table_head(rpl_parents);

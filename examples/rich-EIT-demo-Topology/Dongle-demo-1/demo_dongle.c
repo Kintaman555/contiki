@@ -156,7 +156,7 @@ udp_rx_handler(void)
     if (!host_found) {
       /* Create socket to talk back to host */
       uip_ipaddr_copy(&ip6addr_host, &UIP_IP_BUF->srcipaddr);
-      udp_conn_tx = udp_new(&ip6addr_host, UIP_HTONS(8086), NULL);
+      udp_conn_tx = udp_new(&ip6addr_host, UIP_HTONS(8186), NULL);
       host_found = 1;
     }
   }
@@ -237,9 +237,9 @@ PROCESS_THREAD(node_process, ev, data)
 
   process_start(&led_process, NULL);
 
-  /* Listen to any host on 8085 */
+  /* Listen to any host on 8185 */
   udp_conn_rx = udp_new(NULL, 0, NULL);
-  udp_bind(udp_conn_rx, UIP_HTONS(8085));
+  udp_bind(udp_conn_rx, UIP_HTONS(8185));
     
   /* Wait for timer event 
      On timer event, handle next sample */

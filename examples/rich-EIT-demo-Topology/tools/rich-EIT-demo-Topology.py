@@ -13,8 +13,8 @@ TICK = 5
 # Connect watchdog. Unit: [TICK]
 CONNECT_WATCHDOG = 30/TICK
 
-TX_PORT = 8085
-RX_PORT = 8086
+TX_PORT = 8185
+RX_PORT = 8186
 
 last_sample_value = 0
 x_range = np.arange(SIZE_NODE_DATA)
