@@ -5,7 +5,7 @@ import thread
 import numpy as np
 import Gnuplot
 
-# Required buffer length for each node buffer 
+# Required buffer length for each node buffer
 SIZE_NODE_DATA = 600
 
 # Repeat time for connect watchdog and ping
@@ -46,19 +46,22 @@ def initPlots():
         g("set yrange [-150:150]")
         g("set xrange [0:"+str(SIZE_NODE_DATA)+"]")
         node_data_key[NODE_PLOT] = Gnuplot.Data(x_range,node_data_key[NODE_DATA], title=node_data_key[NODE_ALIAS] , with_='lines')
-    g.plot(node_data[node_list[0]][NODE_PLOT],node_data[node_list[1]][NODE_PLOT],node_data[node_list[2]][NODE_PLOT],node_data[node_list[3]][NODE_PLOT],node_data[node_list[4]][NODE_PLOT])
-    
-    
-      
+    #g.plot(node_data[node_list[0]][NODE_PLOT],node_data[node_list[1]][NODE_PLOT],node_data[node_list[2]][NODE_PLOT],node_data[node_list[3]][NODE_PLOT],node_data[node_list[4]][NODE_PLOT])
+    nodes = [ node_data[node_list[i]][NODE_PLOT] for i in xrange(len(node_list)) ]
+    g.plot(*nodes)
+
+
+
 def udpReceive():
     """RUNS ON SEPARATE THREAD """
     while True:
         data, addr = s_rx.recvfrom(128)
+        data = data.replace("\"","").strip("\0") # strip termination byte and possible
         node_data_key = node_data[addr[0]]
         # Indicate node is connected
         node_data_key[NODE_CONNECTED] = CONNECT_WATCHDOG
         print addr[0] + ' (' + node_data_key[NODE_ALIAS] + ') : ' + data
-        # Write new data at index in data buffer. Data buffer is view of plot 
+        # Write new data at index in data buffer. Data buffer is view of plot
         data_lock.acquire()
         node_data_key[NODE_LAST_DATA] = int(data)
         data_lock.release()
@@ -73,13 +76,15 @@ def plotGraphs():
             node_data_key[NODE_DATA][SIZE_NODE_DATA-1] = node_data_key[NODE_LAST_DATA]
             if node_data_key[NODE_CONNECTED] == 0:
                 node_data_key[NODE_PLOT] = Gnuplot.Data(x_range,node_data_key[NODE_DATA], title=node_data_key[NODE_ALIAS], with_='dots')
-            else:    
+            else:
                 node_data_key[NODE_PLOT] = Gnuplot.Data(x_range,node_data_key[NODE_DATA], title=node_data_key[NODE_ALIAS], with_='lines')
-        g.plot(node_data[node_list[0]][NODE_PLOT],node_data[node_list[1]][NODE_PLOT],node_data[node_list[2]][NODE_PLOT],node_data[node_list[3]][NODE_PLOT],node_data[node_list[4]][NODE_PLOT])
+        #g.plot(node_data[node_list[0]][NODE_PLOT],node_data[node_list[1]][NODE_PLOT],node_data[node_list[2]][NODE_PLOT],node_data[node_list[3]][NODE_PLOT],node_data[node_list[4]][NODE_PLOT])
+        nodes = [ node_data[node_list[i]][NODE_PLOT] for i in xrange(len(node_list)) ]
+        g.plot(*nodes)
         data_lock.release()
-        time.sleep(1)    
-    
-    
+        time.sleep(1)
+
+
 ##### MAIN #####
 s_tx = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
 s_rx = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
@@ -99,15 +104,15 @@ while True:
         s_tx.sendto(ping_msg, (node_list[ping_node_index], TX_PORT))
     except:
         print 'Failed to send to ' + node_list[ping_node_index]
-    ping_node_index += 1         
+    ping_node_index += 1
     # Update connect watchdog
     for node in range(len(node_list)):
         node_data_key = node_data[node_list[node]]
         if (node_data_key[NODE_CONNECTED] > 0):
             node_data_key[NODE_CONNECTED] -= 1
-    time.sleep(TICK)    
+    time.sleep(TICK)
 
 
 
 
-    
+
