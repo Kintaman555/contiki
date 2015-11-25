@@ -32,7 +32,8 @@ node_data = {"bbbb::215:8d00:36:180"  : ["RICH001",     np.zeros(SIZE_NODE_DATA,
              "bbbb::215:8d00:36:892"  : ["RICH196",     np.zeros(SIZE_NODE_DATA, dtype=np.int), 0, last_sample_value, plot],
              "bbbb::215:8d00:57:5b5d" : ["RICH197",     np.zeros(SIZE_NODE_DATA, dtype=np.int), 0, last_sample_value, plot],
              "bbbb::215:8d00:36:8b1"  : ["RICH193",     np.zeros(SIZE_NODE_DATA, dtype=np.int), 0, last_sample_value, plot],
-             "bbbb::215:8d00:36:8b3" :  ["RICH198",     np.zeros(SIZE_NODE_DATA, dtype=np.int), 0, last_sample_value, plot]}
+             "bbbb::215:8d00:36:8b3"  : ["RICH198",     np.zeros(SIZE_NODE_DATA, dtype=np.int), 0, last_sample_value, plot],
+             "bbbb::215:8d00:36:13c"  : ["RICH002",     np.zeros(SIZE_NODE_DATA, dtype=np.int), 0, last_sample_value, plot] }
 
 # List of all nodes derived from node_data list
 node_list = node_data.keys()
