@@ -86,8 +86,8 @@
 #define NETSTACK_CONF_ROUTING_NEIGHBOR_ADDED_CALLBACK orchestra_callback_child_added
 #define NETSTACK_CONF_ROUTING_NEIGHBOR_REMOVED_CALLBACK orchestra_callback_child_removed
 
-/* Dimensioning */
-#define ORCHESTRA_CONF_EBSF_PERIOD                     397
+/* Configuring for EIT demo. Primes !! */
+#define ORCHESTRA_CONF_EBSF_PERIOD                     41
 #define ORCHESTRA_CONF_COMMON_SHARED_PERIOD              7 /* Common shared slot, 5 is a very short slotframe (high energy, high capacity). Must be prime and at least equal to number of nodes (incl. BR) */
 #define ORCHESTRA_CONF_UNICAST_PERIOD                   11 /* First prime greater than 10 */
 

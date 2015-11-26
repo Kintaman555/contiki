@@ -46,7 +46,7 @@ def initPlots():
         g.xlabel('Time[s]')
         g("set yrange [-150:150]")
         g("set xrange [0:"+str(SIZE_NODE_DATA)+"]")
-        node_data_key[NODE_PLOT] = Gnuplot.Data(x_range,node_data_key[NODE_DATA], title=node_data_key[NODE_ALIAS] , with_='lines')
+        node_data_key[NODE_PLOT] = Gnuplot.Data(x_range,node_data_key[NODE_DATA], title=node_data_key[NODE_ALIAS] , with_='lines lw 3')
     #g.plot(node_data[node_list[0]][NODE_PLOT],node_data[node_list[1]][NODE_PLOT],node_data[node_list[2]][NODE_PLOT],node_data[node_list[3]][NODE_PLOT],node_data[node_list[4]][NODE_PLOT])
     nodes = [ node_data[node_list[i]][NODE_PLOT] for i in xrange(len(node_list)) ]
     g.plot(*nodes)
@@ -78,7 +78,7 @@ def plotGraphs():
             if node_data_key[NODE_CONNECTED] == 0:
                 node_data_key[NODE_PLOT] = Gnuplot.Data(x_range,node_data_key[NODE_DATA], title=node_data_key[NODE_ALIAS], with_='dots')
             else:
-                node_data_key[NODE_PLOT] = Gnuplot.Data(x_range,node_data_key[NODE_DATA], title=node_data_key[NODE_ALIAS], with_='lines')
+                node_data_key[NODE_PLOT] = Gnuplot.Data(x_range,node_data_key[NODE_DATA], title=node_data_key[NODE_ALIAS], with_='lines lw 3')
         #g.plot(node_data[node_list[0]][NODE_PLOT],node_data[node_list[1]][NODE_PLOT],node_data[node_list[2]][NODE_PLOT],node_data[node_list[3]][NODE_PLOT],node_data[node_list[4]][NODE_PLOT])
         nodes = [ node_data[node_list[i]][NODE_PLOT] for i in xrange(len(node_list)) ]
         g.plot(*nodes)
