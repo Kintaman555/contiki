@@ -43,6 +43,7 @@
 
 #include "contiki-conf.h"
 #include "net/rpl/rpl-private.h"
+#include "net/link-stats.h"
 #include "net/ipv6/multicast/uip-mcast6.h"
 #include "lib/random.h"
 #include "sys/ctimer.h"
@@ -54,6 +55,14 @@
 #ifdef RPL_CALLBACK_NEW_DIO_INTERVAL
 void RPL_CALLBACK_NEW_DIO_INTERVAL(uint8_t dio_interval);
 #endif /* RPL_CALLBACK_NEW_DIO_INTERVAL */
+
+#ifdef RPL_PROBING_SELECT_FUNC
+rpl_parent_t *RPL_PROBING_SELECT_FUNC(rpl_dag_t *dag);
+#endif /* RPL_PROBING_SELECT_FUNC */
+
+#ifdef RPL_PROBING_DELAY_FUNC
+clock_time_t RPL_PROBING_DELAY_FUNC(rpl_dag_t *dag);
+#endif /* RPL_PROBING_DELAY_FUNC */
 
 /*---------------------------------------------------------------------------*/
 static struct ctimer periodic_timer;
@@ -336,9 +345,22 @@ rpl_cancel_dao(rpl_instance_t *instance)
   ctimer_stop(&instance->dao_timer);
   ctimer_stop(&instance->dao_lifetime_timer);
 }
-/*---------------------------------------------------------------------------*/
 #if RPL_WITH_PROBING
-static rpl_parent_t *
+/*---------------------------------------------------------------------------*/
+clock_time_t
+get_probing_delay(rpl_dag_t *dag)
+{
+  if(dag != NULL && dag->instance != NULL
+      && dag->instance->urgent_probing_target != NULL) {
+    /* Urgent probing needed (to find out if a neighbor may become preferred parent) */
+    return random_rand() % (CLOCK_SECOND * 10);
+  } else {
+    /* Else, use normal probing interval */
+    return ((RPL_PROBING_INTERVAL) / 2) + random_rand() % (RPL_PROBING_INTERVAL);
+  }
+}
+/*---------------------------------------------------------------------------*/
+rpl_parent_t *
 get_probing_target(rpl_dag_t *dag)
 {
   /* Returns the next probing target. This implementation probes the current
@@ -355,23 +377,27 @@ get_probing_target(rpl_dag_t *dag)
   clock_time_t clock_now = clock_time();
 
   if(dag == NULL ||
-      dag->instance == NULL ||
-      dag->preferred_parent == NULL) {
+      dag->instance == NULL) {
     return NULL;
   }
 
-  /* Our preferred parent needs probing */
-  if(clock_now - dag->preferred_parent->last_tx_time > RPL_PROBING_EXPIRATION_TIME) {
+  /* There is an urgent probing target */
+  if(dag->instance->urgent_probing_target != NULL) {
+    return dag->instance->urgent_probing_target;
+  }
+
+  /* The preferred parent needs probing */
+  if(dag->preferred_parent != NULL && !rpl_parent_is_fresh(dag->preferred_parent)) {
     return dag->preferred_parent;
   }
 
-  /* With 50% probability: probe best parent not updated for RPL_PROBING_EXPIRATION_TIME */
+  /* With 50% probability: probe best non-fresh parent */
   if(random_rand() % 2 == 0) {
     p = nbr_table_head(rpl_parents);
     while(p != NULL) {
-      if(p->dag == dag && (clock_now - p->last_tx_time > RPL_PROBING_EXPIRATION_TIME)) {
+      if(p->dag == dag && !rpl_parent_is_fresh(p)) {
         /* p is in our dag and needs probing */
-        rpl_rank_t p_rank = dag->instance->of->calculate_rank(p, 0);
+        rpl_rank_t p_rank = rpl_rank_via_parent(p);
         if(probing_target == NULL
             || p_rank < probing_target_rank) {
           probing_target = p;
@@ -386,11 +412,12 @@ get_probing_target(rpl_dag_t *dag)
   if(probing_target == NULL) {
     p = nbr_table_head(rpl_parents);
     while(p != NULL) {
-      if(p->dag == dag) {
+      const struct link_stats *stats =rpl_get_parent_link_stats(p);
+      if(p->dag == dag && stats != NULL) {
         if(probing_target == NULL
-            || clock_now - p->last_tx_time > probing_target_age) {
+            || clock_now - stats->last_tx_time > probing_target_age) {
           probing_target = p;
-          probing_target_age = clock_now - p->last_tx_time;
+          probing_target_age = clock_now - stats->last_tx_time;
         }
       }
       p = nbr_table_next(rpl_parents, p);
@@ -408,10 +435,12 @@ handle_probing_timer(void *ptr)
 
   /* Perform probing */
   if(probing_target != NULL && rpl_get_parent_ipaddr(probing_target) != NULL) {
-    PRINTF("RPL: probing %3u\n",
-        nbr_table_get_lladdr(rpl_parents, probing_target)->u8[7]);
+    PRINTF("RPL: probing %3u %s\n",
+        rpl_get_parent_llpaddr(probing_target)->u8[7],
+        instance->urgent_probing_target != NULL ? "(urgent)" : "");
     /* Send probe, e.g. unicast DIO or DIS */
     RPL_PROBING_SEND_FUNC(instance, rpl_get_parent_ipaddr(probing_target));
+    instance->urgent_probing_target = NULL;
   }
 
   /* Schedule next probing */
@@ -425,7 +454,7 @@ handle_probing_timer(void *ptr)
 void
 rpl_schedule_probing(rpl_instance_t *instance)
 {
-  ctimer_set(&instance->probing_timer, RPL_PROBING_DELAY_FUNC(),
+  ctimer_set(&instance->probing_timer, RPL_PROBING_DELAY_FUNC(instance->current_dag),
                   handle_probing_timer, instance);
 }
 #endif /* RPL_WITH_PROBING */
