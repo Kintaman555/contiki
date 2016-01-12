@@ -37,6 +37,7 @@
 #include "rich.h"
 #include "rest-engine.h"
 #include <stdio.h> 
+#include <stdlib.h>
 #include <AppHardwareApi.h>
 
 static void set_tx_power_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
@@ -63,13 +64,12 @@ static void
 set_tx_power_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
   const uint8_t *request_content = NULL;
-  int request_content_len;
   int tx_level;
 
   unsigned int accept = -1;
   REST.get_header_accept(request, &accept);
   if(accept == -1 || accept == REST.type.TEXT_PLAIN) {
-    request_content_len = REST.get_request_payload(request, &request_content);
+    REST.get_request_payload(request, &request_content);
     tx_level = atoi((const char *)request_content);
     NETSTACK_RADIO.set_value(RADIO_PARAM_TXPOWER, tx_level);
   }

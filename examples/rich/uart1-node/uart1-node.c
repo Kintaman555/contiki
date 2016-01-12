@@ -45,10 +45,10 @@
 static void get_coap_rx_uart1_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
 static void event_coap_rx_uart1_handler(void);
 static void put_post_tx_uart1_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
-static void string2uart1(unsigned char *c);
-static int handleRxChar(unsigned char c);
-static int get_ringbuf(char *c);
-static int put_ringbuf(char c);
+static void string2uart1(uint8_t *c);
+static int handleRxChar(uint8_t c);
+static int get_ringbuf(uint8_t *c);
+static int put_ringbuf(uint8_t c);
 
 /* COAP helpers */
 static char content[REST_MAX_CHUNK_SIZE];
@@ -65,7 +65,7 @@ static int tail_index = 0;  /* index where last read took place */
 /* String aligned buffer */
 #define RX_BUFFER_SIZE  RINGBUF_SIZE
 static char rx_buf[RX_BUFFER_SIZE+1]; 
-static char rx_buf_index = 0; /* index for rx_buf */
+static uint8 rx_buf_index = 0; /* index for rx_buf */
 
 /*---------------------------------------------------------------------------*/
 PROCESS(start_app, "START_APP");
@@ -118,14 +118,12 @@ static void
 put_post_tx_uart1_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
   const uint8_t *request_content = NULL;
-  int request_content_len;
-  int level;
  
   unsigned int accept = -1;
   REST.get_header_accept(request, &accept);
   if(accept == -1 || accept == REST.type.TEXT_PLAIN) {
-    request_content_len = REST.get_request_payload(request, &request_content);
-    string2uart1((char *)request_content);
+    REST.get_request_payload(request, &request_content);
+    string2uart1((uint8 *)request_content);
   }
 }
 
@@ -141,8 +139,6 @@ PROCESS_THREAD(start_app, ev, data)
   memset(rx_buf, '\0', sizeof(rx_buf));
   /* Define process that handles data */
   process_start(&rx_data_process ,NULL);
-  /* Define ringbuffer control */
-  ringbufindex_init(&ringbuf,RX_BUFFER_SIZE);
   /* Initialise UART1 */
   uart1_init(UART1_BAUD_RATE); 
   /* Callback received byte */
@@ -172,7 +168,7 @@ PROCESS_THREAD(rx_data_process, ev, data)
   PROCESS_BEGIN();
   
   /* Process is polled whenever data is available from uart isr */
-  char c;
+  uint8_t c;
 
   while(1) {
     PROCESS_YIELD_UNTIL(ev == PROCESS_EVENT_POLL);
@@ -201,11 +197,11 @@ PROCESS_THREAD(rx_data_process, ev, data)
 }
 
 /*************************************************************************/
-/* Local test functions 
+/* Local test functions                                                  */
 /*************************************************************************/
 
 /* TX function for UART0 */
-static void string2uart1(unsigned char *c)
+static void string2uart1(uint8_t *c)
 {
   while (*c!= '\0') {
     uart1_writeb(*c);
@@ -214,7 +210,7 @@ static void string2uart1(unsigned char *c)
 }
 
 /* handleRxChar runs on uart isr */
-static int handleRxChar(unsigned char c)
+static int handleRxChar(uint8_t c)
 {
   if (put_ringbuf(c) == -1) {
     printf("Ringbuf full. Skip char\n");
@@ -228,7 +224,7 @@ static int handleRxChar(unsigned char c)
 /* Simple ringbuffer
    if tail==head, no data has been written yet on that position. So, empty buffer
    is also initial state */
-static int get_ringbuf(char *c)
+static int get_ringbuf(uint8_t *c)
 {
   int return_val = 0;
 
@@ -243,7 +239,7 @@ static int get_ringbuf(char *c)
   return return_val;
 }
 
-static int put_ringbuf(char c)
+static int put_ringbuf(uint8_t c)
 {
   int return_val = 0;
 
