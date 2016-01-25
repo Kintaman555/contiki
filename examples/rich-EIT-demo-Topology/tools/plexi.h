@@ -176,6 +176,7 @@
 
 #endif
 
+NBR_TABLE_DECLARE(nbr_routes);
 
 #if PLEXI_WITH_QUEUE_STATISTICS
 	#define QUEUE_RESOURCE "6top/qList"

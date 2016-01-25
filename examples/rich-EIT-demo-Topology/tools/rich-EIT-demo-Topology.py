@@ -32,7 +32,8 @@ node_data = {"bbbb::215:8d00:36:180"  : ["RICH001",     np.zeros(SIZE_NODE_DATA,
              "bbbb::215:8d00:36:892"  : ["RICH196",     np.zeros(SIZE_NODE_DATA, dtype=np.int), 0, last_sample_value, plot],
              "bbbb::215:8d00:57:5b5d" : ["RICH197",     np.zeros(SIZE_NODE_DATA, dtype=np.int), 0, last_sample_value, plot],
              "bbbb::215:8d00:36:8b1"  : ["RICH193",     np.zeros(SIZE_NODE_DATA, dtype=np.int), 0, last_sample_value, plot],
-             "bbbb::215:8d00:36:8b3" :  ["RICH198",     np.zeros(SIZE_NODE_DATA, dtype=np.int), 0, last_sample_value, plot]}
+             "bbbb::215:8d00:36:8b3"  : ["RICH198",     np.zeros(SIZE_NODE_DATA, dtype=np.int), 0, last_sample_value, plot],
+             "bbbb::215:8d00:36:13c"  : ["RICH002",     np.zeros(SIZE_NODE_DATA, dtype=np.int), 0, last_sample_value, plot] }
 
 # List of all nodes derived from node_data list
 node_list = node_data.keys()
@@ -45,7 +46,7 @@ def initPlots():
         g.xlabel('Time[s]')
         g("set yrange [-150:150]")
         g("set xrange [0:"+str(SIZE_NODE_DATA)+"]")
-        node_data_key[NODE_PLOT] = Gnuplot.Data(x_range,node_data_key[NODE_DATA], title=node_data_key[NODE_ALIAS] , with_='lines')
+        node_data_key[NODE_PLOT] = Gnuplot.Data(x_range,node_data_key[NODE_DATA], title=node_data_key[NODE_ALIAS] , with_='lines lw 3')
     #g.plot(node_data[node_list[0]][NODE_PLOT],node_data[node_list[1]][NODE_PLOT],node_data[node_list[2]][NODE_PLOT],node_data[node_list[3]][NODE_PLOT],node_data[node_list[4]][NODE_PLOT])
     nodes = [ node_data[node_list[i]][NODE_PLOT] for i in xrange(len(node_list)) ]
     g.plot(*nodes)
@@ -77,7 +78,7 @@ def plotGraphs():
             if node_data_key[NODE_CONNECTED] == 0:
                 node_data_key[NODE_PLOT] = Gnuplot.Data(x_range,node_data_key[NODE_DATA], title=node_data_key[NODE_ALIAS], with_='dots')
             else:
-                node_data_key[NODE_PLOT] = Gnuplot.Data(x_range,node_data_key[NODE_DATA], title=node_data_key[NODE_ALIAS], with_='lines')
+                node_data_key[NODE_PLOT] = Gnuplot.Data(x_range,node_data_key[NODE_DATA], title=node_data_key[NODE_ALIAS], with_='lines lw 3')
         #g.plot(node_data[node_list[0]][NODE_PLOT],node_data[node_list[1]][NODE_PLOT],node_data[node_list[2]][NODE_PLOT],node_data[node_list[3]][NODE_PLOT],node_data[node_list[4]][NODE_PLOT])
         nodes = [ node_data[node_list[i]][NODE_PLOT] for i in xrange(len(node_list)) ]
         g.plot(*nodes)

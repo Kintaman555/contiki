@@ -154,7 +154,7 @@ PROCESS_THREAD(border_router_process, ev, data)
   PRINTF("RPL-Border router started\n");
 
   uip_ip6addr(&prefix, 0xbbbb, 0, 0, 0, 0, 0, 0, 0);
-  set_prefix_64(&prefix);
+//  set_prefix_64(&prefix);
   /* Request prefix until it has been received */
   while(!prefix_set) {
     etimer_set(&et, CLOCK_SECOND);

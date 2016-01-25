@@ -193,25 +193,38 @@ static void plexi_get_dag_handler(void *request,
 		
 		CONTENT_PRINTF(",\"%s\":[", DAG_CHILD_LABEL);
 		
-		uip_ds6_route_t *r;
+		//uip_ds6_route_t *r;
 		int first_item = 1;
 		uip_ipaddr_t *last_next_hop = NULL;
 		uip_ipaddr_t *curr_next_hop = NULL;
 		/* Iterate over routing table and record all children */
-		for (r = uip_ds6_route_head(); r != NULL; r = uip_ds6_route_next(r)) {
-			/* the first entry in the routing table is the parent, so it is skipped */
-			curr_next_hop = uip_ds6_route_nexthop(r); 
-			if (curr_next_hop != last_next_hop) {
-				if (!first_item) {
-					CONTENT_PRINTF(",");
-				}
-				first_item = 0;
-				CONTENT_PRINTF("\"%x:%x:%x:%x\"",
-					UIP_HTONS(curr_next_hop->u16[4]), UIP_HTONS(curr_next_hop->u16[5]),
-					UIP_HTONS(curr_next_hop->u16[6]), UIP_HTONS(curr_next_hop->u16[7])
-				);
-				last_next_hop = curr_next_hop;
+// 		for (r = uip_ds6_route_head(); r != NULL; r = uip_ds6_route_next(r)) {
+//			/* the first entry in the routing table is the parent, so it is skipped */
+//			curr_next_hop = uip_ds6_route_nexthop(r); 
+//			if (curr_next_hop != last_next_hop) {
+//				if (!first_item) {
+//					CONTENT_PRINTF(",");
+//				}
+//				first_item = 0;
+//				CONTENT_PRINTF("\"%x:%x:%x:%x\"",
+//					UIP_HTONS(curr_next_hop->u16[4]), UIP_HTONS(curr_next_hop->u16[5]),
+//					UIP_HTONS(curr_next_hop->u16[6]), UIP_HTONS(curr_next_hop->u16[7])
+//				);
+//				last_next_hop = curr_next_hop;
+//			}
+//		}
+		nbr_table_item_t *r;
+		for(r = nbr_table_head(nbr_routes); r != NULL; r = nbr_table_next(nbr_routes, r))
+		{
+			if(r != nbr_table_head(nbr_routes))
+			{
+				CONTENT_PRINTF(",");
 			}
+			linkaddr_t *addr = (linkaddr_t *)nbr_table_get_lladdr(nbr_routes,r);
+				CONTENT_PRINTF("\"2%02x:%02x%02x:%02x:%02x%02x\"",
+					UIP_HTONS(addr->u8[1]), UIP_HTONS(addr->u8[2]), UIP_HTONS(addr->u8[3]),
+					UIP_HTONS(addr->u8[5]), UIP_HTONS(addr->u8[6]), UIP_HTONS(addr->u8[7])
+				);
 		}
 		CONTENT_PRINTF("]}");
 		/* Build the header of the reply */
@@ -600,7 +613,7 @@ static void route_changed_callback(int event, uip_ipaddr_t *route, uip_ipaddr_t 
   /* We have added or removed a routing entry, notify subscribers */
 	if(event == UIP_DS6_NOTIFICATION_ROUTE_ADD || event == UIP_DS6_NOTIFICATION_ROUTE_RM) {
 		printf("PLEXI: notifying observers of rpl/dag resource \n");//setting route_changed callback with 30s delay\n");
-		ctimer_set(&route_changed_timer, 30*CLOCK_SECOND, plexi_route_changed_handler, NULL);
+		ctimer_set(&route_changed_timer, 5*CLOCK_SECOND, plexi_route_changed_handler, NULL);
 	}
 }
 
