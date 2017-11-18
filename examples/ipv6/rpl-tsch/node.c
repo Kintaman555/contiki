@@ -45,7 +45,12 @@
 #include "orchestra.h"
 #endif /* WITH_ORCHESTRA */
 
-#define DEBUG DEBUG_PRINT
+#if WITH_ALMMAC
+#include "al_mmac.h"
+#endif /* WITH_ALMMAC */
+
+//#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_NONE
 #include "net/ip/uip-debug.h"
 
 #define CONFIG_VIA_BUTTON PLATFORM_HAS_BUTTON
@@ -53,6 +58,7 @@
 #include "button-sensor.h"
 #endif /* CONFIG_VIA_BUTTON */
 
+//#include "powertrace.h"
 /*---------------------------------------------------------------------------*/
 PROCESS(node_process, "RPL Node");
 #if CONFIG_VIA_BUTTON
@@ -196,6 +202,11 @@ PROCESS_THREAD(node_process, ev, data)
 #if WITH_ORCHESTRA
   orchestra_init();
 #endif /* WITH_ORCHESTRA */
+  
+  //TODO: WITH_ALMMAC
+#if WITH_ALMMAC
+  al_mmac_init();
+#endif /* WITH_ALMMAC */
   
   /* Print out routing tables every minute */
   etimer_set(&et, CLOCK_SECOND * 60);

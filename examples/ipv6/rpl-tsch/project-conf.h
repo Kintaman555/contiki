@@ -45,6 +45,11 @@
 #define WITH_SECURITY 0
 #endif /* WITH_SECURITY */
 
+/* Set to run ALMMAC */
+#ifndef WITH_ALMMAC
+#define WITH_ALMMAC 0
+#endif /* WITH_ALMMAC */
+
 /*******************************************************/
 /********************* Enable TSCH *********************/
 /*******************************************************/
@@ -123,6 +128,10 @@
 #define NETSTACK_CONF_ROUTING_NEIGHBOR_REMOVED_CALLBACK orchestra_callback_child_removed
 
 #endif /* WITH_ORCHESTRA */
+
+#if WITH_ALMMAC
+#define TSCH_SCHEDULE_CONF_WITH_6TISCH_MINIMAL 0 /* No 6TiSCH minimal schedule */
+#endif /* WITH_ALMMAC */
 
 /*******************************************************/
 /************* Other system configuration **************/
