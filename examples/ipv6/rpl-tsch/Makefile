@@ -13,7 +13,7 @@ MAKE_WITH_ALMMAC ?= 0 # force ALMMAC from command line
 APPS += orchestra
 MODULES += core/net/mac/tsch
 
-APPS += almmac
+#APPS += almmac
 
 ifeq ($(MAKE_WITH_ORCHESTRA),1)
 CFLAGS += -DWITH_ORCHESTRA=1

@@ -118,20 +118,6 @@ struct tsch_packet *dequeued_array[TSCH_DEQUEUED_ARRAY_SIZE];
 struct ringbufindex input_ringbuf;
 struct input_packet input_array[TSCH_MAX_INCOMING_PACKETS];
 
-struct learning_distribution {
-	u8_t successful_slot;
-	u8_t total_slot;
-	u16_t successful_prob;
-	int num; // num of check cca when contention, depends on # successful trials
-};
-struct learning_distributions {
-	struct learning_distributions *next;
-	struct learning_distribution distributions[TSCH_SCHEDULE_DEFAULT_LENGTH];
-	linkaddr_t parent;
-};
-MEMB(learning_distribution_memb, struct learning_distributions, TSCH_SCHEDULE_MAX_SLOTFRAMES);
-LIST(distribution_list);
-
 /* Last time we received Sync-IE (ACK or data packet from a time source) */
 static struct asn_t last_sync_asn;
 
@@ -316,25 +302,6 @@ get_packet_and_neighbor_for_link(struct tsch_link *link, struct tsch_neighbor **
   if(link->link_options & LINK_OPTION_TX) {
 	/* AL-MMAC timeslot operation */
 	int n_ts = (int)asn % TSCH_SCHEDULE_DEFAULT_LENGTH;  
-	
-	if(n_ts == 0) {
-		/* is it for advertisement of EB? */
-		if(link->link_type == LINK_TYPE_ADVERTISING || link->link_type == LINK_TYPE_ADVERTISING_ONLY) {
-			/* fetch EB packets */
-			n = n_eb;
-			p = tsch_queue_get_packet_for_nbr(n, link);
-		}
-		if(link->link_type != LINK_TYPE_ADVERTISING_ONLY) {
-			/* NORMAL link or no EB to send, pick a data packet */
-			if(p == NULL) {
-		        n = tsch_queue_get_nbr(&link->addr);
-		        p = tsch_queue_get_packet_for_nbr(n, link);
-			}
-		}
-	} else {
-		n = tsch_queue_get_nbr(&link->addr);
-		p = tsch_queue_get_unicast_packet_for_any(&n, link);
-	}
 	
     /* is it for advertisement of EB? */
     if(link->link_type == LINK_TYPE_ADVERTISING || link->link_type == LINK_TYPE_ADVERTISING_ONLY) {

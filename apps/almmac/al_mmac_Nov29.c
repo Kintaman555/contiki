@@ -120,7 +120,7 @@ struct learning_distributions {
 	struct learning_distribution distributions[SLOTS_PER_FRAME];
 	linkaddr_t parent;
 };
-MEMB(learning_distribution_memb, struct learning_distributions, MAX_NEIGHBORS);
+MEMB(learning_distribution_mem, struct learning_distributions, MAX_NEIGHBORS);
 LIST(distribution_list);
 // struct parent {
 // 	struct parent *next;
@@ -199,10 +199,10 @@ static unsigned long num_learning_done = 0;
 /*---------------------------------------------------------------------------*/
 static void learning_init(void)
 {
-	memb_init(&learning_distribution_memb);
+	memb_init(&learning_distribution_mem);
 	list_init(distribution_list);
-	//memb_init(&parent_mem);
-	//list_init(parent_list);
+	memb_init(&parent_mem);
+	list_init(parent_list);
 	int i;
 	struct tsch_neighbor *n;
 	struct learning_distributions *ld;
@@ -212,7 +212,7 @@ static void learning_init(void)
 		//if((n->rtmetric + 1) == my_rtmetric)
 		if(1) {
 			struct parent *p = memb_alloc(&parent_mem);
-			ld = memb_alloc(&learning_distribution_memb);
+			ld = memb_alloc(&learning_distribution_mem);
 			linkaddr_copy(&p->addr, &n->addr);
 			linkaddr_copy(&ld->parent, &n->addr);
 			for(i = 0; i < SLOTS_PER_FRAME; i++){
@@ -227,7 +227,7 @@ static void learning_init(void)
 		//printf("\n");
 	}
 	//for listen trial
-	ld = memb_alloc(&learning_distribution_memb);
+	ld = memb_alloc(&learning_distribution_mem);
 	linkaddr_copy(&ld->parent, &linkaddr_null);
 	for(i = 0; i < SLOTS_PER_FRAME; i++){
 		ld->distributions[i].num = 0;
@@ -369,7 +369,7 @@ static void learning_fix_result(void)
   }
   //free mem of learning distribution and parent list
   for(ld = list_head(distribution_list); ld != NULL; ld = list_item_next(ld)){
-	memb_free(&learning_distribution_memb, ld);
+	memb_free(&learning_distribution_mem, ld);
   }
   for(p = list_head(parent_list); p != NULL; p = list_item_next(p)){
 	memb_free(&parent_mem, p);
@@ -1136,6 +1136,11 @@ static u16_t bc_sq_no = 0;
 static void
 send_packet(mac_callback_t sent_callback, void *ptr)
 {
+  //PRINTFL("slot %d: NET send\n", SLOT_INDEX(RTIMER_NOW()));
+//disable broadcast message during learning
+/*if(we_are_learning == STILL_LEARNING && linkaddr_cmp(&linkaddr_null, packetbuf_addr(PACKETBUF_ADDR_RECEIVER))){
+	return;
+} else {*/
   struct queue_item* q = memb_alloc(&queue_memb);
   if (q != NULL){
     if (packetbuf_hdralloc(sizeof(struct much_hdr))){
