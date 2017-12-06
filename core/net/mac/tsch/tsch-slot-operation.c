@@ -61,6 +61,15 @@
 #endif /* TSCH_LOG_LEVEL */
 #include "net/ip/uip-debug.h"
 
+/* For AL-MMAC integration, might be redundant */
+#include "lib/memb.h"
+#include "net/rime/collect-neighbor.h"
+#include "net/rime/timesynch.h"
+#include "net/rpl/rpl.h"
+#include "lib/random.h"
+#include "sys/rtimer.h"
+#include <stdio.h>
+
 /* TSCH debug macros, i.e. to set LEDs or GPIOs on various TSCH
  * timeslot events */
 #ifndef TSCH_DEBUG_INIT
@@ -109,6 +118,44 @@
 #define RTIMER_GUARD 2u
 #endif
 
+/*------------------======== timing definitions ==========-------------------*/
+/* receiver side */
+#define ASYNCH_MARGIN	 (RTIMER_SECOND / 512) // wait a bit before send beacon
+#define CONTENTION_WAIT  (RTIMER_SECOND / 1024) // OFF radio to wait for transmitter contending channel
+#define CCA_DELAY        (RTIMER_SECOND / 1024)//1100 // wait before ON radio to check cca
+#define CCA_CHECK_TIME   (RTIMER_SECOND / 2048) // cca check duration
+#define CCA_CHECK_NUM_UC  2
+#define CCA_CHECK_NUM_BC  2
+#define MSG_WAIT         (RTIMER_SECOND / 200)
+
+/* transmitter side */
+#define BEACON_WAIT  	 (RTIMER_SECOND / 128) // 400 vs 1024; 256 vs 512 // ON radio to wait for receiving beacon
+#define ACK_WAIT         (RTIMER_SECOND / 200) // ON radio to wait for ack after transmitting packet
+
+#define PREDATA_NUM       1
+#define PREDATA_SIZE      72  /* (bytes) long enough to cover CCA_DELAY */
+#define SEND_BEACON_IN_BC_SLOT   1 // to send beacon after finishing sending broadcast mes in broadcast slot
+#define UC_OVER_BC        2 /* broadcast slot frequency */
+#define RANDOM_SYNCH      0 /* (1/RANDOM_SYNCH) chance of random wake-up, disabled if 0 */
+
+/* slot time oi la slot time */
+//#define (int) &current_asn		((timesynch_rtimer_to_time(RTIMER_NOW()) / TSCH_DEFAULT_TS_TIMESLOT_LENGTH) % (TSCH_SCHEDULE_DEFAULT_LENGTH + 1))
+
+/*---------------======== for learning process ==========-----------------*/
+#define FRAMES_START_EXPLOITATION (30 * TSCH_SCHEDULE_DEFAULT_LENGTH)
+#define RANDOM_CHOOSE_PARENT 0    /* enable/disable choosing a new parent randomly when exploitation*/
+#define PROBABILITY_SCALE		  100
+#define EXPLOITATION_PROBABILITY  70 /*if prob of successful trial is smaller than EXPLOITATION_PROBABILITY,
+										node randomly chooses a new parent, only used if disable RANDOM_CHOOSE_PARENT*/
+#define SUCCESS_PROBABILITY		  30
+#define MAX_CHECK_CCA		 8
+#define WIN_THRESHOLD        3
+#define LOSE_THRESHOLD		 5
+
+#define BC_ALL_SLOTS_BEFORE_LEARNING 0 /* enable/disable all broadcast slots in neighbor discovery phase*/
+
+const linkaddr_t sleep_addr = {{255, 255}};
+
 /* A ringbuf storing outgoing packets after they were dequeued.
  * Will be processed layer by tsch_tx_process_pending */
 struct ringbufindex dequeued_ringbuf;
@@ -124,13 +171,39 @@ struct learning_distribution {
 	u16_t successful_prob;
 	int num; // num of check cca when contention, depends on # successful trials
 };
+
 struct learning_distributions {
 	struct learning_distributions *next;
 	struct learning_distribution distributions[TSCH_SCHEDULE_DEFAULT_LENGTH];
 	linkaddr_t parent;
 };
+
 MEMB(learning_distribution_memb, struct learning_distributions, TSCH_SCHEDULE_MAX_SLOTFRAMES);
 LIST(distribution_list);
+
+struct parent {
+	struct parent *next;
+	linkaddr_t addr;
+};
+MEMB(parent_memb, struct rpl_parent, TSCH_SCHEDULE_MAX_SLOTFRAMES);
+LIST(parent_list);
+
+static struct collect_neighbor_list neighbor_list;
+static u16_t my_rtmetric;
+
+/* Learning status */
+enum {
+	LISTEN_MODE,
+	TRANSMIT_MODE,
+	SLEEP_MODE,
+	NOT_YET_LEARNING,
+	STILL_LEARNING,
+	LEARNING_DONE
+};
+
+volatile rtimer_clock_t t0;
+
+static linkaddr_t strategy[TSCH_SCHEDULE_DEFAULT_LENGTH];
 
 /* Last time we received Sync-IE (ACK or data packet from a time source) */
 static struct asn_t last_sync_asn;
@@ -174,6 +247,312 @@ static struct pt slot_operation_pt;
 /* Sub-protothreads of tsch_slot_operation */
 static PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t));
 static PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t));
+
+/*---------------------------------------------------------------------------*/
+
+static volatile unsigned char radio_is_on;
+static volatile unsigned char mode;
+static volatile unsigned char we_are_learning;
+static volatile unsigned char listen_for_message = 0;
+static unsigned long num_learning_done = 0;
+
+/*---------------------------------------------------------------------------*/
+
+void update_from_net(struct collect_neighbor_list *list, u16_t rtmetric)
+{
+	if(we_are_learning != STILL_LEARNING){
+	//we assume that our neighbor list and rtmetric are not changed during learning
+	  neighbor_list = *list;
+	  my_rtmetric = rtmetric;
+	}
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void learning_init(void)
+{
+	memb_init(&learning_distribution_memb);
+	list_init(distribution_list);
+	memb_init(&parent_memb);
+	list_init(parent_list);
+	
+	int i;
+	struct collect_neighbor *n;
+	struct learning_distributions *ld;
+	
+	/* Create a list of candidate parent from neighbor list, 
+	 * initialize distribution list */
+	for(n = list_head(neighbor_list.list); n != NULL; n = list_item_next(n)) {
+		//printf("neighbor %d, n->rtmetric %d ", n->addr.u8[0],n->rtmetric);
+		if((n->rtmetric + 1) == my_rtmetric){
+			struct parent *p = memb_alloc(&parent_memb);
+			ld = memb_alloc(&learning_distribution_memb);
+			linkaddr_copy(&p->addr, &n->addr);
+			linkaddr_copy(&ld->parent, &n->addr);
+			for(i = 0; i < TSCH_SCHEDULE_DEFAULT_LENGTH; i++){
+				ld->distributions[i].num = MAX_CHECK_CCA >> 1;
+				ld->distributions[i].successful_slot = 0;
+				ld->distributions[i].total_slot = 0;
+			}
+			list_add(parent_list, p);
+			list_add(distribution_list, ld);
+			//printf("add to parent list %d", p->addr.u8[0]);
+		}
+	}
+	
+	/* Listen trail */
+	ld = memb_alloc(&learning_distribution_memb);
+	linkaddr_copy(&ld->parent, &linkaddr_null);
+	for(i = 0; i < TSCH_SCHEDULE_DEFAULT_LENGTH; i++) {
+		ld->distributions[i].num = 0;
+		ld->distributions[i].successful_slot = 0;
+		ld->distributions[i].total_slot = 0;
+	}
+	list_add(distribution_list, ld);
+	
+	/* Randomly initialize strategy */
+	for(i = 0; i < TSCH_SCHEDULE_DEFAULT_LENGTH; i++) {
+		int index = random_rand() % (list_length(parent_list) + 1);
+		if(index == list_length(parent_list)) {
+			linkaddr_copy(&strategy[i], &linkaddr_null);
+		} else {
+			int j = 0;
+			struct parent *p = NULL;
+			for(p = list_head(parent_list); p != NULL; p = list_item_next(p)) {
+				if (j == index) {
+					linkaddr_copy(&strategy[i], &p->addr);
+					break;
+				}
+				j++;
+			}
+		}
+	}
+}
+
+/*---------------------------------------------------------------------------*/
+
+#define LEARNING_DISABLE_BEACON 0
+static int learning_disable_beacon(void){
+#if LEARNING_DISABLE_BEACON
+	return (we_are_learning == STILL_LEARNING);
+#else
+	return 0;
+#endif
+}
+
+/*---------------------------------------------------------------------------*/
+
+int learning_done(void){
+	return (we_are_learning == LEARNING_DONE);
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void print_distribution_table(void)
+{
+  int i;
+  for(i = 0; i < TSCH_SCHEDULE_DEFAULT_LENGTH; i ++){
+	struct learning_distributions *ld;
+	for(ld = list_head(distribution_list); ld != NULL; ld = list_item_next(ld)) {
+		printf("slot %d, parent %d, total %d, success %d\n",
+				i, ld->parent.u8[0],
+				ld->distributions[i].total_slot,
+				ld->distributions[i].successful_slot);
+
+	}
+  }
+}
+
+/*---------------------------------------------------------------------------*/
+static void update_distribution_table(u8_t slot, linkaddr_t *parent, u8_t successful) {
+	struct learning_distributions *ld;
+	for(ld = list_head(distribution_list); ld != NULL; ld = list_item_next(ld)) {
+		if(linkaddr_cmp(&ld->parent, parent)) {
+			ld->distributions[slot].total_slot ++;
+			if(successful) {
+				ld->distributions[slot].successful_slot ++;
+			}
+			if(!linkaddr_cmp(parent, &linkaddr_null)) {
+				u16_t fail, total;
+				total = ld->distributions[slot].total_slot;
+				fail = total - ld->distributions[slot].successful_slot;
+				ld->distributions[slot].num = (MAX_CHECK_CCA * (fail + 1)) / (total + 2);
+			}
+			return;
+		}
+	}
+	return;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int check_cca_num(u8_t slot, linkaddr_t *parent) {
+	if(we_are_learning == STILL_LEARNING) {
+		struct learning_distributions *ld;
+		for (ld = list_head(distribution_list); ld != NULL; ld = list_item_next(ld)) {
+			if(linkaddr_cmp(&ld->parent, parent)) {
+				if(ld->distributions[slot].num < WIN_THRESHOLD) {
+					return 0;
+				}
+				if(ld->distributions[slot].num > LOSE_THRESHOLD) {
+					return MAX_CHECK_CCA - 1;
+				}
+				return ld->distributions[slot].num;
+			}
+		}
+	}
+	return 2;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void learning_fix_result(void) {
+	int i;
+	struct learning_distributions *ld;
+	struct parent *p;
+	for(i = 0; i < TSCH_SCHEDULE_DEFAULT_LENGTH; i++) {
+		/* Larger than total_slot */
+		u16_t total, success, prob, max_prob;
+		total = 0, max_prob = 0;
+		struct learning_distributions *best_ld;
+		best_ld = NULL;
+		
+		/* Number of trials of slot */
+		for(ld = list_head(distribution_list); ld != NULL; ld = list_item_next(ld)) {
+			total += ld->distributions[i].total_slot;
+		}
+		
+		/* Find the parent which has the most successful prob */
+		for(ld = list_head(distribution_list); ld != NULL; ld = list_item_next(ld)) {
+			success = ld->distributions[i].successful_slot;
+			prob = (total) ? ((success * PROBABILITY_SCALE) / total) : 0;
+			if(prob > max_prob) {
+				max_prob = prob;
+				best_ld = ld;
+			}
+		}
+		
+		/* Setting strategy */
+		/* All probs = 0 or no item in distribution list */
+		if(best_ld == NULL) {
+			linkaddr_copy(&strategy[i], &sleep_addr);
+		} else {
+			if(max_prob >= SUCCESS_PROBABILITY) {
+				linkaddr_copy(&strategy[i], &best_ld->parent);
+			} else {
+				linkaddr_copy(&strategy[i], &sleep_addr);
+			}
+			printf("slot\t%d\ts\t%d\tp\t%d\ttotal\t%d\tset\t%d\n", i+1,
+                			best_ld->parent.u8[0], max_prob, total, strategy[i].u8[0]);
+		}
+	}
+	
+	/* Free learning distribution list member */
+	for(ld = list_head(distribution_list); ld != NULL; ld = list_item_next(ld)) {
+		memb_free(&learning_distribution_memb, ld);
+	}
+	
+	/* Free neighbor list member */
+	for(p = list_head(parent_list); p != NULL; p = list_item_next(p)) {
+		memb_free(&parent_memb, p);
+	}
+	
+	printf("DONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void exploitation(u8_t slot) {
+#if RANDOM_CHOOSE_PARENT
+	int index = random_rand() % (list_length(parent_list + 1);
+	if(index == list_length(parent_list)) {
+		linkaddr_copy(&strategy[slot], &linkaddr_null);
+	} else {
+		int j = 0;
+		struct parent *p = NULL;
+		for (p = list_head(parent_list); p != NULL; p = list_item_next(p)) {
+			if(j == index) {
+				linkaddr_copy(&strategy[slot], &p->addr);
+				break;
+			}
+			j++;
+		}
+	}
+#else
+	/* Randomly choose parent in the first 30 frames */
+	if(num_learning_done < FRAMES_START_EXPLOITATION) {
+		int index = random_rand() % (list_length(parent_list) + 1);
+		if(index == list_length(parent_list)) {
+			linkaddr_copy(&strategy[slot], &linkaddr_null);
+		} else {
+			int j = 0;
+			struct parent *p = NULL;
+			for(p = list_head(parent_list); p != NULL; p = list_item_next(p)) {
+				if(j == index) {
+					linkaddr_copy(&strategy[slot], &p->addr);
+				}
+				j++;
+			}
+		}
+		return;
+	}
+	
+	struct learning_distributions *ld, *best_ld = NULL;
+	u16_t total = 0, prob, max_prob = 0;
+	
+	for(ld = list_head(distribution_list); ld != NULL; ld = list_item_next(ld)) {
+		prob = ((2 + ld->distributions[slot].successful_slot) * PROBABILITY_SCALE) / (ld->distributions[slot].total_slot + 4);
+		if(prob > max_prob) {
+			max_prob = prob;
+			best_ld = ld;
+		}
+	}
+	
+	if(best_ld == NULL || (max_prob < EXPLOITATION_PROBABILITY)) {
+		int index = random_rand() % (list_length(parent_list) + 1);
+		if(index == list_length(parent_list)) {
+			linkaddr_copy(&strategy[slot], &linkaddr_null);
+		} else {
+			int j = 0;
+			struct parent *p = NULL;
+			for(p = list_head(parent_list); p != NULL; p = list_item_next(p)) {
+				if(j == index) {
+					linkaddr_copy(&strategy[slot], &p->addr);
+					break;
+				}
+				j++;
+			}
+		}
+	} else {
+		linkaddr_copy(&strategy[slot], &best_ld->parent);
+	}
+#endif /* RANDOM_CHOOSE_PARENT */
+}
+
+/*---------------------------------------------------------------------------*/
+
+static struct ctimer cycle_check_timer;
+#define CHECK_LEARNING_PERIOD (CLOCK_SECOND * 2)
+/* Number of frames learning, must be less than total_slot to avoid overflow
+ * Currently ise u8_t (Max value = 255) */
+#define MAX_LEARNING_SLOTS (TSCH_SCHEDULE_DEFAULT_LENGTH * 150)
+static void cycle_check_learning(void) {
+	if(num_learning_done >= MAX_LEARNING_SLOTS) {
+		we_are_learning = LEARNING_DONE;
+		learning_fix_result();
+	}
+	if(we_are_learning == STILL_LEARNING) {
+		ctimer_set(&cycle_check_timer, CHECK_LEARNING_PERIOD, (void *) cycle_check_learning, NULL);
+	}
+}
+
+/*---------------------------------------------------------------------------*/
+
+void learning_start(void) {
+	num_learning_done = 0;
+	learning_init();
+	we_are_learning = STILL_LEARNING;
+}
 
 /*---------------------------------------------------------------------------*/
 /* TSCH locking system. TSCH is locked during slot operations */
@@ -335,25 +714,6 @@ get_packet_and_neighbor_for_link(struct tsch_link *link, struct tsch_neighbor **
 		n = tsch_queue_get_nbr(&link->addr);
 		p = tsch_queue_get_unicast_packet_for_any(&n, link);
 	}
-	
-    /* is it for advertisement of EB? */
-    if(link->link_type == LINK_TYPE_ADVERTISING || link->link_type == LINK_TYPE_ADVERTISING_ONLY) {
-      /* fetch EB packets */
-      n = n_eb;
-      p = tsch_queue_get_packet_for_nbr(n, link);
-    }
-    if(link->link_type != LINK_TYPE_ADVERTISING_ONLY) {
-      /* NORMAL link or no EB to send, pick a data packet */
-      if(p == NULL) {
-        /* Get neighbor queue associated to the link and get packet from it */
-        n = tsch_queue_get_nbr(&link->addr);
-        p = tsch_queue_get_packet_for_nbr(n, link);
-        /* if it is a broadcast slot and there were no broadcast packets, pick any unicast packet */
-        if(p == NULL && n == n_broadcast) {
-			p = tsch_queue_get_unicast_packet_for_any(&n, link);
-        }
-      }
-    }
   }
   /* return nbr (by reference) */
   if(target_neighbor != NULL) {
@@ -400,6 +760,14 @@ update_neighbor_state(struct tsch_neighbor *n, struct tsch_packet *p,
         /* Shared link: increment backoff exponent, pick a new window */
         tsch_queue_backoff_inc(n);
       }
+	  
+	  if(p->transmissions >= TSCH_MAC_MAX_FRAME_RETRIES + 1) {
+      	if(we_are_learning == STILL_LEARNING){
+		  t0 = RTIMER_NOW();
+      	  update_distribution_table((int) &current_asn - 1, &strategy[(int) &current_asn - 1], 0);
+      	  exploitation((int) &current_asn - 1);
+      	}
+	  }
     }
   }
 
@@ -560,6 +928,12 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
               is_time_source = 0;
               /* The radio driver should return 0 if no valid packets are in the rx buffer */
               if(ack_len > 0) {
+				/* ACK received */
+				t0 = RTIMER_NOW();
+				if(we_are_learning == STILL_LEARNING){
+					update_distribution_table((int) &current_asn - 1, &strategy[(int) &current_asn - 1], 1);
+				}
+				
                 is_time_source = current_neighbor != NULL && current_neighbor->is_time_source;
                 if(tsch_packet_parse_eack(ackbuf, ack_len, seqno,
                     &frame, &ack_ies, &ack_hdrlen) == 0) {
@@ -581,6 +955,13 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
                       "!failed to parse ACK"));
                 }
 #endif /* TSCH_SECURITY_ENABLED */
+              } else {
+				t0 = RTIMER_NOW();
+	  			if(we_are_learning == STILL_LEARNING){
+	  			  printf("slot %d: not got ACK, transmission failed to %d\n", (int) &current_asn, strategy[(int) &current_asn - 1].u8[0]);
+	  			  update_distribution_table((int) &current_asn - 1, &strategy[(int) &current_asn - 1], 0);
+	  			  exploitation((int) &current_asn - 1);
+	  			}
               }
 
               if(ack_len != 0) {
@@ -714,6 +1095,13 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
     if(!NETSTACK_RADIO.receiving_packet() && !NETSTACK_RADIO.pending_packet()) {
       NETSTACK_RADIO.off();
       /* no packets on air */
+	  
+	  t0 = RTIMER_NOW();
+	  if(we_are_learning == STILL_LEARNING && (int) &current_asn) {
+		printf("slot %d: no incoming packet, listen failed\n", (int) &current_asn);
+		update_distribution_table((int) &current_asn - 1, &linkaddr_null, 0);
+		exploitation((int) &current_asn - 1);
+	  }
     } else {
       /* Wait until packet is received, turn radio off */
       BUSYWAIT_UNTIL_ABS(!NETSTACK_RADIO.receiving_packet(),
@@ -852,6 +1240,13 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
           /* Poll process for processing of pending input and logs */
           process_poll(&tsch_pending_events_process);
         }
+      } else {
+		t0 = RTIMER_NOW();
+		if(we_are_learning == STILL_LEARNING && (int) &current_asn){
+			printf("slot %d: timeout, maybe collision, listen failed\n", (int) &current_asn);
+			update_distribution_table((int) &current_asn - 1, &linkaddr_null, 0);
+			exploitation((int) &current_asn - 1);
+		}
       }
     }
 
@@ -977,6 +1372,13 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
     }
 
     tsch_in_slot_operation = 0;
+	
+	/* AL-MMAC learning done */
+    if((num_learning_done >= MAX_LEARNING_SLOTS) && (we_are_learning != LEARNING_DONE)){
+    	we_are_learning = LEARNING_DONE;
+    	learning_fix_result();
+    }
+	
     PT_YIELD(&slot_operation_pt);
   }
 
