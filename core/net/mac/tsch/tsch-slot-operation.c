@@ -426,12 +426,12 @@ static void learning_fix_result(void) {
 		}
 	}
 	
-	/* Free learning distribution list member */
+	/* Free learning_distribution_list member */
 	for(ld = list_head(distribution_list); ld != NULL; ld = list_item_next(ld)) {
 		memb_free(&learning_distribution_memb, ld);
 	}
 	
-	/* Free neighbor list member */
+	/* Free parent_list member */
 	for(p = list_head(parent_list); p != NULL; p = list_item_next(p)) {
 		memb_free(&parent_memb, p);
 	}
@@ -1281,13 +1281,23 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
       uint8_t current_channel;
       TSCH_DEBUG_SLOT_START();
       tsch_in_slot_operation = 1;
+	  int n_ts = (int)current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
       /* Get a packet ready to be sent */
-      current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor, &current_asn);
+	  if (we_are_learning != LEARNING_DONE) {
+	  	current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor, &current_asn);
+	  } else {
+	  	current_packet = get_packet_and_neighbor_for_link(current_link, &strategy[n_ts], &current_asn);
+	  }
+	  
       /* There is no packet to send, and this link does not have Rx flag. Instead of doing
        * nothing, switch to the backup link (has Rx flag) if any. */
       if(current_packet == NULL && !(current_link->link_options & LINK_OPTION_RX) && backup_link != NULL) {
         current_link = backup_link;
-        current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor, &current_asn);
+  	  	if (we_are_learning != LEARNING_DONE) {
+  	  		current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor, &current_asn);
+  	  	} else {
+  	  		current_packet = get_packet_and_neighbor_for_link(current_link, &strategy[n_ts], &current_asn);
+  	  	}
       }
       /* Hop channel */
       current_channel = tsch_calculate_channel(&current_asn, current_link->channel_offset);
@@ -1364,6 +1374,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
 
     tsch_in_slot_operation = 0;
 	
+	cycle_check_learning();
 	/* AL-MMAC learning done */
     if((num_learning_done >= MAX_LEARNING_SLOTS) && (we_are_learning != LEARNING_DONE)){
     	we_are_learning = LEARNING_DONE;
