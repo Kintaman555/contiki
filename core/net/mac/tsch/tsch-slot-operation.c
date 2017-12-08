@@ -1284,7 +1284,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
 	  if (we_are_learning != LEARNING_DONE) {
 	  	current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor, &current_asn);
 	  } else {
-	  	current_packet = get_packet_and_neighbor_for_link(current_link, &strategy[n_ts], &current_asn);
+	  	current_packet = get_packet_and_neighbor_for_link(current_link, &tsch_queue_get_nbr(&strategy[n_ts]), &current_asn);
 	  }
 	  
       /* There is no packet to send, and this link does not have Rx flag. Instead of doing
@@ -1294,7 +1294,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
   	  	if (we_are_learning != LEARNING_DONE) {
   	  		current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor, &current_asn);
   	  	} else {
-  	  		current_packet = get_packet_and_neighbor_for_link(current_link, &strategy[n_ts], &current_asn);
+  	  		current_packet = get_packet_and_neighbor_for_link(current_link, &tsch_queue_get_nbr(&strategy[n_ts]), &current_asn);
   	  	}
       }
       /* Hop channel */
