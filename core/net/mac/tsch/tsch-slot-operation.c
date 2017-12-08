@@ -118,28 +118,7 @@
 #define RTIMER_GUARD 2u
 #endif
 
-/*------------------======== timing definitions ==========-------------------*/
-/* receiver side */
-#define ASYNCH_MARGIN	 (RTIMER_SECOND / 512) // wait a bit before send beacon
-#define CONTENTION_WAIT  (RTIMER_SECOND / 1024) // OFF radio to wait for transmitter contending channel
-#define CCA_DELAY        (RTIMER_SECOND / 1024)//1100 // wait before ON radio to check cca
-#define CCA_CHECK_TIME   (RTIMER_SECOND / 2048) // cca check duration
-#define CCA_CHECK_NUM_UC  2
-#define CCA_CHECK_NUM_BC  2
-#define MSG_WAIT         (RTIMER_SECOND / 200)
-
-/* transmitter side */
-#define BEACON_WAIT  	 (RTIMER_SECOND / 128) // 400 vs 1024; 256 vs 512 // ON radio to wait for receiving beacon
-#define ACK_WAIT         (RTIMER_SECOND / 200) // ON radio to wait for ack after transmitting packet
-
-#define PREDATA_NUM       1
-#define PREDATA_SIZE      72  /* (bytes) long enough to cover CCA_DELAY */
-#define SEND_BEACON_IN_BC_SLOT   1 // to send beacon after finishing sending broadcast mes in broadcast slot
-#define UC_OVER_BC        2 /* broadcast slot frequency */
-#define RANDOM_SYNCH      0 /* (1/RANDOM_SYNCH) chance of random wake-up, disabled if 0 */
-
-/* slot time oi la slot time */
-//#define (int) &current_asn		((timesynch_rtimer_to_time(RTIMER_NOW()) / TSCH_DEFAULT_TS_TIMESLOT_LENGTH) % (TSCH_SCHEDULE_DEFAULT_LENGTH + 1))
+//#define n_ts		((timesynch_rtimer_to_time(RTIMER_NOW()) / TSCH_DEFAULT_TS_TIMESLOT_LENGTH) % (TSCH_SCHEDULE_DEFAULT_LENGTH + 1))
 
 /*---------------======== for learning process ==========-----------------*/
 #define FRAMES_START_EXPLOITATION (30 * TSCH_SCHEDULE_DEFAULT_LENGTH)
@@ -550,6 +529,7 @@ static void cycle_check_learning(void) {
 
 void learning_start(void) {
 	num_learning_done = 0;
+	printf("START LEARNING!!!!!!!!!!!!!!!!!!!!!");
 	learning_init();
 	we_are_learning = STILL_LEARNING;
 }
@@ -691,29 +671,35 @@ get_packet_and_neighbor_for_link(struct tsch_link *link, struct tsch_neighbor **
   struct tsch_packet *p = NULL;
   struct tsch_neighbor *n = NULL;
 
+/*--------------------------------This is where things get ugly-----------------------------------*/  
+  
   /* Is this a Tx link? */
+  int n_ts = (int)asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
   if(link->link_options & LINK_OPTION_TX) {
-	/* AL-MMAC timeslot operation */
-	int n_ts = (int)asn % TSCH_SCHEDULE_DEFAULT_LENGTH;  
-	
-	if(n_ts == 0) {
-		/* is it for advertisement of EB? */
-		if(link->link_type == LINK_TYPE_ADVERTISING || link->link_type == LINK_TYPE_ADVERTISING_ONLY) {
-			/* fetch EB packets */
-			n = n_eb;
+    /* is it for advertisement of EB? */
+    if(link->link_type == LINK_TYPE_ADVERTISING || link->link_type == LINK_TYPE_ADVERTISING_ONLY) {
+      /* fetch EB packets */
+      n = n_eb;
+	  if(n_ts == 0) {
+	  	p = tsch_queue_get_packet_for_nbr(n, link);
+	  }
+    }
+    if(link->link_type != LINK_TYPE_ADVERTISING_ONLY) {
+      /* NORMAL link or no EB to send, pick a data packet */
+      if(p == NULL) {
+        /* Get neighbor queue associated to the link and get packet from it */
+        n = tsch_queue_get_nbr(&link->addr);
+		if(n_ts == 0) {
 			p = tsch_queue_get_packet_for_nbr(n, link);
 		}
-		if(link->link_type != LINK_TYPE_ADVERTISING_ONLY) {
-			/* NORMAL link or no EB to send, pick a data packet */
-			if(p == NULL) {
-		        n = tsch_queue_get_nbr(&link->addr);
-		        p = tsch_queue_get_packet_for_nbr(n, link);
+        /* if it is a broadcast slot and there were no broadcast packets, pick any unicast packet */
+        if(p == NULL && n == n_broadcast) {
+			if(n_ts != 0) {
+				p = tsch_queue_get_unicast_packet_for_any(&n, link);
 			}
-		}
-	} else {
-		n = tsch_queue_get_nbr(&link->addr);
-		p = tsch_queue_get_unicast_packet_for_any(&n, link);
-	}
+        }
+      }
+    }
   }
   /* return nbr (by reference) */
   if(target_neighbor != NULL) {
@@ -764,8 +750,9 @@ update_neighbor_state(struct tsch_neighbor *n, struct tsch_packet *p,
 	  if(p->transmissions >= TSCH_MAC_MAX_FRAME_RETRIES + 1) {
       	if(we_are_learning == STILL_LEARNING){
 		  t0 = RTIMER_NOW();
-      	  update_distribution_table((int) &current_asn - 1, &strategy[(int) &current_asn - 1], 0);
-      	  exploitation((int) &current_asn - 1);
+		  int n_ts = (int)current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
+      	  update_distribution_table(n_ts - 1, &strategy[n_ts - 1], 0);
+      	  exploitation(n_ts - 1);
       	}
 	  }
     }
@@ -931,7 +918,8 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
 				/* ACK received */
 				t0 = RTIMER_NOW();
 				if(we_are_learning == STILL_LEARNING){
-					update_distribution_table((int) &current_asn - 1, &strategy[(int) &current_asn - 1], 1);
+					int n_ts = (int)current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
+					update_distribution_table(n_ts - 1, &strategy[n_ts - 1], 1);
 				}
 				
                 is_time_source = current_neighbor != NULL && current_neighbor->is_time_source;
@@ -958,9 +946,10 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
               } else {
 				t0 = RTIMER_NOW();
 	  			if(we_are_learning == STILL_LEARNING){
-	  			  printf("slot %d: not got ACK, transmission failed to %d\n", (int) &current_asn, strategy[(int) &current_asn - 1].u8[0]);
-	  			  update_distribution_table((int) &current_asn - 1, &strategy[(int) &current_asn - 1], 0);
-	  			  exploitation((int) &current_asn - 1);
+				  int n_ts = (int)current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
+	  			  printf("slot %d: not got ACK, transmission failed to %d\n", n_ts, strategy[n_ts - 1].u8[0]);
+	  			  update_distribution_table(n_ts - 1, &strategy[n_ts - 1], 0);
+	  			  exploitation(n_ts - 1);
 	  			}
               }
 
@@ -1097,10 +1086,11 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
       /* no packets on air */
 	  
 	  t0 = RTIMER_NOW();
-	  if(we_are_learning == STILL_LEARNING && (int) &current_asn) {
-		printf("slot %d: no incoming packet, listen failed\n", (int) &current_asn);
-		update_distribution_table((int) &current_asn - 1, &linkaddr_null, 0);
-		exploitation((int) &current_asn - 1);
+	  if(we_are_learning == STILL_LEARNING && n_ts) {
+		int n_ts = (int)current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
+		printf("slot %d: no incoming packet, listen failed\n", n_ts);
+		update_distribution_table(n_ts - 1, &linkaddr_null, 0);
+		exploitation(n_ts - 1);
 	  }
     } else {
       /* Wait until packet is received, turn radio off */
@@ -1242,10 +1232,11 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
         }
       } else {
 		t0 = RTIMER_NOW();
-		if(we_are_learning == STILL_LEARNING && (int) &current_asn){
-			printf("slot %d: timeout, maybe collision, listen failed\n", (int) &current_asn);
-			update_distribution_table((int) &current_asn - 1, &linkaddr_null, 0);
-			exploitation((int) &current_asn - 1);
+		if(we_are_learning == STILL_LEARNING && n_ts){
+			int n_ts = (int)current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
+			printf("slot %d: timeout, maybe collision, listen failed\n", n_ts);
+			update_distribution_table(n_ts - 1, &linkaddr_null, 0);
+			exploitation(n_ts - 1);
 		}
       }
     }
@@ -1377,6 +1368,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
     if((num_learning_done >= MAX_LEARNING_SLOTS) && (we_are_learning != LEARNING_DONE)){
     	we_are_learning = LEARNING_DONE;
     	learning_fix_result();
+		print_distribution_table();
     }
 	
     PT_YIELD(&slot_operation_pt);

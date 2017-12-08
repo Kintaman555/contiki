@@ -395,6 +395,10 @@ tsch_schedule_init(void)
   } else {
     return 0;
   }
+  
+  /* Init learning module */
+  PRINTA("INITIALIZING!!!!!!!!!!!!!!!!!!!\n");
+  learning_start();
 }
 /*---------------------------------------------------------------------------*/
 /* Create a 6TiSCH minimal schedule */

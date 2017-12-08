@@ -860,7 +860,7 @@ tsch_init(void)
   ringbufindex_init(&dequeued_ringbuf, TSCH_DEQUEUED_ARRAY_SIZE);
 
   tsch_is_initialized = 1;
-
+  
 #if TSCH_AUTOSTART
   /* Start TSCH operation.
    * If TSCH_AUTOSTART is not set, one needs to call NETSTACK_MAC.on() to start TSCH. */
