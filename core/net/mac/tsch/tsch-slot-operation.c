@@ -712,7 +712,7 @@ get_packet_and_neighbor_for_link(struct tsch_link *link, struct tsch_neighbor **
 /* Post TX: Update neighbor state after a transmission */
 static int
 update_neighbor_state(struct tsch_neighbor *n, struct tsch_packet *p,
-                      struct tsch_link *link, uint8_t mac_tx_status)
+                      struct tsch_link *link, uint8_t mac_tx_status, struct asn_t *asn)
 {
   int in_queue = 1;
   int is_shared_link = link->link_options & LINK_OPTION_SHARED;
@@ -749,8 +749,8 @@ update_neighbor_state(struct tsch_neighbor *n, struct tsch_packet *p,
 	  
 	  if(p->transmissions >= TSCH_MAC_MAX_FRAME_RETRIES + 1) {
       	if(we_are_learning == STILL_LEARNING){
-		  t0 = RTIMER_NOW();
-		  int n_ts = (int)current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
+		  
+		  int n_ts = (int)asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
       	  update_distribution_table(n_ts - 1, &strategy[n_ts - 1], 0);
       	  exploitation(n_ts - 1);
       	}
@@ -916,9 +916,9 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
               /* The radio driver should return 0 if no valid packets are in the rx buffer */
               if(ack_len > 0) {
 				/* ACK received */
-				t0 = RTIMER_NOW();
+				
 				if(we_are_learning == STILL_LEARNING){
-					int n_ts = (int)current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
+					int n_ts = (int)&current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
 					update_distribution_table(n_ts - 1, &strategy[n_ts - 1], 1);
 				}
 				
@@ -944,9 +944,9 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
                 }
 #endif /* TSCH_SECURITY_ENABLED */
               } else {
-				t0 = RTIMER_NOW();
+				
 	  			if(we_are_learning == STILL_LEARNING){
-				  int n_ts = (int)current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
+				  int n_ts = (int)&current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
 	  			  printf("slot %d: not got ACK, transmission failed to %d\n", n_ts, strategy[n_ts - 1].u8[0]);
 	  			  update_distribution_table(n_ts - 1, &strategy[n_ts - 1], 0);
 	  			  exploitation(n_ts - 1);
@@ -994,7 +994,7 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
     current_packet->ret = mac_tx_status;
 
     /* Post TX: Update neighbor state */
-    in_queue = update_neighbor_state(current_neighbor, current_packet, current_link, mac_tx_status);
+    in_queue = update_neighbor_state(current_neighbor, current_packet, current_link, mac_tx_status, &current_asn);
 
     /* The packet was dequeued, add it to dequeued_ringbuf for later processing */
     if(in_queue == 0) {
@@ -1085,9 +1085,8 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
       NETSTACK_RADIO.off();
       /* no packets on air */
 	  
-	  t0 = RTIMER_NOW();
+	  int n_ts = (int)&current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
 	  if(we_are_learning == STILL_LEARNING && n_ts) {
-		int n_ts = (int)current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
 		printf("slot %d: no incoming packet, listen failed\n", n_ts);
 		update_distribution_table(n_ts - 1, &linkaddr_null, 0);
 		exploitation(n_ts - 1);
@@ -1231,13 +1230,12 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
           process_poll(&tsch_pending_events_process);
         }
       } else {
-		t0 = RTIMER_NOW();
-		if(we_are_learning == STILL_LEARNING && n_ts){
-			int n_ts = (int)current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
-			printf("slot %d: timeout, maybe collision, listen failed\n", n_ts);
-			update_distribution_table(n_ts - 1, &linkaddr_null, 0);
-			exploitation(n_ts - 1);
-		}
+			int n_ts = (int)&current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
+			if(we_are_learning == STILL_LEARNING && n_ts){
+				printf("slot %d: timeout, maybe collision, listen failed\n", n_ts);
+				update_distribution_table(n_ts - 1, &linkaddr_null, 0);
+				exploitation(n_ts - 1);
+			}
       }
     }
 
@@ -1281,7 +1279,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
       uint8_t current_channel;
       TSCH_DEBUG_SLOT_START();
       tsch_in_slot_operation = 1;
-	  int n_ts = (int)current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
+	  int n_ts = (int)&current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
       /* Get a packet ready to be sent */
 	  if (we_are_learning != LEARNING_DONE) {
 	  	current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor, &current_asn);
