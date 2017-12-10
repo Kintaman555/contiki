@@ -1284,7 +1284,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
 	  if (we_are_learning != LEARNING_DONE) {
 		  current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor, &current_asn);
 	  } else {
-		  /* Deploying AL-MMAC strategy */
+		  /* Selecting best neighbor with AL-MMAC strategy */
 		  struct tsch_neighbor *best_nbr = tsch_queue_get_nbr(&strategy[n_ts]);
 		  current_packet = get_packet_and_neighbor_for_link(current_link, &best_nbr, &current_asn);
 	  }
@@ -1296,7 +1296,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
   	  	if (we_are_learning != LEARNING_DONE) {
   	  		current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor, &current_asn);
   	  	} else {
-			/* Deploying AL-MMAC strategy */
+			/* Selecting best neighbor with AL-MMAC strategy */
 			struct tsch_neighbor *best_nbr = tsch_queue_get_nbr(&strategy[n_ts]);
 			current_packet = get_packet_and_neighbor_for_link(current_link, &best_nbr, &current_asn);
   	  	}
