@@ -14,9 +14,9 @@
 #include "lib/list.h"
 #include "lib/random.h"
 
-#include "net/rime/rime.h"
+//#include "net/rime/rime.h"
 #include "net/mac/mac.h"
-#include "net/mac/rdc.h"
+//#include "net/mac/rdc.h"
 #include "net/netstack.h"
 #include "net/rime/timesynch.h"
 //#include "net/neighbor-attr.h"
@@ -64,7 +64,12 @@
                                   if WITH_REXMIT is set and PACKETBUF_ATTR_MAX_REXMIT is not set (in collect???)*/
 
 #define U8(a) (a)->u8[0],(a)->u8[1] /* for printf */
+<<<<<<< Updated upstream
 #ifdef TSCH_QUEUE_MAX_NEIGHBOR_QUEUES
+=======
+
+#ifdef COLLECT_NEIGHBOR_CONF_MAX_COLLECT_NEIGHBORS
+>>>>>>> Stashed changes
 #undef MAX_NEIGHBORS
 #define MAX_NEIGHBORS TSCH_QUEUE_MAX_NEIGHBOR_QUEUES
 #else /* TSCH_QUEUE_MAX_NEIGHBOR_QUEUES */
@@ -155,6 +160,7 @@ struct ack {
   rtimer_clock_t   send_time;
 };
 /*---------------======== packet queue definitions ==========----------------*/
+<<<<<<< Updated upstream
 // struct queue_item {
 //   struct queuebuf* packet;
 //   //linkaddr_t ereceiver;
@@ -169,6 +175,22 @@ struct ack {
 // };
 // MEMB(queue_memb, struct queue_item, MAX_QUEUED_PACKETS);
 // volatile struct queue_item* pending_bc = NULL;
+=======
+struct queue_item {
+  struct queuebuf* packet;
+  //linkaddr_t ereceiver;
+  linkaddr_t receiver;
+  u8_t sent;
+  u8_t latency;//Huy
+  u8_t txmits;
+  u8_t max_txmits;
+  //u8_t epkt_id;
+  mac_callback_t sent_callback;
+  void *sent_callback_ptr;
+};
+MEMB(queue_memb, struct queue_item, MAX_QUEUED_PACKETS);
+volatile struct queue_item* pending_bc = NULL;
+>>>>>>> Stashed changes
 /*---------------------------------------------------------------------------*/
 //mode type and learning status
 enum {
@@ -384,6 +406,7 @@ static void exploitation(u8_t slot)
 	if(index == list_length(parent_list)){
 	  linkaddr_copy(&strategy[slot], &linkaddr_null);
 	} else {
+
 	  int j = 0;
 	  struct parent *p = NULL;
 	  for(p = list_head(parent_list); p != NULL; p = list_item_next(p)){
@@ -707,8 +730,14 @@ static rtimer_clock_t
 next_wakeup(const linkaddr_t* node)
 {
   rtimer_clock_t now = timesynch_time();
+<<<<<<< Updated upstream
   rtimer_clock_t wakeup = (rtimer_clock_t) ((now / SLOT_TIME) * SLOT_TIME + SLOT_TIME);
   rtimer_clock_t wakeup_short = (rtimer_clock_t) (wakeup & 0xFFFF);
+=======
+  rtimer_clock_t _slot_index = now / SLOT_TIME;
+  rtimer_clock_t wakeup = (rtimer_clock_t) ((_slot_index * SLOT_TIME + SLOT_TIME));
+  rtimer_clock_t wakeup_short = (rtimer_clock_t) ((wakeup & 0xFFFF));
+>>>>>>> Stashed changes
   return timesynch_time_to_rtimer(wakeup_short);
 }
 /*---------------------------------------------------------------------------*/
@@ -749,6 +778,7 @@ static void run_dutycycle(struct rtimer *t, void* ptr)
 }
 /*---------------------------------------------------------------------------*/
 static void set_transmit_mode(linkaddr_t *to)
+
 {
 	mode = TRANSMIT_MODE;
 	set_radio_channel(get_tx_channel(RTIMER_TIME(&rt), to));
@@ -1059,6 +1089,7 @@ if(packetbuf_totlen() > 0){
   case TYPE_DATA: {
 	/*in UC slot, listen mode || BC slot, no BC packet*/
 	listen_for_message = 0;
+
     off();
     struct much_hdr* hdr = packetbuf_dataptr();
     char is_broadcast = linkaddr_cmp(&(hdr->receiver),&linkaddr_null);
@@ -1240,14 +1271,14 @@ al_mmac_init(void)
   ctimer_set(&ht, CLOCK_SECOND * 2, heartbeat_listener, NULL);*/
 }
 /*---------------------------------------------------------------------------*/
-const struct rdc_driver al_mmac_driver =
-    { "AL_MMAC",
-        al_mmac_init,
-        send_packet,
-        input_packet,
-        turn_on,
-        turn_off,
-        channel_check_interval
-    };
+/*const struct rdc_driver al_mmac_driver =*/
+/*    { "AL_MMAC",*/
+/*        al_mmac_init,*/
+/*        send_packet,*/
+/*        input_packet,*/
+/*        turn_on,*/
+/*        turn_off,*/
+/*        channel_check_interval*/
+/*    };*/
 /*---------------------------------------------------------------------------*/
 /** @} */

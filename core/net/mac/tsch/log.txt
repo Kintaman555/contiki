@@ -1,0 +1,32 @@
+
+> make node.z1 TARGET=z1 
+  CC        ../../../core/net/mac/tsch/tsch-slot-operation.c
+../../../core/net/mac/tsch/tsch-slot-operation.c: In function 'exploitation':
+../../../core/net/mac/tsch/tsch-slot-operation.c:497:8: warning: unused variable 'total' [-Wunused-variable]
+../../../core/net/mac/tsch/tsch-slot-operation.c: In function 'update_neighbor_state':
+../../../core/net/mac/tsch/tsch-slot-operation.c:763:10: warning: implicit declaration of function 'timesynch_rtimer_to_time' [-Wimplicit-function-declaration]
+../../../core/net/mac/tsch/tsch-slot-operation.c: In function 'tsch_rx_slot':
+../../../core/net/mac/tsch/tsch-slot-operation.c:1098:3: warning: passing argument 2 of 'update_distribution_table' discards 'const' qualifier from pointer target type [enabled by default]
+../../../core/net/mac/tsch/tsch-slot-operation.c:365:13: note: expected 'union linkaddr_t *' but argument is of type 'const union linkaddr_t *'
+../../../core/net/mac/tsch/tsch-slot-operation.c:1243:4: warning: passing argument 2 of 'update_distribution_table' discards 'const' qualifier from pointer target type [enabled by default]
+../../../core/net/mac/tsch/tsch-slot-operation.c:365:13: note: expected 'union linkaddr_t *' but argument is of type 'const union linkaddr_t *'
+../../../core/net/mac/tsch/tsch-slot-operation.c: At top level:
+../../../core/net/mac/tsch/tsch-slot-operation.c:333:12: warning: 'learning_disable_beacon' defined but not used [-Wunused-function]
+../../../core/net/mac/tsch/tsch-slot-operation.c:349:13: warning: 'print_distribution_table' defined but not used [-Wunused-function]
+../../../core/net/mac/tsch/tsch-slot-operation.c:387:12: warning: 'check_cca_num' defined but not used [-Wunused-function]
+../../../core/net/mac/tsch/tsch-slot-operation.c:535:13: warning: 'cycle_check_learning' defined but not used [-Wunused-function]
+  AR        contiki-z1.a
+  CC        node.c
+  CC        ../../../platform/z1/./contiki-z1-main.c
+  LD        node.z1
+contiki-z1.a(tsch-slot-opera): In function `tsch_slot_operation_sync':
+/Users/trungdong/contiki-almmac/examples/ipv6/rpl-tsch/../../../core/net/mac/tsch/tsch-slot-operation.c:1421: undefined reference to `timesynch_rtimer_to_time'
+/Users/trungdong/contiki-almmac/examples/ipv6/rpl-tsch/../../../core/net/mac/tsch/tsch-slot-operation.c:1421: undefined reference to `timesynch_rtimer_to_time'
+/Users/trungdong/contiki-almmac/examples/ipv6/rpl-tsch/../../../core/net/mac/tsch/tsch-slot-operation.c:1421: undefined reference to `timesynch_rtimer_to_time'
+/Users/trungdong/contiki-almmac/examples/ipv6/rpl-tsch/../../../core/net/mac/tsch/tsch-slot-operation.c:1421: undefined reference to `timesynch_rtimer_to_time'
+/Users/trungdong/contiki-almmac/examples/ipv6/rpl-tsch/../../../core/net/mac/tsch/tsch-slot-operation.c:1421: undefined reference to `timesynch_rtimer_to_time'
+contiki-z1.a(tsch-slot-opera):/Users/trungdong/contiki-almmac/examples/ipv6/rpl-tsch/../../../core/net/mac/tsch/tsch-slot-operation.c:1421: more undefined references to `timesynch_rtimer_to_time' follow
+collect2: error: ld returned 1 exit status
+make: *** [node.z1] Error 1
+rm obj_z1/contiki-z1-main.o node.co
+Process returned error code 2
