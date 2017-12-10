@@ -1285,6 +1285,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
 		  current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor, &current_asn);
 	  } else {
 		  /* Selecting best neighbor with AL-MMAC strategy */
+		  // waht da fuck do i have to do to make git works
 		  struct tsch_neighbor *best_nbr = tsch_queue_get_nbr(&strategy[n_ts]);
 		  current_packet = get_packet_and_neighbor_for_link(current_link, &best_nbr, &current_asn);
 	  }
