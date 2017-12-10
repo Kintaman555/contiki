@@ -1376,7 +1376,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
 
     tsch_in_slot_operation = 0;
 	
-	//cycle_check_learning();
+	cycle_check_learning();
 	/* AL-MMAC learning done */
     if((num_learning_done >= MAX_LEARNING_SLOTS) && (we_are_learning != LEARNING_DONE)){
     	we_are_learning = LEARNING_DONE;
