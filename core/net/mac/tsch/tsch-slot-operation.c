@@ -513,7 +513,7 @@ static void exploitation(u8_t slot) {
 static struct ctimer cycle_check_timer;
 #define CHECK_LEARNING_PERIOD (CLOCK_SECOND * 2)
 /* Number of frames learning, must be less than total_slot to avoid overflow
- * Currently ise u8_t (Max value = 255) */
+ * Currently use u8_t (Max value = 255) */
 #define MAX_LEARNING_SLOTS (TSCH_SCHEDULE_DEFAULT_LENGTH * 150)
 static void cycle_check_learning(void) {
 	if(num_learning_done >= MAX_LEARNING_SLOTS) {
@@ -1376,7 +1376,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
 
     tsch_in_slot_operation = 0;
 	
-	cycle_check_learning();
+	//cycle_check_learning();
 	/* AL-MMAC learning done */
     if((num_learning_done >= MAX_LEARNING_SLOTS) && (we_are_learning != LEARNING_DONE)){
     	we_are_learning = LEARNING_DONE;
