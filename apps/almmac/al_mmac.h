@@ -41,7 +41,7 @@
 #include "sys/rtimer.h"
 #include "net/mac/rdc.h"
 #include "dev/radio.h"
-#include "net/linkaddr.h"
+//#include "net/linkaddr.h"
 
 
 
@@ -68,7 +68,7 @@ struct much_hdr {
   struct type_hdr type;
   linkaddr_t  sender;
   linkaddr_t  receiver;
-  u8_t mac_latency;
+  //u8_t mac_latency;
   u16_t pkt_id;
 };
 
@@ -79,7 +79,7 @@ void learning_start(void);
 void update_from_net(struct collect_neighbor_list *list, u16_t rtmetric);
 int learning_done(void);
 
-extern const struct rdc_driver al_mmac_driver;
+//extern const struct rdc_driver al_mmac_driver;
 
 
 #endif /* __AL_MMAC_H__ */
