@@ -15,18 +15,3 @@
 ../../../core/net/mac/tsch/tsch-slot-operation.c:349:13: warning: 'print_distribution_table' defined but not used [-Wunused-function]
 ../../../core/net/mac/tsch/tsch-slot-operation.c:387:12: warning: 'check_cca_num' defined but not used [-Wunused-function]
 ../../../core/net/mac/tsch/tsch-slot-operation.c:535:13: warning: 'cycle_check_learning' defined but not used [-Wunused-function]
-  AR        contiki-z1.a
-  CC        node.c
-  CC        ../../../platform/z1/./contiki-z1-main.c
-  LD        node.z1
-contiki-z1.a(tsch-slot-opera): In function `tsch_slot_operation_sync':
-/Users/trungdong/contiki-almmac/examples/ipv6/rpl-tsch/../../../core/net/mac/tsch/tsch-slot-operation.c:1421: undefined reference to `timesynch_rtimer_to_time'
-/Users/trungdong/contiki-almmac/examples/ipv6/rpl-tsch/../../../core/net/mac/tsch/tsch-slot-operation.c:1421: undefined reference to `timesynch_rtimer_to_time'
-/Users/trungdong/contiki-almmac/examples/ipv6/rpl-tsch/../../../core/net/mac/tsch/tsch-slot-operation.c:1421: undefined reference to `timesynch_rtimer_to_time'
-/Users/trungdong/contiki-almmac/examples/ipv6/rpl-tsch/../../../core/net/mac/tsch/tsch-slot-operation.c:1421: undefined reference to `timesynch_rtimer_to_time'
-/Users/trungdong/contiki-almmac/examples/ipv6/rpl-tsch/../../../core/net/mac/tsch/tsch-slot-operation.c:1421: undefined reference to `timesynch_rtimer_to_time'
-contiki-z1.a(tsch-slot-opera):/Users/trungdong/contiki-almmac/examples/ipv6/rpl-tsch/../../../core/net/mac/tsch/tsch-slot-operation.c:1421: more undefined references to `timesynch_rtimer_to_time' follow
-collect2: error: ld returned 1 exit status
-make: *** [node.z1] Error 1
-rm obj_z1/contiki-z1-main.o node.co
-Process returned error code 2
