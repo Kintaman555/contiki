@@ -118,8 +118,6 @@
 #define RTIMER_GUARD 2u
 #endif
 
-//#define (int) &current_asn		((timesynch_rtimer_to_time(RTIMER_NOW()) / TSCH_DEFAULT_TS_TIMESLOT_LENGTH) % (TSCH_SCHEDULE_DEFAULT_LENGTH + 1))
-
 /*---------------======== for learning process ==========-----------------*/
 #define FRAMES_START_EXPLOITATION (30 * TSCH_SCHEDULE_DEFAULT_LENGTH)
 #define RANDOM_CHOOSE_PARENT 0    /* enable/disable choosing a new parent randomly when exploitation*/
