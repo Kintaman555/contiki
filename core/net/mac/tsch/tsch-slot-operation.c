@@ -1282,9 +1282,11 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
 	  int n_ts = (int)&current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
       /* Get a packet ready to be sent */
 	  if (we_are_learning != LEARNING_DONE) {
-	  	current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor, &current_asn);
+		  current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor, &current_asn);
 	  } else {
-	  	current_packet = get_packet_and_neighbor_for_link(current_link, &tsch_queue_get_nbr(&strategy[n_ts]), &current_asn);
+		  /* Deploying AL-MMAC strategy */
+		  struct tsch_neighbor *best_nbr = tsch_queue_get_nbr(&strategy[n_ts]);
+		  current_packet = get_packet_and_neighbor_for_link(current_link, &best_nbr, &current_asn);
 	  }
 	  
       /* There is no packet to send, and this link does not have Rx flag. Instead of doing
@@ -1294,7 +1296,9 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
   	  	if (we_are_learning != LEARNING_DONE) {
   	  		current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor, &current_asn);
   	  	} else {
-  	  		current_packet = get_packet_and_neighbor_for_link(current_link, &tsch_queue_get_nbr(&strategy[n_ts]), &current_asn);
+			/* Deploying AL-MMAC strategy */
+			struct tsch_neighbor *best_nbr = tsch_queue_get_nbr(&strategy[n_ts]);
+			current_packet = get_packet_and_neighbor_for_link(current_link, &best_nbr, &current_asn);
   	  	}
       }
       /* Hop channel */
