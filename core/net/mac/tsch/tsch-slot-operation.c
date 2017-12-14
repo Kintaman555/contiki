@@ -1373,11 +1373,6 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
       } while(!tsch_schedule_slot_operation(t, prev_slot_start, time_to_next_active_slot, "main"));
     }
 
-<<<<<<< HEAD
-=======
-    tsch_in_slot_operation = 0;
-	
->>>>>>> b608dcbbad4b9fdb8f98892efc3a983a487ed206
 	cycle_check_learning();
 	/* AL-MMAC learning done */
     if((num_learning_done >= MAX_LEARNING_SLOTS) && (we_are_learning != LEARNING_DONE)){
