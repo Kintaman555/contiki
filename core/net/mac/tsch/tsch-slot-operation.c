@@ -118,8 +118,6 @@
 #define RTIMER_GUARD 2u
 #endif
 
-//#define n_ts		((timesynch_rtimer_to_time(RTIMER_NOW()) / TSCH_DEFAULT_TS_TIMESLOT_LENGTH) % (TSCH_SCHEDULE_DEFAULT_LENGTH + 1))
-
 /*---------------======== for learning process ==========-----------------*/
 #define FRAMES_START_EXPLOITATION (30 * TSCH_SCHEDULE_DEFAULT_LENGTH)
 #define RANDOM_CHOOSE_PARENT 0    /* enable/disable choosing a new parent randomly when exploitation*/
@@ -183,6 +181,15 @@ enum {
 volatile rtimer_clock_t t0;
 
 static linkaddr_t strategy[TSCH_SCHEDULE_DEFAULT_LENGTH];
+
+/* A ringbuf storing outgoing packets after they were dequeued.
+ * Will be processed layer by tsch_tx_process_pending */
+struct ringbufindex dequeued_ringbuf;
+struct tsch_packet *dequeued_array[TSCH_DEQUEUED_ARRAY_SIZE];
+/* A ringbuf storing incoming packets.
+ * Will be processed layer by tsch_rx_process_pending */
+struct ringbufindex input_ringbuf;
+struct input_packet input_array[TSCH_MAX_INCOMING_PACKETS];
 
 /* Last time we received Sync-IE (ACK or data packet from a time source) */
 static struct asn_t last_sync_asn;
@@ -279,7 +286,7 @@ static void learning_init(void)
 		}
 	}
 	
-	/* Listen trail */
+	/* Listen trial */
 	ld = memb_alloc(&learning_distribution_memb);
 	linkaddr_copy(&ld->parent, &linkaddr_null);
 	for(i = 0; i < TSCH_SCHEDULE_DEFAULT_LENGTH; i++) {
@@ -670,28 +677,24 @@ get_packet_and_neighbor_for_link(struct tsch_link *link, struct tsch_neighbor **
 {
   struct tsch_packet *p = NULL;
   struct tsch_neighbor *n = NULL;
-
-/*--------------------------------This is where things get ugly-----------------------------------*/  
+  
+  /* AL-MMAC timeslot */
+  int n_ts = (int)asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
   
   /* Is this a Tx link? */
-  int n_ts = (int)asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
   if(link->link_options & LINK_OPTION_TX) {
     /* is it for advertisement of EB? */
     if(link->link_type == LINK_TYPE_ADVERTISING || link->link_type == LINK_TYPE_ADVERTISING_ONLY) {
       /* fetch EB packets */
       n = n_eb;
-	  if(n_ts == 0) {
-	  	p = tsch_queue_get_packet_for_nbr(n, link);
-	  }
+      p = tsch_queue_get_packet_for_nbr(n, link);
     }
     if(link->link_type != LINK_TYPE_ADVERTISING_ONLY) {
       /* NORMAL link or no EB to send, pick a data packet */
       if(p == NULL) {
         /* Get neighbor queue associated to the link and get packet from it */
         n = tsch_queue_get_nbr(&link->addr);
-		if(n_ts == 0) {
-			p = tsch_queue_get_packet_for_nbr(n, link);
-		}
+        p = tsch_queue_get_packet_for_nbr(n, link);
         /* if it is a broadcast slot and there were no broadcast packets, pick any unicast packet */
         if(p == NULL && n == n_broadcast) {
 			if(n_ts != 0) {
@@ -701,6 +704,7 @@ get_packet_and_neighbor_for_link(struct tsch_link *link, struct tsch_neighbor **
       }
     }
   }
+  
   /* return nbr (by reference) */
   if(target_neighbor != NULL) {
     *target_neighbor = n;
@@ -712,7 +716,7 @@ get_packet_and_neighbor_for_link(struct tsch_link *link, struct tsch_neighbor **
 /* Post TX: Update neighbor state after a transmission */
 static int
 update_neighbor_state(struct tsch_neighbor *n, struct tsch_packet *p,
-                      struct tsch_link *link, uint8_t mac_tx_status, struct asn_t *asn)
+                      struct tsch_link *link, uint8_t mac_tx_status)
 {
   int in_queue = 1;
   int is_shared_link = link->link_options & LINK_OPTION_SHARED;
@@ -746,15 +750,6 @@ update_neighbor_state(struct tsch_neighbor *n, struct tsch_packet *p,
         /* Shared link: increment backoff exponent, pick a new window */
         tsch_queue_backoff_inc(n);
       }
-	  
-	  if(p->transmissions >= TSCH_MAC_MAX_FRAME_RETRIES + 1) {
-      	if(we_are_learning == STILL_LEARNING){
-		  
-		  int n_ts = (int)asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
-      	  update_distribution_table(n_ts - 1, &strategy[n_ts - 1], 0);
-      	  exploitation(n_ts - 1);
-      	}
-	  }
     }
   }
 
@@ -915,13 +910,6 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
               is_time_source = 0;
               /* The radio driver should return 0 if no valid packets are in the rx buffer */
               if(ack_len > 0) {
-				/* ACK received */
-				
-				if(we_are_learning == STILL_LEARNING){
-					int n_ts = (int)&current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
-					update_distribution_table(n_ts - 1, &strategy[n_ts - 1], 1);
-				}
-				
                 is_time_source = current_neighbor != NULL && current_neighbor->is_time_source;
                 if(tsch_packet_parse_eack(ackbuf, ack_len, seqno,
                     &frame, &ack_ies, &ack_hdrlen) == 0) {
@@ -943,14 +931,6 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
                       "!failed to parse ACK"));
                 }
 #endif /* TSCH_SECURITY_ENABLED */
-              } else {
-				
-	  			if(we_are_learning == STILL_LEARNING){
-				  int n_ts = (int)&current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
-	  			  printf("slot %d: not got ACK, transmission failed to %d\n", n_ts, strategy[n_ts - 1].u8[0]);
-	  			  update_distribution_table(n_ts - 1, &strategy[n_ts - 1], 0);
-	  			  exploitation(n_ts - 1);
-	  			}
               }
 
               if(ack_len != 0) {
@@ -977,14 +957,34 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
                   tsch_schedule_keepalive();
                 }
                 mac_tx_status = MAC_TX_OK;
+				if(we_are_learning == STILL_LEARNING){
+					int n_ts = (int)&current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
+					update_distribution_table(n_ts - 1, &strategy[n_ts - 1], 1);
+				}
               } else {
                 mac_tx_status = MAC_TX_NOACK;
+	  			if(we_are_learning == STILL_LEARNING){
+				  int n_ts = (int)&current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
+	  			  printf("slot %d: not got ACK, transmission failed to %d\n", n_ts, strategy[n_ts - 1].u8[0]);
+	  			  update_distribution_table(n_ts - 1, &strategy[n_ts - 1], 0);
+	  			  exploitation(n_ts - 1);
+	  			}
               }
             } else {
               mac_tx_status = MAC_TX_OK;
+			  if(we_are_learning == STILL_LEARNING){
+				int n_ts = (int)&current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
+				update_distribution_table(n_ts - 1, &strategy[n_ts - 1], 1);
+			  }
             }
           } else {
             mac_tx_status = MAC_TX_ERR;
+  			if(we_are_learning == STILL_LEARNING){
+			  int n_ts = (int)&current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
+  			  PRINTFL("slot %d, channel busy, transmission failed \n", n_ts);
+  			  update_distribution_table(n_ts - 1, &strategy[n_ts - 1], 0);
+  			  exploitation(n_ts - 1);
+  			}
           }
         }
       }
@@ -994,7 +994,7 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
     current_packet->ret = mac_tx_status;
 
     /* Post TX: Update neighbor state */
-    in_queue = update_neighbor_state(current_neighbor, current_packet, current_link, mac_tx_status, &current_asn);
+    in_queue = update_neighbor_state(current_neighbor, current_packet, current_link, mac_tx_status);
 
     /* The packet was dequeued, add it to dequeued_ringbuf for later processing */
     if(in_queue == 0) {
@@ -1084,7 +1084,6 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
     if(!NETSTACK_RADIO.receiving_packet() && !NETSTACK_RADIO.pending_packet()) {
       NETSTACK_RADIO.off();
       /* no packets on air */
-	  
 	  int n_ts = (int)&current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
 	  if(we_are_learning == STILL_LEARNING && n_ts) {
 		printf("slot %d: no incoming packet, listen failed\n", n_ts);
@@ -1237,7 +1236,7 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
 				exploitation(n_ts - 1);
 			}
       }
-    }
+	}
 
     if(input_queue_drop != 0) {
       TSCH_LOG_ADD(tsch_log_message,
@@ -1280,6 +1279,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
       TSCH_DEBUG_SLOT_START();
       tsch_in_slot_operation = 1;
 	  int n_ts = (int)&current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
+	  
       /* Get a packet ready to be sent */
 	  if (we_are_learning != LEARNING_DONE) {
 		  current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor, &current_asn);
@@ -1288,17 +1288,16 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
 		  struct tsch_neighbor *best_nbr = tsch_queue_get_nbr(&strategy[n_ts]);
 		  current_packet = get_packet_and_neighbor_for_link(current_link, &best_nbr, &current_asn);
 	  }
-	  
       /* There is no packet to send, and this link does not have Rx flag. Instead of doing
        * nothing, switch to the backup link (has Rx flag) if any. */
       if(current_packet == NULL && !(current_link->link_options & LINK_OPTION_RX) && backup_link != NULL) {
         current_link = backup_link;
   	  	if (we_are_learning != LEARNING_DONE) {
-  	  		current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor, &current_asn);
+  		  current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor, &current_asn);
   	  	} else {
-			/* Selecting best neighbor with AL-MMAC strategy */
-			struct tsch_neighbor *best_nbr = tsch_queue_get_nbr(&strategy[n_ts]);
-			current_packet = get_packet_and_neighbor_for_link(current_link, &best_nbr, &current_asn);
+  		  /* Selecting best neighbor with AL-MMAC strategy */
+  		  struct tsch_neighbor *best_nbr = tsch_queue_get_nbr(&strategy[n_ts]);
+  		  current_packet = get_packet_and_neighbor_for_link(current_link, &best_nbr, &current_asn);
   	  	}
       }
       /* Hop channel */
@@ -1374,9 +1373,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
       } while(!tsch_schedule_slot_operation(t, prev_slot_start, time_to_next_active_slot, "main"));
     }
 
-    tsch_in_slot_operation = 0;
-	
-	//cycle_check_learning();
+	cycle_check_learning();
 	/* AL-MMAC learning done */
     if((num_learning_done >= MAX_LEARNING_SLOTS) && (we_are_learning != LEARNING_DONE)){
     	we_are_learning = LEARNING_DONE;
@@ -1384,6 +1381,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
 		print_distribution_table();
     }
 	
+    tsch_in_slot_operation = 0;
     PT_YIELD(&slot_operation_pt);
   }
 
