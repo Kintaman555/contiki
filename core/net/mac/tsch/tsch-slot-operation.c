@@ -981,7 +981,7 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
             mac_tx_status = MAC_TX_ERR;
   			if(we_are_learning == STILL_LEARNING){
 			  int n_ts = (int)&current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
-  			  PRINTFL("slot %d, channel busy, transmission failed \n", n_ts);
+  			  printf("slot %d, channel busy, transmission failed \n", n_ts);
   			  update_distribution_table(n_ts - 1, &strategy[n_ts - 1], 0);
   			  exploitation(n_ts - 1);
   			}
