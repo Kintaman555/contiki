@@ -45,7 +45,7 @@
 
 #define UDP_EXAMPLE_ID  190
 
-#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_FULL
 #include "net/ip/uip-debug.h"
 
 #ifndef PERIOD

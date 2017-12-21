@@ -52,7 +52,7 @@
 #include "lib/ringbufindex.h"
 
 #if TSCH_LOG_LEVEL >= 1
-#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_FULL
 #else /* TSCH_LOG_LEVEL */
 #define DEBUG DEBUG_NONE
 #endif /* TSCH_LOG_LEVEL */

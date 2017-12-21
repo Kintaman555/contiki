@@ -32,7 +32,7 @@
 #include "net/rpl/rpl.h"
 #include "tools/rpl-tools.h"
 
-#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_FULL
 #include "net/ip/uip-debug.h"
 
 static uip_ipaddr_t prefix;

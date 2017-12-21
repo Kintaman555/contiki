@@ -302,7 +302,7 @@ Once you are familiar with the basics, get a mini 6LoWPAN testbed.
 
 Start by building a border router from `examples/ipv6/rpl-border-router`
 
-  * Turn on debugging output by changing `#define DEBUG DEBUG_NONE` to `#define DEBUG DEBUG_PRINT` in `border-router.c`.
+  * Turn on debugging output by changing `#define DEBUG DEBUG_NONE` to `#define DEBUG DEBUG_FULL` in `border-router.c`.
   * The border router's configuration (`project-conf.h`), sets the maximum size of the uIP buffer (`UIP_CONF_BUFFER_SIZE`). This is a bit restrictive for this platform: we can afford to allocate more memory of we want to. It's not necessary, but feel free to remove the lines below from `project-conf.h`, allowing the platform to use its own default value.
 
         #ifndef UIP_CONF_BUFFER_SIZE

@@ -54,9 +54,10 @@
 #include "sys/process.h"
 #include "sys/rtimer.h"
 #include <string.h>
+#include <stdio.h>
 
 #if TSCH_LOG_LEVEL >= 1
-#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_FULL
 #else /* TSCH_LOG_LEVEL */
 #define DEBUG DEBUG_NONE
 #endif /* TSCH_LOG_LEVEL */
@@ -396,9 +397,9 @@ tsch_schedule_init(void)
     return 0;
   }
   
-  /* Init learning module */
-  PRINTA("INITIALIZING!!!!!!!!!!!!!!!!!!!\n");
-  learning_start();
+  /* Does this look like a good idea to you?
+   * Learning module initialization */
+  //learning_start();
 }
 /*---------------------------------------------------------------------------*/
 /* Create a 6TiSCH minimal schedule */

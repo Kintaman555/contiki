@@ -55,7 +55,7 @@
 #include "net/mac/tsch/tsch-adaptive-timesync.h"
 
 #if TSCH_LOG_LEVEL >= 1
-#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_FULL
 #else /* TSCH_LOG_LEVEL */
 #define DEBUG DEBUG_NONE
 #endif /* TSCH_LOG_LEVEL */
@@ -257,62 +257,7 @@ void update_from_net(struct collect_neighbor_list *list, u16_t rtmetric)
 
 static void learning_init(void)
 {
-	memb_init(&learning_distribution_memb);
-	list_init(distribution_list);
-	memb_init(&parent_memb);
-	list_init(parent_list);
-	
-	int i;
-	struct collect_neighbor *n;
-	struct learning_distributions *ld;
-	
-	/* Create a list of candidate parent from neighbor list, 
-	 * initialize distribution list */
-	for(n = list_head(neighbor_list.list); n != NULL; n = list_item_next(n)) {
-		//printf("neighbor %d, n->rtmetric %d ", n->addr.u8[0],n->rtmetric);
-		if((n->rtmetric + 1) == my_rtmetric){
-			struct parent *p = memb_alloc(&parent_memb);
-			ld = memb_alloc(&learning_distribution_memb);
-			linkaddr_copy(&p->addr, &n->addr);
-			linkaddr_copy(&ld->parent, &n->addr);
-			for(i = 0; i < TSCH_SCHEDULE_DEFAULT_LENGTH; i++){
-				ld->distributions[i].num = MAX_CHECK_CCA >> 1;
-				ld->distributions[i].successful_slot = 0;
-				ld->distributions[i].total_slot = 0;
-			}
-			list_add(parent_list, p);
-			list_add(distribution_list, ld);
-			//printf("add to parent list %d", p->addr.u8[0]);
-		}
-	}
-	
-	/* Listen trial */
-	ld = memb_alloc(&learning_distribution_memb);
-	linkaddr_copy(&ld->parent, &linkaddr_null);
-	for(i = 0; i < TSCH_SCHEDULE_DEFAULT_LENGTH; i++) {
-		ld->distributions[i].num = 0;
-		ld->distributions[i].successful_slot = 0;
-		ld->distributions[i].total_slot = 0;
-	}
-	list_add(distribution_list, ld);
-	
-	/* Randomly initialize strategy */
-	for(i = 0; i < TSCH_SCHEDULE_DEFAULT_LENGTH; i++) {
-		int index = random_rand() % (list_length(parent_list) + 1);
-		if(index == list_length(parent_list)) {
-			linkaddr_copy(&strategy[i], &linkaddr_null);
-		} else {
-			int j = 0;
-			struct parent *p = NULL;
-			for(p = list_head(parent_list); p != NULL; p = list_item_next(p)) {
-				if (j == index) {
-					linkaddr_copy(&strategy[i], &p->addr);
-					break;
-				}
-				j++;
-			}
-		}
-	}
+
 }
 
 /*---------------------------------------------------------------------------*/
@@ -340,11 +285,15 @@ static void print_distribution_table(void)
   for(i = 0; i < TSCH_SCHEDULE_DEFAULT_LENGTH; i ++){
 	struct learning_distributions *ld;
 	for(ld = list_head(distribution_list); ld != NULL; ld = list_item_next(ld)) {
-		printf("slot %d, parent %d, total %d, success %d\n",
-				i, ld->parent.u8[0],
-				ld->distributions[i].total_slot,
-				ld->distributions[i].successful_slot);
-
+		TSCH_DEBUG_INTERRUPT();
+		TSCH_LOG_ADD(tsch_log_message, snprintf(log->message, sizeof(log->message),
+			"slot %d, parent %d, total %d, success %d\n",
+			i, ld->parent.u8[0],
+			ld->distributions[i].total_slot,
+			ld->distributions[i].successful_slot);
+		);
+		TSCH_DEBUG_INTERRUPT();
+		process_poll(&tsch_pending_events_process);
 	}
   }
 }
@@ -428,8 +377,17 @@ static void learning_fix_result(void) {
 			} else {
 				linkaddr_copy(&strategy[i], &sleep_addr);
 			}
-			printf("slot\t%d\ts\t%d\tp\t%d\ttotal\t%d\tset\t%d\n", i+1,
-                			best_ld->parent.u8[0], max_prob, total, strategy[i].u8[0]);
+			TSCH_DEBUG_INTERRUPT();
+			TSCH_LOG_ADD(tsch_log_message, snprintf(log->message, sizeof(log->message),
+				"slot\t%d\ts\t%d\tp\t%d\ttotal\t%d\tset\t%d\n",
+				i+1,
+				best_ld->parent.u8[0],
+				max_prob,
+				total,
+				strategy[i].u8[0]);
+			);
+			TSCH_DEBUG_INTERRUPT();
+			process_poll(&tsch_pending_events_process);
 		}
 	}
 	
@@ -443,7 +401,11 @@ static void learning_fix_result(void) {
 		memb_free(&parent_memb, p);
 	}
 	
-	printf("DONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+	TSCH_DEBUG_INTERRUPT();
+	TSCH_LOG_ADD(tsch_log_message, snprintf(log->message, sizeof(log->message),
+		"LEARNING DONE!\n");
+	);
+	process_poll(&tsch_pending_events_process);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -536,8 +498,80 @@ static void cycle_check_learning(void) {
 
 void learning_start(void) {
 	num_learning_done = 0;
-	printf("START LEARNING!!!!!!!!!!!!!!!!!!!!!");
-	learning_init();
+	printf("\nSTART LEARNING\n");
+	
+	memb_init(&learning_distribution_memb);
+	list_init(distribution_list);
+	memb_init(&parent_memb);
+	list_init(parent_list);
+	
+	int i;
+	struct collect_neighbor *n;
+	struct learning_distributions *ld;
+	
+	/* Create a list of candidate parent from neighbor list, 
+	 * initialize distribution list */
+	// for(n = list_head(neighbor_list.list); n != NULL; n = list_item_next(n)) {
+	// 	if((n->rtmetric + 1) == my_rtmetric){
+	// 		struct parent *p = memb_alloc(&parent_memb);
+	// 		ld = memb_alloc(&learning_distribution_memb);
+	// 		linkaddr_copy(&p->addr, &n->addr);
+	// 		linkaddr_copy(&ld->parent, &n->addr);
+	// 		for(i = 0; i < TSCH_SCHEDULE_DEFAULT_LENGTH; i++){
+	// 			ld->distributions[i].num = MAX_CHECK_CCA >> 1;
+	// 			ld->distributions[i].successful_slot = 0;
+	// 			ld->distributions[i].total_slot = 0;
+	// 		}
+	// 		list_add(parent_list, p);
+	// 		list_add(distribution_list, ld);
+	// 	}
+	// }
+	
+	rpl_parent_t *pp = nbr_table_head(rpl_parents);
+    while(pp != NULL) {
+			struct parent *p = memb_alloc(&parent_memb);
+			ld = memb_alloc(&learning_distribution_memb);
+			linkaddr_copy(&p->addr, nbr_table_get_lladdr(rpl_parents, pp));
+			linkaddr_copy(&ld->parent, nbr_table_get_lladdr(rpl_parents, pp));
+			for(i = 0; i < TSCH_SCHEDULE_DEFAULT_LENGTH; i++){
+				ld->distributions[i].num = MAX_CHECK_CCA >> 1;
+				ld->distributions[i].successful_slot = 0;
+				ld->distributions[i].total_slot = 0;
+			}
+			list_add(parent_list, p);
+			list_add(distribution_list, ld);
+      pp = nbr_table_next(rpl_parents, pp);
+    }
+    printf("RPL: end of list\n");
+	
+	/* Listen trial */
+	ld = memb_alloc(&learning_distribution_memb);
+	linkaddr_copy(&ld->parent, &linkaddr_null);
+	for(i = 0; i < TSCH_SCHEDULE_DEFAULT_LENGTH; i++) {
+		ld->distributions[i].num = 0;
+		ld->distributions[i].successful_slot = 0;
+		ld->distributions[i].total_slot = 0;
+	}
+	list_add(distribution_list, ld);
+	
+	/* Randomly initialize strategy */
+	for(i = 0; i < TSCH_SCHEDULE_DEFAULT_LENGTH; i++) {
+		int index = random_rand() % (list_length(parent_list) + 1);
+		if(index == list_length(parent_list)) {
+			linkaddr_copy(&strategy[i], &linkaddr_null);
+		} else {
+			int j = 0;
+			struct parent *p = NULL;
+			for(p = list_head(parent_list); p != NULL; p = list_item_next(p)) {
+				if (j == index) {
+					linkaddr_copy(&strategy[i], &p->addr);
+					break;
+				}
+				j++;
+			}
+		}
+	}
+	
 	we_are_learning = STILL_LEARNING;
 }
 
@@ -960,12 +994,20 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
 				if(we_are_learning == STILL_LEARNING){
 					int n_ts = (int)&current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
 					update_distribution_table(n_ts - 1, &strategy[n_ts - 1], 1);
+	  			    TSCH_LOG_ADD(tsch_log_message, snprintf(log->message, sizeof(log->message),
+	  			  	  "DOING FINE \n");
+	  			    );
+					printf("\nDOING FINE\n");
 				}
               } else {
                 mac_tx_status = MAC_TX_NOACK;
 	  			if(we_are_learning == STILL_LEARNING){
 				  int n_ts = (int)&current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
-	  			  printf("slot %d: not got ACK, transmission failed to %d\n", n_ts, strategy[n_ts - 1].u8[0]);
+				  TSCH_LOG_ADD(tsch_log_message, snprintf(log->message, sizeof(log->message),
+				  	"slot %d: not got ACK, transmission failed to %d\n",
+					n_ts,
+					strategy[n_ts - 1].u8[0]);
+				  );
 	  			  update_distribution_table(n_ts - 1, &strategy[n_ts - 1], 0);
 	  			  exploitation(n_ts - 1);
 	  			}
@@ -975,13 +1017,19 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
 			  if(we_are_learning == STILL_LEARNING){
 				int n_ts = (int)&current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
 				update_distribution_table(n_ts - 1, &strategy[n_ts - 1], 1);
+  			    TSCH_LOG_ADD(tsch_log_message, snprintf(log->message, sizeof(log->message),
+  			  	  "DOING FINE \n");
+  			    );
+				printf("\nDOING FINE\n");
 			  }
             }
           } else {
             mac_tx_status = MAC_TX_ERR;
   			if(we_are_learning == STILL_LEARNING){
 			  int n_ts = (int)&current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
-  			  printf("slot %d, channel busy, transmission failed \n", n_ts);
+			  TSCH_LOG_ADD(tsch_log_message, snprintf(log->message, sizeof(log->message),
+			  	"slot %d, channel busy, transmission failed \n", n_ts);
+			  );
   			  update_distribution_table(n_ts - 1, &strategy[n_ts - 1], 0);
   			  exploitation(n_ts - 1);
   			}
@@ -1086,7 +1134,10 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
       /* no packets on air */
 	  int n_ts = (int)&current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
 	  if(we_are_learning == STILL_LEARNING && n_ts) {
-		printf("slot %d: no incoming packet, listen failed\n", n_ts);
+		TSCH_LOG_ADD(tsch_log_message, snprintf(log->message, sizeof(log->message),
+			"slot %d: no incoming packet, listen failed\n", n_ts);
+		);
+		process_poll(&tsch_pending_events_process);
 		update_distribution_table(n_ts - 1, &linkaddr_null, 0);
 		exploitation(n_ts - 1);
 	  }
@@ -1231,7 +1282,11 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
       } else {
 			int n_ts = (int)&current_asn % TSCH_SCHEDULE_DEFAULT_LENGTH;
 			if(we_are_learning == STILL_LEARNING && n_ts){
-				printf("slot %d: timeout, maybe collision, listen failed\n", n_ts);
+		        TSCH_LOG_ADD(tsch_log_message,
+		            snprintf(log->message, sizeof(log->message),
+		                "slot %d: timeout, maybe collision, listen failed\n", n_ts);
+		        );
+				process_poll(&tsch_pending_events_process);
 				update_distribution_table(n_ts - 1, &linkaddr_null, 0);
 				exploitation(n_ts - 1);
 			}

@@ -56,7 +56,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_FULL
 #include "net/ip/uip-debug.h"
 
 static uip_ipaddr_t prefix;

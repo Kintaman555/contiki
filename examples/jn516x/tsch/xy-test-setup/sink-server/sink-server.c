@@ -41,7 +41,7 @@
 
 #include <string.h>
 
-#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_FULL
 #include "net/ip/uip-debug.h"
 
 #define _QUOTEME(x) #x

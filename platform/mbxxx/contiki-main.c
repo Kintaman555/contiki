@@ -76,7 +76,7 @@
 #include "net/ipv6/uip-ds6.h"
 #endif /* NETSTACK_CONF_WITH_IPV6 */
 
-#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_FULL
 #include "net/ip/uip-debug.h"
 
 #if NETSTACK_CONF_WITH_IPV6

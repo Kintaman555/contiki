@@ -39,7 +39,7 @@
 #include "net/linkaddr.h"
 #include "rich.h"
 #include "net/mac/tsch/tsch-schedule.h"
-#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_FULL
 #include "net/ip/uip-debug.h"
 #include "leds.h"
 

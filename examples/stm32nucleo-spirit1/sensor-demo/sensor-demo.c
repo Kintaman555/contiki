@@ -53,7 +53,7 @@
 #include "dev/gyroscope-sensor.h"
 #endif /*X_NUCLEO_IKS01A1*/
 
-#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_FULL
 #include "net/ip/uip-debug.h"
 
 #define PRINT_INTERVAL 5 * CLOCK_SECOND

@@ -36,7 +36,7 @@
 #include "dev/button-sensor.h"
 #include "debug.h"
 
-#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_FULL
 #include "net/ip/uip-debug.h"
 
 #define PING6_NB 5

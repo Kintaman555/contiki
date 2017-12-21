@@ -60,7 +60,7 @@
 #endif
 
 #if TSCH_LOG_LEVEL >= 1
-#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_FULL
 #else /* TSCH_LOG_LEVEL */
 #define DEBUG DEBUG_NONE
 #endif /* TSCH_LOG_LEVEL */
@@ -866,6 +866,9 @@ tsch_init(void)
    * If TSCH_AUTOSTART is not set, one needs to call NETSTACK_MAC.on() to start TSCH. */
   NETSTACK_MAC.on();
 #endif /* TSCH_AUTOSTART */
+  
+  /* Init learning module (maybe this is not where we should put it but whatever) */
+  learning_start();
 }
 /*---------------------------------------------------------------------------*/
 /* Function send for TSCH-MAC, puts the packet in packetbuf in the MAC queue */

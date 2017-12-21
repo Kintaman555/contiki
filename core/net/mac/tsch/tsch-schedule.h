@@ -133,6 +133,9 @@ void tsch_schedule_create_minimal(void);
 /* Prints out the current schedule (all slotframes and links) */
 void tsch_schedule_print(void);
 
+/* Learning module initialization */
+void learning_start(void);
+
 /* Adds and returns a slotframe (NULL if failure) */
 struct tsch_slotframe *tsch_schedule_add_slotframe(uint16_t handle, uint16_t size);
 /* Looks for a slotframe from a handle */

@@ -53,7 +53,7 @@
 #include "jsontree.h"
 #include "jsonparse.h"
 
-#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_FULL
 #include "net/uip-debug.h"
 
 #define SM_UPDATE_INTERVAL (60 * CLOCK_SECOND)
